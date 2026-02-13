@@ -5,7 +5,7 @@ import * as api from '../api';
 const DashboardPage = () => {
   const navigate = useNavigate();
   const [users, setUsers] = useState([]);
-  const [showUserList, setShowUserList] = useState(false);
+  const [showUserList, setShowUserList] = useState(true);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -24,7 +24,20 @@ const DashboardPage = () => {
   const handleCreateLead = async (user) => {
     setLoading(true);
     try {
-      const res = await api.createLeadFromUser(user.id);
+      const currentUserStr = localStorage.getItem('currentUser');
+      if (!currentUserStr) {
+        alert('Please login first to create a lead.');
+        navigate('/select-role');
+        return;
+      }
+      const currentUser = JSON.parse(currentUserStr);
+      const creatorData = {
+        creatorId: currentUser.id,
+        creatorName: `${currentUser.first_name} ${currentUser.last_name}`,
+        creatorRole: currentUser.role || 'agent' // Default to agent if role missing
+      };
+
+      const res = await api.createLeadFromUser(user.id, creatorData);
       // Navigate immediately - call processing shown on lead page
       navigate(`/lead/${res.data.id}`);
     } catch (err) {

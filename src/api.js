@@ -15,7 +15,7 @@ export const uploadUser = (file) => {
 };
 
 // ====== LEAD ENDPOINTS ======
-export const createLeadFromUser = (userId) => axios.post(`${API_URL}/from-user/${userId}`);
+export const createLeadFromUser = (userId, creatorData) => axios.post(`${API_URL}/from-user/${userId}`, creatorData);
 export const updateWhatsapp = (id, reply) => axios.post(`${API_URL}/${id}/whatsapp-result`, { reply });
 export const updateAiCall = (id, data) => axios.post(`${API_URL}/${id}/ai-call-result`, data);
 export const updateLinkActivity = (id, data) => axios.post(`${API_URL}/${id}/link-activity`, data);

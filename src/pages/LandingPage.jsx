@@ -19,7 +19,7 @@ const LandingPage = () => {
       </p>
       
       <button 
-        onClick={() => navigate('/dashboard')}
+        onClick={() => navigate('/select-role')}
         style={{ 
           fontSize: '1.5rem', 
           padding: '1rem 3rem', 

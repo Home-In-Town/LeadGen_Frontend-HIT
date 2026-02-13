@@ -4,6 +4,10 @@ import AddUserPage from './pages/AddUserPage';
 import DashboardPage from './pages/DashboardPage';
 import LeadGenerationPage from './pages/LeadGenerationPage';
 
+import RoleSelectionPage from './pages/RoleSelectionPage';
+import BuilderLoginPage from './pages/BuilderLoginPage';
+import AgentLoginPage from './pages/AgentLoginPage';
+
 function App() {
   return (
     <Router>
@@ -34,6 +38,9 @@ function App() {
         {/* Content Routes */}
         <Routes>
           <Route path="/" element={<LandingPage />} />
+          <Route path="/select-role" element={<RoleSelectionPage />} />
+          <Route path="/builder-login" element={<BuilderLoginPage />} />
+          <Route path="/agent-login" element={<AgentLoginPage />} />
           <Route path="/add-user" element={<AddUserPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/lead/:id" element={<LeadGenerationPage />} />
