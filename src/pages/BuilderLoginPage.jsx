@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { API_URL } from '../api';
 
 const BuilderLoginPage = () => {
   const navigate = useNavigate();
@@ -14,13 +15,8 @@ const BuilderLoginPage = () => {
     setError('');
 
     try {
-      // Direct call to the new endpoint we added
-      // Using direct URL or we should use API_URL from api.js if exported
-      // Ideally we should add this to api.js, but for speed I'll use direct axios
-      // But wait, API_URL in api.js is 'http://localhost:5002/api/leads'
-      // So endpoint is http://localhost:5002/api/leads/users/login
-
-      const response = await axios.post('http://localhost:5002/api/leads/users/login', {
+      // Use API_URL from api.js
+      const response = await axios.post(`${API_URL}/users/login`, {
         phone: phoneNumber
       });
 

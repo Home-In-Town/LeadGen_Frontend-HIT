@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { API_URL } from '../api';
 
 const AgentLoginPage = () => {
   const navigate = useNavigate();
@@ -14,7 +15,8 @@ const AgentLoginPage = () => {
     setError('');
 
     try {
-      const response = await axios.post('http://localhost:5002/api/leads/users/login', {
+      // Use API_URL from api.js
+      const response = await axios.post(`${API_URL}/users/login`, {
         phone: phoneNumber
       });
 
