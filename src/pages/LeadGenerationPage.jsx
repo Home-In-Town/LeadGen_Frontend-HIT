@@ -48,32 +48,53 @@ const LeadGenerationPage = () => {
     // Helper to render WhatsApp Status
     const renderWhatsAppStatus = () => {
       const result = leadData.whatsappResult;
+      const waData = leadData.whatsappData;
+      const isSent = waData?.status === 'sent';
+      const isFailed = waData?.status === 'failed';
       const isVerified = result === "YES";
       const isRejected = result === "NO";
       
-      if (!result) return (
-        <div className="simulator-card">
-          <h3>📱 WhatsApp Response</h3>
-          <p className="text-sm text-muted">No response recorded yet.</p>
-        </div>
-      );
-
       return (
         <div className="simulator-card status-card">
           <div className="status-header">
-            <h3>📱 WhatsApp</h3>
-            <span className={`status-badge ${isVerified ? 'status-HOT' : 'status-COLD'}`}>
-              {result}
-            </span>
+            <h3>📱 WHATSAPP RESPONSE</h3>
+            {result ? (
+              <span className={`status-badge ${isVerified ? 'status-HOT' : 'status-COLD'}`}>
+                {result}
+              </span>
+            ) : isSent ? (
+              <span className="status-badge status-WARM">SENT</span>
+            ) : isFailed ? (
+              <span className="status-badge status-COLD">FAILED</span>
+            ) : (
+              <span className="status-badge" style={{ background: '#e0e0e0' }}>PENDING</span>
+            )}
           </div>
           <div className="status-body">
+            {/* Send status */}
+            {isSent && !result && (
+              <p>✅ Template sent. Waiting for lead's reply...</p>
+            )}
+            {isFailed && (
+              <p className="error-text">❌ {waData?.error || 'Failed to send WhatsApp message.'}</p>
+            )}
+            {!waData?.status && !result && (
+              <p className="text-sm text-muted">No message sent yet.</p>
+            )}
+            
+            {/* Reply status */}
             {isVerified && <p>✅ Lead confirmed interest via WhatsApp.</p>}
             {isRejected && <p>❌ Lead rejected/opted-out via WhatsApp.</p>}
             {result === "NO_RESPONSE" && <p>⚠️ No response from lead yet.</p>}
             
-            {leadData.whatsappData?.messageSid && (
+            {waData?.messageSid && (
                <div className="tech-details">
-                 Message ID: {leadData.whatsappData.messageSid.slice(0, 10)}...
+                 Message ID: {waData.messageSid.slice(0, 20)}...
+               </div>
+            )}
+            {waData?.sentAt && (
+               <div className="tech-details">
+                 Sent: {new Date(waData.sentAt).toLocaleString()}
                </div>
             )}
           </div>
