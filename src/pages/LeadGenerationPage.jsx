@@ -43,266 +43,155 @@ const LeadGenerationPage = () => {
 
   if (!leadData) return <div style={{ textAlign: 'center', padding: '3rem' }}>Loading...</div>;
 
-  // SIMULATORS
-  const Simulators = () => {
-    const [waReply, setWaReply] = useState(leadData.whatsappResult || "YES");
-    const [aiForm, setAiForm] = useState(leadData.aiCallResult || {
-      interest: "HIGH",
-      budget: "MEDIUM",
-      timeline: "NOW",
-    });
-    const [linkForm, setLinkForm] = useState(leadData.linkActivity || {
-      opened: false,
-      timeSpentSeconds: 0,
-      submittedForm: false,
-    });
+  // STATUS CARDS COMPONENT
+  const InteractionStatus = () => {
+    // Helper to render WhatsApp Status
+    const renderWhatsAppStatus = () => {
+      const result = leadData.whatsappResult;
+      const isVerified = result === "YES";
+      const isRejected = result === "NO";
+      
+      if (!result) return (
+        <div className="simulator-card">
+          <h3>📱 WhatsApp Response</h3>
+          <p className="text-sm text-muted">No response recorded yet.</p>
+        </div>
+      );
 
-    const handleWhatsApp = async () => {
-      await api.updateWhatsapp(id, waReply);
-      refreshData();
+      return (
+        <div className="simulator-card status-card">
+          <div className="status-header">
+            <h3>📱 WhatsApp</h3>
+            <span className={`status-badge ${isVerified ? 'status-HOT' : 'status-COLD'}`}>
+              {result}
+            </span>
+          </div>
+          <div className="status-body">
+            {isVerified && <p>✅ Lead confirmed interest via WhatsApp.</p>}
+            {isRejected && <p>❌ Lead rejected/opted-out via WhatsApp.</p>}
+            {result === "NO_RESPONSE" && <p>⚠️ No response from lead yet.</p>}
+            
+            {leadData.whatsappData?.messageSid && (
+               <div className="tech-details">
+                 Message ID: {leadData.whatsappData.messageSid.slice(0, 10)}...
+               </div>
+            )}
+          </div>
+        </div>
+      );
     };
 
-    const handleAiCall = async () => {
-      await api.updateAiCall(id, aiForm);
-      refreshData();
+    // Helper to render AI Call Status
+    const renderCallStatus = () => {
+      const callData = leadData.voiceCallData;
+      const aiResult = leadData.aiCallResult;
+      const isCompleted = callData?.status === 'completed' || callData?.status === 'summary';
+      const isFailed = callData?.status === 'failed';
+      const isPending = callData && ['pending', 'queued', 'started'].includes(callData.status);
+
+      if (!callData && !aiResult) return (
+         <div className="simulator-card">
+           <h3>🤖 AI Call</h3>
+           <p className="text-sm text-muted">No call initiated.</p>
+           <button onClick={() => api.initiateCall(id)} disabled={isPending}>
+             {isPending ? 'Calling...' : 'Initiate Call Now'}
+           </button>
+         </div>
+      );
+
+      return (
+        <div className="simulator-card status-card">
+          <div className="status-header">
+            <h3>🤖 AI Call Analysis</h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {isPending && <span className="spinner-small"></span>}
+                <span className={`status-badge ${isCompleted ? 'status-HOT' : isFailed ? 'status-COLD' : 'status-WARM'}`}>
+                {callData?.status?.toUpperCase() || 'UNKNOWN'}
+                </span>
+                <button onClick={refreshCallStatus} className="icon-btn" title="Refresh Call Status">🔄</button>
+            </div>
+          </div>
+
+          <div className="status-body">
+            {isFailed && <p className="error-text">❌ {callData.error || "Call failed due to unknown error."}</p>}
+            
+            {(isCompleted || aiResult) && (
+              <div className="ai-insights">
+                 <div className="insight-row">
+                    <span>Interest:</span>
+                    <strong>{aiResult?.interest || 'N/A'}</strong>
+                 </div>
+                 <div className="insight-row">
+                    <span>Budget:</span>
+                    <strong>{aiResult?.budget || 'N/A'}</strong>
+                 </div>
+                 <div className="insight-row">
+                    <span>Timeline:</span>
+                    <strong>{aiResult?.timeline || 'N/A'}</strong>
+                 </div>
+              </div>
+            )}
+
+            {callData?.recordingLink && (
+              <a href={callData.recordingLink} target="_blank" rel="noopener noreferrer" className="recording-link">
+                🎧 Play Recording
+              </a>
+            )}
+            
+            {callData?.transcript && (
+                 <details className="transcript-details">
+                    <summary>View Transcript</summary>
+                    <p>{callData.transcript}</p>
+                 </details>
+            )}
+          </div>
+        </div>
+      );
     };
 
-    const handleLink = async () => {
-      await api.updateLinkActivity(id, linkForm);
-      refreshData();
+    // Helper for Link Activity
+    const renderLinkActivity = () => {
+        const activity = leadData.linkActivity;
+        const hasActivity = activity?.opened || activity?.submittedForm;
+        
+        return (
+            <div className="simulator-card status-card">
+              <div className="status-header">
+                <h3>🔗 Link Activity</h3>
+                {hasActivity ? <span className="status-badge status-HOT">ACTIVE</span> : <span className="status-badge status-COLD">INACTIVE</span>}
+              </div>
+              
+              <div className="status-body">
+                 <div className="activity-item">
+                    <span className="icon">{activity?.opened ? '✅' : '⬜'}</span>
+                    <span>Link Opened</span>
+                 </div>
+                 <div className="activity-item">
+                    <span className="icon">{activity?.submittedForm ? '✅' : '⬜'}</span>
+                    <span>Form Submitted</span>
+                 </div>
+                 {activity?.timeSpentSeconds > 0 && (
+                     <div className="activity-metric">
+                        ⏱️ Time Spent: <strong>{activity.timeSpentSeconds}s</strong>
+                     </div>
+                 )}
+                 {leadData.trackingLink && (
+                    <div className="tech-details">
+                        <a href={leadData.trackingLink} target="_blank" rel="noopener noreferrer">Test Link ↗</a>
+                    </div>
+                 )}
+              </div>
+            </div>
+        );
     };
-
-    // Get call status info
-    const callData = leadData.voiceCallData;
-    const isCallInProgress = callData && ['pending', 'queued', 'started'].includes(callData.status);
-    const isCallCompleted = callData && ['completed', 'summary'].includes(callData.status);
-    const isCallFailed = callData && callData.status === 'failed';
-
-    const getCallStatusDisplay = () => {
-      if (!callData) return null;
-      switch (callData.status) {
-        case 'pending': return { icon: '🔄', text: 'Initiating call...', color: 'var(--warning, orange)' };
-        case 'queued': return { icon: '⏳', text: 'Call queued...', color: 'var(--warning, orange)' };
-        case 'started': return { icon: '📞', text: 'Call in progress...', color: 'var(--primary)' };
-        case 'completed': case 'summary': return { icon: '✅', text: 'Call completed', color: 'var(--success)' };
-        case 'failed': return { icon: '❌', text: 'Call failed', color: 'var(--error, red)' };
-        default: return null;
-      }
-    };
-
-    const callStatus = getCallStatusDisplay();
 
     return (
       <div className="animate-fade-in">
         <h2 style={{ marginBottom: "1.5rem" }}>🚦 Lead Qualification Channels</h2>
         <div className="grid-container">
-          {/* WhatsApp Card */}
-          <div className="simulator-card">
-            <h3>📱 WhatsApp Response</h3>
-            <label>User Reply</label>
-            <select value={waReply} onChange={(e) => setWaReply(e.target.value)}>
-              <option value="YES">Reply: YES</option>
-              <option value="NO">Reply: NO</option>
-              <option value="NO_RESPONSE">No Response</option>
-            </select>
-            <button onClick={handleWhatsApp}>Simulate Reply</button>
-          </div>
-
-          {/* AI Call Card - WITH PROCESSING STATE */}
-          <div className="simulator-card" style={{ 
-            borderTop: callStatus ? `3px solid ${callStatus.color}` : undefined,
-            position: 'relative'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <h3 style={{ margin: 0 }}>🤖 AI Call Analysis</h3>
-              {callData && (
-                <button 
-                  onClick={refreshCallStatus}
-                  style={{ 
-                    padding: '0.25rem 0.5rem', 
-                    fontSize: '0.75rem',
-                    background: 'transparent',
-                    border: '1px solid var(--border-subtle)',
-                    cursor: 'pointer',
-                    borderRadius: '4px'
-                  }}
-                >
-                  🔄
-                </button>
-              )}
-            </div>
-
-            {/* Call Status Banner */}
-            {callStatus && (
-              <div style={{ 
-                background: `${callStatus.color}20`,
-                padding: '0.75rem',
-                borderRadius: '6px',
-                marginTop: '1rem',
-                marginBottom: '1rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.75rem'
-              }}>
-                {isCallInProgress && (
-                  <div style={{
-                    width: '20px',
-                    height: '20px',
-                    border: '2px solid transparent',
-                    borderTopColor: callStatus.color,
-                    borderRadius: '50%',
-                    animation: 'spin 1s linear infinite',
-                    flexShrink: 0
-                  }} />
-                )}
-                {!isCallInProgress && (
-                  <span style={{ fontSize: '1.2rem' }}>{callStatus.icon}</span>
-                )}
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: '600', color: callStatus.color, fontSize: '0.9rem' }}>
-                    {callStatus.text}
-                  </div>
-                  {isCallInProgress && (
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                      Waiting for call to complete...
-                    </div>
-                  )}
-                  {isCallCompleted && callData.duration > 0 && (
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                      Duration: {Math.floor(callData.duration / 60)}:{String(callData.duration % 60).padStart(2, '0')}
-                    </div>
-                  )}
-                  {isCallFailed && callData.error && (
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                      {callData.error}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Transcript Section - Only show if completed */}
-            {isCallCompleted && callData.transcript && (
-              <div style={{ marginBottom: '1rem' }}>
-                <div style={{ fontSize: '0.8rem', fontWeight: '600', marginBottom: '0.5rem', color: 'var(--text-muted)' }}>
-                  📝 Transcript
-                </div>
-                <div style={{ 
-                  background: 'var(--bg-input)', 
-                  padding: '0.75rem', 
-                  borderRadius: '6px', 
-                  maxHeight: '120px', 
-                  overflowY: 'auto',
-                  fontSize: '0.8rem',
-                  lineHeight: '1.5'
-                }}>
-                  {callData.transcript}
-                </div>
-              </div>
-            )}
-
-            {/* Recording Link */}
-            {isCallCompleted && callData.recordingLink && (
-              <div style={{ marginBottom: '1rem' }}>
-                <a 
-                  href={callData.recordingLink} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  style={{ 
-                    fontSize: '0.85rem',
-                    color: 'var(--primary)',
-                    textDecoration: 'none'
-                  }}
-                >
-                  🎧 Listen to Recording →
-                </a>
-              </div>
-            )}
-
-            {/* Auto-populated indicator */}
-            {callData?.contributed && (
-              <div style={{ 
-                background: 'rgba(0,255,0,0.1)', 
-                padding: '0.5rem', 
-                borderRadius: '4px', 
-                marginBottom: '1rem',
-                fontSize: '0.8rem',
-                color: 'var(--success)'
-              }}>
-                ✅ Results auto-populated from call
-              </div>
-            )}
-
-            {/* Form fields */}
-            <label>Interest Level</label>
-            <select
-              value={aiForm.interest}
-              onChange={(e) => setAiForm({ ...aiForm, interest: e.target.value })}
-              disabled={isCallInProgress}
-            >
-              <option value="HIGH">HIGH</option>
-              <option value="MEDIUM">MEDIUM</option>
-              <option value="LOW">LOW</option>
-            </select>
-            <label>Budget</label>
-            <select
-              value={aiForm.budget}
-              onChange={(e) => setAiForm({ ...aiForm, budget: e.target.value })}
-              disabled={isCallInProgress}
-            >
-              <option value="HIGH">HIGH</option>
-              <option value="MEDIUM">MEDIUM</option>
-              <option value="LOW">LOW</option>
-            </select>
-            <label>Timeline</label>
-            <select
-              value={aiForm.timeline}
-              onChange={(e) => setAiForm({ ...aiForm, timeline: e.target.value })}
-              disabled={isCallInProgress}
-            >
-              <option value="NOW">NOW</option>
-              <option value="LATER">LATER</option>
-            </select>
-            <button 
-              onClick={handleAiCall} 
-              disabled={isCallInProgress}
-              style={{ opacity: isCallInProgress ? 0.5 : 1 }}
-            >
-              {isCallInProgress ? 'Waiting for call...' : 'Update Call Outcome'}
-            </button>
-          </div>
-
-          {/* Link Click Card */}
-          <div className="simulator-card">
-            <h3>🔗 Link Activity</h3>
-            <div style={{ marginBottom: "1rem" }}>
-              <label style={{ display: "flex", alignItems: "center" }}>
-                <input
-                  type="checkbox"
-                  checked={linkForm.opened}
-                  onChange={(e) => setLinkForm({ ...linkForm, opened: e.target.checked })}
-                />
-                Link Opened
-              </label>
-            </div>
-            <label>Time Spent (sec)</label>
-            <input
-              type="number"
-              value={linkForm.timeSpentSeconds}
-              onChange={(e) => setLinkForm({ ...linkForm, timeSpentSeconds: Number(e.target.value) })}
-            />
-            <div style={{ marginTop: "1rem" }}>
-              <label style={{ display: "flex", alignItems: "center" }}>
-                <input
-                  type="checkbox"
-                  checked={linkForm.submittedForm}
-                  onChange={(e) => setLinkForm({ ...linkForm, submittedForm: e.target.checked })}
-                />
-                Form Submitted
-              </label>
-            </div>
-            <button onClick={handleLink}>Simulate Activity</button>
-          </div>
+          {renderWhatsAppStatus()}
+          {renderCallStatus()}
+          {renderLinkActivity()}
         </div>
       </div>
     );
@@ -334,11 +223,18 @@ const LeadGenerationPage = () => {
           </span>
         </div>
 
-        <div style={{ background: 'rgba(0,0,0,0.2)', padding: '1.5rem', borderRadius: '8px', marginBottom: '1.5rem' }}>
+        <div style={{ background: 'rgba(0,0,0,0.03)', padding: '1.5rem', borderRadius: '8px', marginBottom: '1.5rem' }}>
           <p style={{ fontSize: '1.1rem', lineHeight: '1.6', color: 'var(--text-main)', margin: 0 }}>
             {leadData.statusReason || "Pending analysis..."}
           </p>
         </div>
+
+        {/* Lead Creator Info */}
+        {leadData.createdBy && (
+            <div style={{ marginBottom: '1.5rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+                Created by: <strong>{leadData.createdBy.name}</strong> ({leadData.createdBy.role})
+            </div>
+        )}
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--border-subtle)' }}>
           <span style={{ color: 'var(--text-muted)' }}>AI Confidence Score:</span>
@@ -358,6 +254,68 @@ const LeadGenerationPage = () => {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
         }
+        .status-card {
+            border-left: 4px solid var(--border-subtle);
+        }
+        .status-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .status-body {
+            font-size: 0.95rem;
+        }
+        .tech-details {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 0.5rem;
+            font-family: monospace;
+        }
+        .ai-insights {
+            background: var(--bg-input);
+            padding: 0.75rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+        }
+        .insight-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.25rem;
+        }
+        .transcript-details {
+            margin-top: 0.5rem;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            cursor: pointer;
+        }
+        .recording-link {
+            display: inline-block;
+            margin-top: 0.5rem;
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .spinner-small {
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--text-muted);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+        }
+        .icon-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            padding: 4px;
+            border-radius: 4px;
+        }
+        .icon-btn:hover {
+            background: var(--bg-input);
+        }
       `}</style>
 
       <button className="secondary" onClick={() => navigate('/dashboard')} style={{ marginBottom: '2rem', width: 'auto' }}>
@@ -370,7 +328,7 @@ const LeadGenerationPage = () => {
         </span>
       </div>
 
-      <Simulators />
+      <InteractionStatus />
       <Summary />
     </div>
   );

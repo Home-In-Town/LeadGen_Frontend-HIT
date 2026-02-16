@@ -41,7 +41,7 @@ const AddUserPage = () => {
 
   return (
     <div className="animate-fade-in" style={{ maxWidth: '800px', margin: '0 auto', paddingTop: '2rem' }}>
-      <button className="secondary" onClick={() => navigate('/')} style={{ marginBottom: '2rem', width: 'auto' }}>
+      <button className="secondary" onClick={() => navigate('/dashboard')} style={{ marginBottom: '2rem', width: 'auto' }}>
         &larr; Back
       </button>
 
