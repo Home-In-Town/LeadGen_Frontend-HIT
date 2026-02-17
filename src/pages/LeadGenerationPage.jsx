@@ -59,7 +59,7 @@ const LeadGenerationPage = () => {
           <div className="status-header">
             <h3>📱 WHATSAPP RESPONSE</h3>
             {result ? (
-              <span className={`status-badge ${isVerified ? 'status-HOT' : 'status-COLD'}`}>
+              <span className={`status-badge ${isVerified ? 'status-NEW' : 'status-HOT'}`}>
                 {result}
               </span>
             ) : isSent ? (
@@ -175,6 +175,14 @@ const LeadGenerationPage = () => {
         const activity = leadData.linkActivity;
         const hasActivity = activity?.opened || activity?.submittedForm;
         
+        const formatTime = (val) => {
+            const seconds = parseFloat(val);
+            if (!seconds) return '0s';
+            if (seconds < 60) return `${Math.round(seconds)}s`;
+            if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
+            return `${(seconds / 3600).toFixed(1).replace(/\.0$/, '')}h`;
+        };
+
         return (
             <div className="simulator-card status-card">
               <div className="status-header">
@@ -193,13 +201,8 @@ const LeadGenerationPage = () => {
                  </div>
                  {activity?.timeSpentSeconds > 0 && (
                      <div className="activity-metric">
-                        ⏱️ Time Spent: <strong>{activity.timeSpentSeconds}s</strong>
+                        ⏱️ Time Spent: <strong>{formatTime(activity.timeSpentSeconds)}</strong>
                      </div>
-                 )}
-                 {leadData.trackingLink && (
-                    <div className="tech-details">
-                        <a href={leadData.trackingLink} target="_blank" rel="noopener noreferrer">Test Link ↗</a>
-                    </div>
                  )}
               </div>
             </div>

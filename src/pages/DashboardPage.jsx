@@ -6,7 +6,7 @@ const DashboardPage = () => {
   const navigate = useNavigate();
   const [users, setUsers] = useState([]);
   const [showUserList, setShowUserList] = useState(true);
-  const [loading, setLoading] = useState(false);
+  const [processingId, setProcessingId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
 
   useEffect(() => {
@@ -23,8 +23,8 @@ const DashboardPage = () => {
   };
 
   const handleCreateLead = async (user) => {
-    if (loading || deletingId) return;
-    setLoading(true);
+    if (processingId || deletingId) return;
+    setProcessingId(user.id);
     try {
       const currentUserStr = localStorage.getItem('currentUser');
       if (!currentUserStr) {
@@ -46,7 +46,7 @@ const DashboardPage = () => {
       console.error('Failed to create lead:', err);
       alert('Failed to create lead');
     } finally {
-      setLoading(false);
+      setProcessingId(null);
     }
   };
 
@@ -133,20 +133,20 @@ const DashboardPage = () => {
                   <div style={{ display: 'flex', gap: '1rem' }}>
                     <button 
                       onClick={() => handleCreateLead(user)}
-                      disabled={loading || deletingId}
+                      disabled={processingId || deletingId}
                       style={{ 
                         fontSize: '0.9rem', 
                         padding: '0.5rem 1rem',
                         width: 'auto'
                       }}
                     >
-                      {loading ? 'Processing...' : 'Create Lead'}
+                      {processingId === user.id ? 'Processing...' : 'Create Lead'}
                     </button>
                     
                     <button 
                       className="secondary"
                       onClick={(e) => handleDeleteUser(e, user.id)}
-                      disabled={loading || deletingId === user.id}
+                      disabled={processingId || deletingId === user.id}
                       style={{ 
                         fontSize: '0.9rem', 
                         padding: '0.5rem 1rem',
