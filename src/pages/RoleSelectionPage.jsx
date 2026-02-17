@@ -42,6 +42,21 @@ const RoleSelectionPage = () => {
         >
           Agent
         </button>
+
+        <button 
+          onClick={() => navigate('/admin-login')}
+          style={{ 
+            fontSize: '1.5rem', 
+            padding: '1rem 3rem', 
+            minWidth: '250px',
+            backgroundColor: 'var(--bg-secondary)',
+            color: 'var(--text-muted)',
+            border: '1px solid var(--border-subtle)',
+            boxShadow: '0 0 20px rgba(0,0,0,0.05)' 
+          }}
+        >
+          Admin
+        </button>
       </div>
     </div>
   );

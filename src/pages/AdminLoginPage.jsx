@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { API_URL } from '../api';
 
-const AgentLoginPage = () => {
+const AdminLoginPage = () => {
   const navigate = useNavigate();
   const [phoneNumber, setPhoneNumber] = useState('');
   const [error, setError] = useState('');
@@ -15,23 +15,22 @@ const AgentLoginPage = () => {
     setError('');
 
     try {
-      // Use API_URL from api.js
       const response = await axios.post(`${API_URL}/users/login`, {
         phone: phoneNumber,
-        role: 'agent'
+        role: 'admin'
       });
 
       if (response.data) {
-        // Login successful
-        // Add role='agent' to the user object before saving
-        const userWithRole = { ...response.data, role: 'agent' };
-        localStorage.setItem('currentUser', JSON.stringify(userWithRole));
+        const adminUser = { ...response.data, role: 'admin' };
+        localStorage.setItem('currentUser', JSON.stringify(adminUser));
         navigate('/dashboard');
       }
     } catch (err) {
       console.error(err);
       if (err.response && err.response.status === 404) {
-        setError('Agent not found with this phone number.');
+        setError('Admin not found with this phone number.');
+      } else if (err.response && err.response.status === 403) {
+        setError('Admin account inactive.');
       } else {
         setError('Login failed. Please try again.');
       }
@@ -49,7 +48,7 @@ const AgentLoginPage = () => {
       height: '80vh',
       textAlign: 'center'
     }}>
-      <h1 style={{ fontSize: '2.5rem', marginBottom: '2rem' }}>Agent Login</h1>
+      <h1 style={{ fontSize: '2.5rem', marginBottom: '2rem' }}>Admin Login</h1>
       
       <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%', maxWidth: '350px' }}>
         <input
@@ -81,7 +80,7 @@ const AgentLoginPage = () => {
             opacity: loading ? 0.7 : 1
           }}
         >
-          {loading ? 'Verifying...' : 'Login'}
+          {loading ? 'Verifying...' : 'Login as Admin'}
         </button>
         
         <button 
@@ -104,4 +103,4 @@ const AgentLoginPage = () => {
   );
 };
 
-export default AgentLoginPage;
+export default AdminLoginPage;

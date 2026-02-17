@@ -14,9 +14,21 @@ const AddUserPage = () => {
     setLoading(true);
     setError('');
     try {
-      await api.createUser(manualForm);
+      const currentUserStr = localStorage.getItem('currentUser');
+      let creatorData = null;
+      if (currentUserStr) {
+        const user = JSON.parse(currentUserStr);
+        creatorData = {
+          userId: user.id,
+          role: user.role,
+          name: `${user.first_name} ${user.last_name}`
+        };
+      }
+      
+      await api.createUser({ ...manualForm, createdBy: creatorData });
       navigate('/dashboard');
     } catch (err) {
+        console.error(err);
       setError('Failed to add user.');
     } finally {
       setLoading(false);
@@ -29,7 +41,18 @@ const AddUserPage = () => {
     setLoading(true);
     setError('');
     try {
-      await api.uploadUser(file);
+      const currentUserStr = localStorage.getItem('currentUser');
+      let creatorData = null;
+      if (currentUserStr) {
+        const user = JSON.parse(currentUserStr);
+        creatorData = {
+          userId: user.id,
+          role: user.role,
+          name: `${user.first_name} ${user.last_name}`
+        };
+      }
+
+      await api.uploadUser(file, creatorData);
       navigate('/dashboard');
     } catch (err) {
       console.error(err);

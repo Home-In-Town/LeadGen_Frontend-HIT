@@ -17,7 +17,8 @@ const BuilderLoginPage = () => {
     try {
       // Use API_URL from api.js
       const response = await axios.post(`${API_URL}/users/login`, {
-        phone: phoneNumber
+        phone: phoneNumber,
+        role: 'builder'
       });
 
       if (response.data) {

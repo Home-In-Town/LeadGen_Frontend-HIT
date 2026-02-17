@@ -15,7 +15,14 @@ const DashboardPage = () => {
 
   const fetchUsers = async () => {
     try {
-      const res = await api.getAllUsers();
+      const currentUserStr = localStorage.getItem('currentUser');
+      if (!currentUserStr) {
+        navigate('/select-role');
+        return;
+      }
+      const user = JSON.parse(currentUserStr);
+      const params = { userId: user.id, role: user.role };
+      const res = await api.getAllUsers(params);
       setUsers(res.data);
     } catch (err) {
       console.error('Failed to fetch users:', err);

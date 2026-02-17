@@ -7,6 +7,7 @@ import HistoryPage from './pages/HistoryPage';
 import RoleSelectionPage from './pages/RoleSelectionPage';
 import BuilderLoginPage from './pages/BuilderLoginPage';
 import AgentLoginPage from './pages/AgentLoginPage';
+import AdminLoginPage from './pages/AdminLoginPage';
 
 import DashboardLayout from './layouts/DashboardLayout';
 import PublicLayout from './layouts/PublicLayout';
@@ -21,6 +22,7 @@ function App() {
           <Route path="/select-role" element={<RoleSelectionPage />} />
           <Route path="/builder-login" element={<BuilderLoginPage />} />
           <Route path="/agent-login" element={<AgentLoginPage />} />
+          <Route path="/admin-login" element={<AdminLoginPage />} />
         </Route>
 
         {/* Protected Routes with Dashboard Navbar */}
