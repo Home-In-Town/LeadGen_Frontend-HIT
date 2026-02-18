@@ -10,13 +10,10 @@ const PublicLayout = () => {
   // The request "when i'm on landing page the navbar shows... fix it so that... only 'dashboard' shows"
   // implies hiding the navbar on landing page (even if logged in).
   
-  const location = useLocation();
-  const isLandingPage = location.pathname === '/';
-
   return (
     <>
-      {!isLandingPage && <Header showNav={false} />}
-      <main className={!isLandingPage ? "px-4" : ""}>
+      <Header showNav={false} />
+      <main>
         <Outlet />
       </main>
     </>

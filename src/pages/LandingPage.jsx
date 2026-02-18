@@ -6,20 +6,6 @@ const LandingPage = () => {
 
   return (
     <div className="animate-fade-in bg-background-light min-h-screen font-display text-charcoal">
-      {/* Navigation */}
-      <nav className="sticky top-0 z-50 flex items-center justify-between px-6 py-4 bg-white border-b border-charcoal/10">
-        <div className="flex items-center gap-2">
-          <span className="text-xl font-black tracking-tighter uppercase">One Employee</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
-          </span>
-          <span className="text-[10px] font-bold uppercase tracking-widest text-charcoal/40 ml-1">System Live</span>
-        </div>
-      </nav>
-
       <main className="relative">
         {/* Hero Section */}
         <section className="px-6 pt-12 pb-8 border-b border-charcoal/5 debug-grid bg-white">

@@ -42,65 +42,65 @@ const BuilderLoginPage = () => {
   };
 
   return (
-    <div className="animate-fade-in" style={{ 
-      display: 'flex', 
-      flexDirection: 'column', 
-      alignItems: 'center', 
-      justifyContent: 'center', 
-      height: '80vh',
-      textAlign: 'center'
-    }}>
-      <h1 style={{ fontSize: '2.5rem', marginBottom: '2rem' }}>Builder Login</h1>
-      
-      <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%', maxWidth: '350px' }}>
-        <input
-          type="tel"
-          placeholder="Enter Phone Number"
-          value={phoneNumber}
-          onChange={(e) => setPhoneNumber(e.target.value)}
-          required
-          style={{
-            padding: '1rem',
-            fontSize: '1.2rem',
-            borderRadius: '8px',
-            border: '1px solid var(--border-subtle)',
-            backgroundColor: 'var(--bg-secondary)',
-            color: 'var(--text-main)'
-          }}
-        />
-        
-        {error && <p style={{ color: 'red', marginTop: '0.5rem' }}>{error}</p>}
+    <div className="animate-fade-in bg-background-light min-h-[85vh] font-display text-charcoal flex flex-col items-center justify-center px-4">
+      <div className="w-full max-w-md">
+        <div className="border-2 shadow-lg border-primary p-8 bg-white">
+          <div className="text-center mb-8 flex flex-col items-center">
+            <span className="material-symbols-outlined text-5xl text-primary mb-3">
+              apartment
+            </span>
+            <h1 className="text-2xl md:text-3xl font-black uppercase tracking-tighter">
+              BUILDER LOGIN
+            </h1>
+          </div>
+          
+          <form onSubmit={handleLogin} className="flex flex-col gap-6">
+            <div className="flex flex-col gap-2">
+              <label className="text-[10px] font-black uppercase tracking-widest text-charcoal/40 ml-1">
+                TYPE PHONE NUMBER:
+              </label>
+              <input
+                type="tel"
+                placeholder="00000 00000"
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
+                required
+                className="w-full p-4 bg-surface-subtle border-2 border-charcoal/10 focus:border-primary focus:outline-none font-mono text-lg text-center transition-all"
+              />
+            </div>
+            
+            {error && (
+              <div className="p-3 bg-red-50 border-2 border-red-500 flex items-center gap-2">
+                <span className="material-symbols-outlined text-red-500 text-lg font-bold">warning</span>
+                <p className="text-red-600 text-[10px] font-black uppercase tracking-tight">{error}</p>
+              </div>
+            )}
 
-        <button 
-          type="submit" 
-          disabled={loading}
-          style={{ 
-            fontSize: '1.2rem', 
-            padding: '1rem', 
-            marginTop: '1rem',
-            boxShadow: '0 0 20px var(--primary-glow)',
-            opacity: loading ? 0.7 : 1
-          }}
-        >
-          {loading ? 'Verifying...' : 'Login'}
-        </button>
-        
-        <button 
-          type="button"
-          onClick={() => navigate('/select-role')}
-          style={{ 
-            fontSize: '1rem', 
-            padding: '0.5rem', 
-            background: 'none',
-            color: 'var(--text-muted)',
-            border: 'none',
-            cursor: 'pointer',
-            marginTop: '1rem'
-          }}
-        >
-          Back
-        </button>
-      </form>
+            <button 
+              type="submit" 
+              disabled={loading}
+              className="w-full bg-primary text-white py-4 font-black uppercase tracking-[0.2em] text-sm hover:bg-charcoal transition-all cursor-pointer disabled:opacity-50"
+            >
+              {loading ? 'WAIT...' : 'LOGIN'}
+            </button>
+            
+            <button 
+              type="button"
+              onClick={() => navigate('/select-role')}
+              className="mt-2 text-[10px] font-black uppercase tracking-widest text-charcoal/40 hover:text-charcoal flex items-center justify-center gap-2 cursor-pointer py-1"
+            >
+              <span className="material-symbols-outlined text-sm font-bold">arrow_back</span>
+              GO BACK
+            </button>
+          </form>
+        </div>
+
+        <div className="mt-8 text-center opacity-20">
+          <p className="font-mono text-[9px] uppercase tracking-[0.3em]">
+            SYSTEM_PROTOCOL // BUILDER_PORTAL
+          </p>
+        </div>
+      </div>
     </div>
   );
 };
