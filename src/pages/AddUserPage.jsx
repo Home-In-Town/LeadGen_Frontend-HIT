@@ -134,14 +134,14 @@ const AddUserPage = () => {
           </div>
           
           <p className="text-[10px] font-bold uppercase tracking-widest text-charcoal/40 mb-6 leading-relaxed">
-            Extract details automatically from a .docx file.
+            Extract details from .docx, .xlsx, or .csv files.
           </p>
           
           <form onSubmit={handleFileUpload} className="space-y-6 text-center">
             <div className={`border-2 border-dashed p-8 sm:p-12 transition-all duration-300 relative ${file ? 'border-emerald-500 bg-emerald-50/50' : 'border-charcoal/10 bg-surface-subtle/50 hover:border-primary/40'}`}>
               <input 
                 type="file" 
-                accept=".docx" 
+                accept=".docx,.xlsx,.csv" 
                 onChange={(e) => setFile(e.target.files[0])}
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
               />
@@ -150,7 +150,7 @@ const AddUserPage = () => {
               </span>
               <div className="space-y-1">
                 <p className={`text-[10px] font-black uppercase tracking-widest ${file ? 'text-emerald-600' : 'text-charcoal/30'}`}>
-                  {file ? 'FILE LOADED' : 'Click or Drag .docx'}
+                  {file ? 'FILE LOADED' : 'Click to Upload (DOCX/XLSX/CSV)'}
                 </p>
                 {file && (
                   <p className="text-[9px] font-mono font-bold text-charcoal/60 truncate max-w-[200px] mx-auto">
