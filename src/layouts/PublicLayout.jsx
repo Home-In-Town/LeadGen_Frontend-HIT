@@ -1,4 +1,4 @@
-import { Outlet, Navigate } from 'react-router-dom';
+import { Outlet, Navigate, useLocation } from 'react-router-dom';
 import Header from '../components/Header';
 
 const PublicLayout = () => {
@@ -10,10 +10,13 @@ const PublicLayout = () => {
   // The request "when i'm on landing page the navbar shows... fix it so that... only 'dashboard' shows"
   // implies hiding the navbar on landing page (even if logged in).
   
+  const location = useLocation();
+  const isLandingPage = location.pathname === '/';
+
   return (
     <>
-      <Header showNav={false} />
-      <main style={{ padding: '0 1rem' }}>
+      {!isLandingPage && <Header showNav={false} />}
+      <main className={!isLandingPage ? "px-4" : ""}>
         <Outlet />
       </main>
     </>
