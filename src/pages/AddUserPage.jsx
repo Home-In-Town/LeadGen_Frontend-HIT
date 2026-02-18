@@ -6,12 +6,13 @@ const AddUserPage = () => {
   const navigate = useNavigate();
   const [manualForm, setManualForm] = useState({ name: '', phone: '' });
   const [file, setFile] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [manualLoading, setManualLoading] = useState(false);
+  const [fileLoading, setFileLoading] = useState(false);
   const [error, setError] = useState('');
 
   const handleManualSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
+      setManualLoading(true);
     setError('');
     try {
       const currentUserStr = localStorage.getItem('currentUser');
@@ -26,19 +27,19 @@ const AddUserPage = () => {
       }
       
       await api.createUser({ ...manualForm, createdBy: creatorData });
-      navigate('/dashboard');
+      navigate('/users');
     } catch (err) {
         console.error(err);
       setError('Failed to add user.');
     } finally {
-      setLoading(false);
+      setManualLoading(false);
     }
   };
 
   const handleFileUpload = async (e) => {
     e.preventDefault();
     if (!file) return;
-    setLoading(true);
+    setFileLoading(true);
     setError('');
     try {
       const currentUserStr = localStorage.getItem('currentUser');
@@ -53,12 +54,12 @@ const AddUserPage = () => {
       }
 
       await api.uploadUser(file, creatorData);
-      navigate('/dashboard');
+      navigate('/users');
     } catch (err) {
       console.error(err);
       setError('Failed to process document.');
     } finally {
-      setLoading(false);
+      setFileLoading(false);
     }
   };
 
@@ -79,7 +80,7 @@ const AddUserPage = () => {
         <h1 className="text-2xl sm:text-3xl font-black uppercase tracking-tighter mb-2">
           Add New Person
         </h1>
-        <p className="text-charcoal/40 text-[10px] font-bold uppercase tracking-[0.2em]">
+        <p className="text-charcoal/40 text-[10px] font-bold uppercase tracking-widest">
           Expand your lead database
         </p>
       </div>
@@ -118,10 +119,10 @@ const AddUserPage = () => {
 
             <button 
               type="submit" 
-              disabled={loading}
+              disabled={manualLoading}
               className="w-full bg-charcoal text-white py-4 font-black uppercase tracking-widest text-xs border-2 border-charcoal hover:bg-primary hover:border-primary transition-all cursor-pointer disabled:opacity-50"
             >
-              {loading ? 'PROCESSING...' : 'ADD TO SYSTEM'}
+              {manualLoading ? 'PROCESSING...' : 'ADD TO SYSTEM'}
             </button>
           </form>
         </div>
@@ -162,10 +163,10 @@ const AddUserPage = () => {
             
             <button 
               type="submit" 
-              disabled={!file || loading}
+              disabled={!file || fileLoading}
               className="w-full bg-charcoal text-white py-4 font-black uppercase tracking-widest text-xs border-2 border-charcoal hover:bg-primary hover:border-primary transition-all cursor-pointer disabled:opacity-50"
             >
-              {loading ? 'EXTRACTING...' : 'PROCESS FILE'}
+              {fileLoading ? 'EXTRACTING...' : 'PROCESS FILE'}
             </button>
           </form>
         </div>
