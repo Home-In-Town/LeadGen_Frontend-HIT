@@ -6,9 +6,13 @@ const LeadGenerationPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [leadData, setLeadData] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
+    const userStr = localStorage.getItem('currentUser');
+    if (userStr) setCurrentUser(JSON.parse(userStr));
+    
     if (id) {
       refreshData();
     }
@@ -83,9 +87,17 @@ const LeadGenerationPage = () => {
             <h1 className="text-2xl sm:text-3xl font-black uppercase tracking-tighter leading-none mb-1">
               {leadData.first_name} {leadData.last_name}
             </h1>
-            <div className="flex items-center gap-2 font-mono font-bold text-charcoal/40 text-xs sm:text-base">
-              <span className="material-symbols-outlined text-sm sm:text-lg">call</span>
-              {leadData.phone_number}
+            <div className="flex flex-wrap items-center gap-4 font-mono font-bold text-charcoal/40 text-xs sm:text-sm">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-sm sm:text-lg">call</span>
+                {leadData.phone_number}
+              </div>
+              {currentUser?.role === 'admin' && leadData.createdBy?.name && (
+                <div className="flex items-center gap-2 bg-primary/5 text-primary px-2 py-0.5 border border-primary/10 rounded-sm">
+                  <span className="material-symbols-outlined text-[14px]">source</span>
+                  SOURCE: {leadData.createdBy.name}
+                </div>
+              )}
             </div>
           </div>
           

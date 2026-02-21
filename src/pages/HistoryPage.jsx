@@ -6,6 +6,7 @@ const HistoryPage = () => {
   const navigate = useNavigate();
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [currentUser, setCurrentUser] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
@@ -27,6 +28,7 @@ const HistoryPage = () => {
         return;
       }
       const user = JSON.parse(currentUserStr);
+      setCurrentUser(user);
       const params = { userId: user.id, role: user.role };
       const res = await api.getAllLeads(params);
       setLeads(res.data);
@@ -122,10 +124,16 @@ const HistoryPage = () => {
                     <h3 className="text-base sm:text-lg font-black uppercase tracking-tighter mb-0.5 truncate">
                       {lead.first_name} {lead.last_name}
                     </h3>
-                    <div className="font-mono text-charcoal/40 text-[11px] sm:text-xs font-bold flex items-center gap-1.5 uppercase tracking-tight">
+                    <div className="font-mono text-charcoal/40 text-[11px] sm:text-xs font-bold flex flex-wrap items-center gap-1.5 uppercase tracking-tight">
                       <span>{lead.phone_number}</span>
                       <span className="text-[10px] opacity-30">|</span>
                       <span>{new Date(lead.createdAt || Date.now()).toLocaleDateString()}</span>
+                      {currentUser?.role === 'admin' && lead.createdBy?.name && (
+                        <>
+                          <span className="text-[10px] opacity-30">|</span>
+                          <span className="text-primary/70 bg-primary/5 px-1.5 py-0.5 border border-primary/10 rounded-sm">SRC: {lead.createdBy.name}</span>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
