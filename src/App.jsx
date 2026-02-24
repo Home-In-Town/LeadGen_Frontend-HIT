@@ -9,6 +9,7 @@ import RoleSelectionPage from './pages/RoleSelectionPage';
 import BuilderLoginPage from './pages/BuilderLoginPage';
 import AgentLoginPage from './pages/AgentLoginPage';
 import AdminLoginPage from './pages/AdminLoginPage';
+import SSOPage from './pages/SSOPage';
 
 import DashboardLayout from './layouts/DashboardLayout';
 import PublicLayout from './layouts/PublicLayout';
@@ -24,6 +25,7 @@ function App() {
           <Route path="/builder-login" element={<BuilderLoginPage />} />
           <Route path="/agent-login" element={<AgentLoginPage />} />
           <Route path="/admin-login" element={<AdminLoginPage />} />
+          <Route path="/sso" element={<SSOPage />} />
         </Route>
 
         {/* Protected Routes with Dashboard Navbar */}

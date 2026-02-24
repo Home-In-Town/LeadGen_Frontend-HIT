@@ -1,13 +1,17 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { io } from "socket.io-client";
 import * as api from "../api";
 
 const LeadGenerationPage = () => {
-  const { id } = useParams();
+  const [id] = useParams().id ? [useParams().id] : [null]; // Keep destructured id
   const navigate = useNavigate();
   const [leadData, setLeadData] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showLiveBadge, setShowLiveBadge] = useState(false);
+  const [lastUpdateType, setLastUpdateType] = useState(null);
+  const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
     const userStr = localStorage.getItem('currentUser');
@@ -15,6 +19,41 @@ const LeadGenerationPage = () => {
     
     if (id) {
       refreshData();
+
+      // Socket.io initialization
+      const socket = io(import.meta.env.VITE_API_BASE_URL || 'http://localhost:5002');
+      
+      socket.on('connect', () => {
+        console.log('🔌 Connected to real-time server');
+        setIsConnected(true);
+        socket.emit('join_lead', id);
+      });
+
+      socket.on('disconnect', () => {
+        console.log('❌ Disconnected from real-time server');
+        setIsConnected(false);
+      });
+
+      const handleUpdate = (data, type) => {
+        console.log(`📡 Received ${type} update:`, data);
+        setLeadData(prev => ({
+          ...prev,
+          ...data
+        }));
+        setLastUpdateType(type);
+        setShowLiveBadge(true);
+        setTimeout(() => setShowLiveBadge(false), 3000);
+        // Clear highlight after 5 seconds
+        setTimeout(() => setLastUpdateType(prev => prev === type ? null : prev), 5000);
+      };
+
+      socket.on('whatsapp_update', (data) => handleUpdate(data, 'whatsapp'));
+      socket.on('analytics_update', (data) => handleUpdate(data, 'analytics'));
+      socket.on('call_update', (data) => handleUpdate(data, 'call'));
+
+      return () => {
+        socket.disconnect();
+      };
     }
   }, [id]);
 
@@ -83,7 +122,15 @@ const LeadGenerationPage = () => {
       <div className="bg-white border-2 border-charcoal p-4 sm:p-6 mb-8 sm:mb-10 shadow-sm">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div className="flex-1">
-            <h3 className="text-[9px] font-black uppercase tracking-[0.3em] text-charcoal/30 mb-1">Lead Identity</h3>
+            <div className="flex items-center gap-4">
+              <h3 className="text-[9px] font-black uppercase tracking-[0.3em] text-charcoal/30">Lead Identity</h3>
+              {isConnected && (
+                <div className="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-50 border border-emerald-100 rounded-full">
+                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
+                  <span className="text-[8px] font-black text-emerald-600 uppercase tracking-widest">Live Connection</span>
+                </div>
+              )}
+            </div>
             <h1 className="text-2xl sm:text-3xl font-black uppercase tracking-tighter leading-none mb-1">
               {leadData.first_name} {leadData.last_name}
             </h1>
@@ -132,6 +179,16 @@ const LeadGenerationPage = () => {
         </div>
       </div>
 
+      {/* Live Update Toast */}
+      {showLiveBadge && (
+        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-50 animate-bounce">
+          <div className="bg-charcoal text-white px-4 py-2 border-2 border-primary shadow-[4px_4px_0px_0px_rgba(255,215,0,1)] flex items-center gap-3">
+            <span className="material-symbols-outlined text-primary text-sm font-black">bolt</span>
+            <p className="text-[10px] font-black uppercase tracking-widest">Real-time update received: {lastUpdateType}</p>
+          </div>
+        </div>
+      )}
+
       {/* Channel Grid */}
       <h2 className="text-xl font-black uppercase tracking-tight mb-6 flex items-center gap-3">
         <span className="material-symbols-outlined font-black">insights</span>
@@ -140,7 +197,12 @@ const LeadGenerationPage = () => {
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* WhatsApp Channel */}
-        <div className="bg-white border-2 border-charcoal p-6 transition-all group hover:border-primary">
+        <div className={`bg-white border-2 p-6 transition-all duration-500 group relative
+          ${lastUpdateType === 'whatsapp' ? 'border-primary ring-4 ring-primary/20 scale-[1.02] shadow-lg z-10' : 'border-charcoal'} 
+          hover:border-primary`}>
+          {lastUpdateType === 'whatsapp' && (
+             <div className="absolute -top-3 -right-3 bg-primary text-charcoal px-2 py-1 text-[8px] font-black uppercase tracking-tighter animate-pulse border-2 border-charcoal">Updated</div>
+          )}
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-xs font-black uppercase tracking-widest flex items-center gap-2">
               <span className="material-symbols-outlined text-emerald-500">chat</span>
@@ -175,7 +237,12 @@ const LeadGenerationPage = () => {
         </div>
 
         {/* AI Voice Channel */}
-        <div className="bg-white border-2 border-charcoal p-6 transition-all group hover:border-primary">
+        <div className={`bg-white border-2 p-6 transition-all duration-500 group relative
+          ${lastUpdateType === 'call' ? 'border-primary ring-4 ring-primary/20 scale-[1.02] shadow-lg z-10' : 'border-charcoal'} 
+          hover:border-primary`}>
+          {lastUpdateType === 'call' && (
+             <div className="absolute -top-3 -right-3 bg-primary text-charcoal px-2 py-1 text-[8px] font-black uppercase tracking-tighter animate-pulse border-2 border-charcoal">Updated</div>
+          )}
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-xs font-black uppercase tracking-widest flex items-center gap-2">
               <span className="material-symbols-outlined text-blue-500">record_voice_over</span>
@@ -237,7 +304,12 @@ const LeadGenerationPage = () => {
         </div>
 
         {/* Link Activity Channel */}
-        <div className="bg-white border-2 border-charcoal p-6 transition-all group hover:border-primary">
+        <div className={`bg-white border-2 p-6 transition-all duration-500 group relative
+          ${lastUpdateType === 'analytics' ? 'border-primary ring-4 ring-primary/20 scale-[1.02] shadow-lg z-10' : 'border-charcoal'} 
+          hover:border-primary`}>
+          {lastUpdateType === 'analytics' && (
+             <div className="absolute -top-3 -right-3 bg-primary text-charcoal px-2 py-1 text-[8px] font-black uppercase tracking-tighter animate-pulse border-2 border-charcoal">Updated</div>
+          )}
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-xs font-black uppercase tracking-widest flex items-center gap-2">
               <span className="material-symbols-outlined text-charcoal/40 group-hover:text-primary">link</span>
