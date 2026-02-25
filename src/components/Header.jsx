@@ -14,9 +14,10 @@ const Header = ({ showNav }) => {
   };
 
   const handleLogout = () => {
-    if (confirm('Are you sure you want to logout?')) {
+    if (confirm('Exit to Sales Dashboard? This will end your session here.')) {
       localStorage.removeItem('currentUser');
-      navigate('/');
+      // Redirect to the main sales website dashboard
+      window.location.href = 'https://www.homeintown.in/dashboard';
     }
   };
 
@@ -79,9 +80,10 @@ const Header = ({ showNav }) => {
                 </div>
                 <button 
                   onClick={handleLogout}
-                  className="bg-white border border-charcoal/20 px-3 py-1.5 font-black uppercase tracking-widest text-[9px] text-charcoal/60 hover:bg-charcoal hover:text-white cursor-pointer transition-all"
+                  className="bg-white border border-charcoal/20 px-3 py-1.5 font-black uppercase tracking-widest text-[9px] text-charcoal/60 hover:bg-charcoal hover:text-white cursor-pointer transition-all flex items-center gap-2"
                 >
-                  Logout
+                  <span className="material-symbols-outlined text-[10px]">arrow_back</span>
+                  Sales Dashboard
                 </button>
               </div>
             </nav>
@@ -159,9 +161,10 @@ const Header = ({ showNav }) => {
                 setIsMenuOpen(false);
                 handleLogout();
               }}
-              className="w-full bg-charcoal text-white py-3 font-black uppercase tracking-widest text-[10px] border-2 border-charcoal hover:bg-primary transition-all cursor-pointer"
+              className="w-full bg-charcoal text-white py-3 font-black uppercase tracking-widest text-[10px] border-2 border-charcoal hover:bg-primary transition-all cursor-pointer flex items-center justify-center gap-2"
             >
-              Terminate Session (Logout)
+              <span className="material-symbols-outlined text-[14px]">arrow_back</span>
+              Back to Sales Dashboard
             </button>
           </div>
         </div>
