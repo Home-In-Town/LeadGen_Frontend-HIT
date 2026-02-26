@@ -2,9 +2,12 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { io } from "socket.io-client";
 import * as api from "../api";
+import WhatsAppSection from "../components/lead/WhatsAppSection";
+import VoiceCallSection from "../components/lead/VoiceCallSection";
+import LinkActivitySection from "../components/lead/LinkActivitySection";
 
 const LeadGenerationPage = () => {
-  const [id] = useParams().id ? [useParams().id] : [null]; // Keep destructured id
+  const [id] = useParams().id ? [useParams().id] : [null];
   const navigate = useNavigate();
   const [leadData, setLeadData] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
@@ -20,7 +23,6 @@ const LeadGenerationPage = () => {
     if (id) {
       refreshData();
 
-      // Socket.io initialization
       const socket = io(import.meta.env.VITE_API_BASE_URL || 'http://localhost:5002');
       
       socket.on('connect', () => {
@@ -36,14 +38,10 @@ const LeadGenerationPage = () => {
 
       const handleUpdate = (data, type) => {
         console.log(`📡 Received ${type} update:`, data);
-        setLeadData(prev => ({
-          ...prev,
-          ...data
-        }));
+        setLeadData(prev => ({ ...prev, ...data }));
         setLastUpdateType(type);
         setShowLiveBadge(true);
         setTimeout(() => setShowLiveBadge(false), 3000);
-        // Clear highlight after 5 seconds
         setTimeout(() => setLastUpdateType(prev => prev === type ? null : prev), 5000);
       };
 
@@ -51,9 +49,7 @@ const LeadGenerationPage = () => {
       socket.on('analytics_update', (data) => handleUpdate(data, 'analytics'));
       socket.on('call_update', (data) => handleUpdate(data, 'call'));
 
-      return () => {
-        socket.disconnect();
-      };
+      return () => { socket.disconnect(); };
     }
   }, [id]);
 
@@ -92,14 +88,6 @@ const LeadGenerationPage = () => {
       </div>
     );
   }
-
-  const formatTime = (val) => {
-    const seconds = parseFloat(val);
-    if (!seconds) return '0s';
-    if (seconds < 60) return `${Math.round(seconds)}s`;
-    if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
-    return `${(seconds / 3600).toFixed(1).replace(/\.0$/, '')}h`;
-  };
 
   return (
     <div className="animate-fade-in font-display text-charcoal pb-20">
@@ -189,170 +177,16 @@ const LeadGenerationPage = () => {
         </div>
       )}
 
-      {/* Channel Grid */}
+      {/* Channel Grid — Composed from sub-components */}
       <h2 className="text-xl font-black uppercase tracking-tight mb-6 flex items-center gap-3">
         <span className="material-symbols-outlined font-black">insights</span>
         Qualification Channels
       </h2>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* WhatsApp Channel */}
-        <div className={`bg-white border-2 p-6 transition-all duration-500 group relative
-          ${lastUpdateType === 'whatsapp' ? 'border-primary ring-4 ring-primary/20 scale-[1.02] shadow-lg z-10' : 'border-charcoal'} 
-          hover:border-primary`}>
-          {lastUpdateType === 'whatsapp' && (
-             <div className="absolute -top-3 -right-3 bg-primary text-charcoal px-2 py-1 text-[8px] font-black uppercase tracking-tighter animate-pulse border-2 border-charcoal">Updated</div>
-          )}
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-xs font-black uppercase tracking-widest flex items-center gap-2">
-              <span className="material-symbols-outlined text-emerald-500">chat</span>
-              WhatsApp
-            </h3>
-            {leadData.whatsappResult ? (
-              <span className="text-[10px] font-black uppercase bg-charcoal text-white px-2 py-1 tracking-widest">
-                {leadData.whatsappResult}
-              </span>
-            ) : leadData.whatsappData?.status === 'sent' ? (
-              <span className="text-[10px] font-black uppercase bg-primary text-white px-2 py-1 tracking-widest">SENT</span>
-            ) : (
-              <span className="text-[10px] font-black uppercase bg-surface-subtle text-charcoal/30 px-2 py-1 tracking-widest border border-charcoal/5">PENDING</span>
-            )}
-          </div>
-          
-          <div className="space-y-4">
-            {leadData.whatsappResult === "YES" && <p className="text-sm font-bold text-emerald-600">✅ Lead expressed interest.</p>}
-            {leadData.whatsappResult === "NO" && <p className="text-sm font-bold text-red-600">❌ Lead rejected or opted out.</p>}
-            {leadData.whatsappData?.status === 'sent' && !leadData.whatsappResult && <p className="text-sm text-charcoal/60">Waiting for reply to template...</p>}
-            {leadData.whatsappData?.error && <p className="text-xs text-red-500 italic">Error: {leadData.whatsappData.error}</p>}
-            
-            <div className="pt-4 border-t border-charcoal/5 space-y-2">
-               {leadData.whatsappData?.messageSid && (
-                  <p className="font-mono text-[9px] uppercase text-charcoal/30">ID: {leadData.whatsappData.messageSid.slice(0, 16)}...</p>
-               )}
-               {leadData.whatsappData?.sentAt && (
-                   <p className="font-mono text-[9px] uppercase text-charcoal/30">Sent: {new Date(leadData.whatsappData.sentAt).toLocaleString()}</p>
-               )}
-            </div>
-          </div>
-        </div>
-
-        {/* AI Voice Channel */}
-        <div className={`bg-white border-2 p-6 transition-all duration-500 group relative
-          ${lastUpdateType === 'call' ? 'border-primary ring-4 ring-primary/20 scale-[1.02] shadow-lg z-10' : 'border-charcoal'} 
-          hover:border-primary`}>
-          {lastUpdateType === 'call' && (
-             <div className="absolute -top-3 -right-3 bg-primary text-charcoal px-2 py-1 text-[8px] font-black uppercase tracking-tighter animate-pulse border-2 border-charcoal">Updated</div>
-          )}
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-xs font-black uppercase tracking-widest flex items-center gap-2">
-              <span className="material-symbols-outlined text-blue-500">record_voice_over</span>
-              AI Agent
-            </h3>
-            <div className="flex items-center gap-2">
-              <span className={`text-[10px] font-black uppercase px-2 py-1 tracking-widest truncate max-w-[80px]
-                ${leadData.voiceCallData?.status?.toLowerCase() === 'failed' ? 'bg-red-600 text-white' :
-                  leadData.voiceCallData?.status?.toLowerCase() === 'completed' || leadData.voiceCallData?.status?.toLowerCase() === 'analytics' ? 'bg-emerald-600 text-white' :
-                  'bg-charcoal text-white'}`}>
-                {leadData.voiceCallData?.status?.toLowerCase() === 'failed' 
-                  ? (leadData.voiceCallData?.failReason === 'unanswered_or_declined' ? 'NO ANSWER' : 'FAILED')
-                  : (leadData.voiceCallData?.status || 'INIT')}
-              </span>
-              <button 
-                onClick={refreshCallStatus}
-                disabled={isRefreshing}
-                className="p-1 hover:bg-surface-subtle cursor-pointer transition-colors"
-                title="Refresh Call"
-              >
-                <span className={`material-symbols-outlined text-sm font-black ${isRefreshing ? 'animate-spin' : ''}`}>sync</span>
-              </button>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            {leadData.voiceCallData?.status?.toLowerCase() === 'failed' ? (
-              <p className="text-sm font-bold text-red-600">
-                ❌ {leadData.voiceCallData?.failReason === 'unanswered_or_declined' 
-                  ? 'Call was not answered or was declined by the lead.' 
-                  : 'Call failed to connect.'}
-              </p>
-            ) : leadData.aiCallResult ? (
-              <div className="grid grid-cols-2 gap-2">
-                <div className="p-2 bg-surface-subtle border border-charcoal/5">
-                  <p className="text-[8px] font-black uppercase text-charcoal/30">Interest</p>
-                  <p className="text-[10px] font-bold uppercase">{leadData.aiCallResult.interest || 'N/A'}</p>
-                </div>
-                <div className="p-2 bg-surface-subtle border border-charcoal/5">
-                  <p className="text-[8px] font-black uppercase text-charcoal/30">Budget</p>
-                  <p className="text-[10px] font-bold uppercase">{leadData.aiCallResult.budget || 'N/A'}</p>
-                </div>
-              </div>
-            ) : <p className="text-sm text-charcoal/60">Gathering conversation data...</p>}
-
-            {leadData.voiceCallData?.recordingLink && (
-              <a 
-                href={leadData.voiceCallData.recordingLink} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary hover:text-charcoal transition-colors group"
-              >
-                <span className="material-symbols-outlined text-sm font-black">play_circle</span>
-                Listen Recording
-              </a>
-            )}
-
-            {leadData.voiceCallData?.transcript && (
-              <details className="cursor-pointer group">
-                <summary className="text-[10px] font-black uppercase tracking-widest text-charcoal/40 hover:text-charcoal list-none flex items-center gap-2">
-                   <span className="material-symbols-outlined text-sm font-black transition-transform group-open:rotate-180">expand_more</span>
-                   Full Transcript
-                </summary>
-                <p className="pt-2 text-[11px] leading-relaxed text-charcoal/60 italic border-l-2 border-charcoal/5 pl-3 mt-1 uppercase">
-                  {leadData.voiceCallData.transcript}
-                </p>
-              </details>
-            )}
-          </div>
-        </div>
-
-        {/* Link Activity Channel */}
-        <div className={`bg-white border-2 p-6 transition-all duration-500 group relative
-          ${lastUpdateType === 'analytics' ? 'border-primary ring-4 ring-primary/20 scale-[1.02] shadow-lg z-10' : 'border-charcoal'} 
-          hover:border-primary`}>
-          {lastUpdateType === 'analytics' && (
-             <div className="absolute -top-3 -right-3 bg-primary text-charcoal px-2 py-1 text-[8px] font-black uppercase tracking-tighter animate-pulse border-2 border-charcoal">Updated</div>
-          )}
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-xs font-black uppercase tracking-widest flex items-center gap-2">
-              <span className="material-symbols-outlined text-charcoal/40 group-hover:text-primary">link</span>
-              Portfolio
-            </h3>
-            <span className={`text-[10px] font-black uppercase px-2 py-1 tracking-widest
-              ${leadData.linkActivity?.opened ? 'bg-primary text-white' : 'bg-surface-subtle text-charcoal/30'}`}>
-              {leadData.linkActivity?.opened ? 'ACTIVE' : 'IDLE'}
-            </span>
-          </div>
-
-          <div className="space-y-4">
-            <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-tight">
-              <span>Opened Link</span>
-              <span className={leadData.linkActivity?.opened ? 'text-emerald-500' : 'text-charcoal/20'}>
-                {leadData.linkActivity?.opened ? 'YES' : 'NO'}
-              </span>
-            </div>
-            <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-tight">
-              <span>Form Submitted</span>
-              <span className={leadData.linkActivity?.submittedForm ? 'text-emerald-500' : 'text-charcoal/20'}>
-                {leadData.linkActivity?.submittedForm ? 'YES' : 'NO'}
-              </span>
-            </div>
-            {leadData.linkActivity?.timeSpentSeconds > 0 && (
-              <div className="pt-4 border-t border-charcoal/5 flex justify-between items-end">
-                <p className="text-[8px] font-black uppercase text-charcoal/30">Total Duration</p>
-                <p className="font-mono text-lg font-black">{formatTime(leadData.linkActivity.timeSpentSeconds)}</p>
-              </div>
-            )}
-          </div>
-        </div>
+        <WhatsAppSection leadData={leadData} isHighlighted={lastUpdateType === 'whatsapp'} />
+        <VoiceCallSection leadData={leadData} isHighlighted={lastUpdateType === 'call'} onRefresh={refreshCallStatus} isRefreshing={isRefreshing} />
+        <LinkActivitySection leadData={leadData} isHighlighted={lastUpdateType === 'analytics'} />
       </div>
 
       {/* Footer Branding */}

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as api from '../api';
+import { getStatusClasses, getStatusLabel } from '../utils/leadUtils';
 
 const HistoryPage = () => {
   const navigate = useNavigate();
@@ -39,17 +40,7 @@ const HistoryPage = () => {
     }
   };
 
-  const getStatusClasses = (score) => {
-    if (score >= 80) return 'bg-red-50 text-red-600 border-red-200'; // HOT
-    if (score >= 50) return 'bg-orange-50 text-orange-600 border-orange-200'; // WARM
-    return 'bg-emerald-50 text-emerald-600 border-emerald-200'; // NEW/COLD
-  };
-
-  const statusLabel = (score) => {
-    if (score >= 80) return 'HOT';
-    if (score >= 50) return 'WARM';
-    return 'COLD';
-  };
+  // getStatusClasses and getStatusLabel imported from utils/leadUtils.js
 
   const filteredLeads = leads.filter(lead => {
     const term = searchTerm.toLowerCase();
@@ -140,7 +131,7 @@ const HistoryPage = () => {
                 
                 <div className="flex flex-row items-center gap-4 w-full sm:w-auto shrink-0 pt-3 sm:pt-0 border-t sm:border-t-0 border-charcoal/5 sm:border-none justify-between sm:justify-end">
                   <div className={`px-4 py-1.5 border-2 text-[9px] font-black uppercase tracking-[0.15em] ${getStatusClasses(lead.score)}`}>
-                    {statusLabel(lead.score)} ({lead.score}%)
+                    {getStatusLabel(lead.score)} ({lead.score}%)
                   </div>
                   <span className="material-symbols-outlined text-charcoal/20 group-hover:text-primary transition-colors group-hover:translate-x-1 duration-300">
                     arrow_forward
