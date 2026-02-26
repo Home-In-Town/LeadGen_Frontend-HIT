@@ -249,8 +249,13 @@ const LeadGenerationPage = () => {
               AI Agent
             </h3>
             <div className="flex items-center gap-2">
-              <span className="text-[10px] font-black uppercase bg-charcoal text-white px-2 py-1 tracking-widest truncate max-w-[80px]">
-                {leadData.voiceCallData?.status || 'INIT'}
+              <span className={`text-[10px] font-black uppercase px-2 py-1 tracking-widest truncate max-w-[80px]
+                ${leadData.voiceCallData?.status?.toLowerCase() === 'failed' ? 'bg-red-600 text-white' :
+                  leadData.voiceCallData?.status?.toLowerCase() === 'completed' || leadData.voiceCallData?.status?.toLowerCase() === 'analytics' ? 'bg-emerald-600 text-white' :
+                  'bg-charcoal text-white'}`}>
+                {leadData.voiceCallData?.status?.toLowerCase() === 'failed' 
+                  ? (leadData.voiceCallData?.failReason === 'unanswered_or_declined' ? 'NO ANSWER' : 'FAILED')
+                  : (leadData.voiceCallData?.status || 'INIT')}
               </span>
               <button 
                 onClick={refreshCallStatus}
@@ -264,7 +269,13 @@ const LeadGenerationPage = () => {
           </div>
 
           <div className="space-y-4">
-            {leadData.aiCallResult ? (
+            {leadData.voiceCallData?.status?.toLowerCase() === 'failed' ? (
+              <p className="text-sm font-bold text-red-600">
+                ❌ {leadData.voiceCallData?.failReason === 'unanswered_or_declined' 
+                  ? 'Call was not answered or was declined by the lead.' 
+                  : 'Call failed to connect.'}
+              </p>
+            ) : leadData.aiCallResult ? (
               <div className="grid grid-cols-2 gap-2">
                 <div className="p-2 bg-surface-subtle border border-charcoal/5">
                   <p className="text-[8px] font-black uppercase text-charcoal/30">Interest</p>
