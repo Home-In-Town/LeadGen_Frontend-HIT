@@ -31,3 +31,10 @@ export const deleteLead = (id) => axios.delete(`${API_URL}/${id}`);
 
 // ====== VOICE CALL ENDPOINTS ======
 export const getCallStatus = (leadId) => axios.get(`${VOICE_API_URL}/status/${leadId}`);
+
+// ====== LEAD AUTOMATION ENDPOINTS ======
+const AUTOMATION_API_URL = `${BASE_URL}/api/lead-automation`;
+export const getWhatsappTemplates = () => axios.get(`${AUTOMATION_API_URL}/templates`);
+export const getLeadAutomations = (leadId) => axios.get(`${AUTOMATION_API_URL}/lead/${leadId}`);
+export const createLeadAutomation = (data) => axios.post(AUTOMATION_API_URL, data);
+export const deleteLeadAutomation = (id) => axios.delete(`${AUTOMATION_API_URL}/${id}`);

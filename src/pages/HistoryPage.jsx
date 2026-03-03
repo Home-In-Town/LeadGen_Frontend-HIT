@@ -130,6 +130,16 @@ const HistoryPage = () => {
                 </div>
                 
                 <div className="flex flex-row items-center gap-4 w-full sm:w-auto shrink-0 pt-3 sm:pt-0 border-t sm:border-t-0 border-charcoal/5 sm:border-none justify-between sm:justify-end">
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/lead-automation/${lead.id}`);
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 border-2 border-charcoal text-[9px] font-black uppercase tracking-[0.15em] hover:bg-charcoal hover:text-white transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-[12px]">calendar_month</span>
+                    Set Automation
+                  </button>
                   <div className={`px-4 py-1.5 border-2 text-[9px] font-black uppercase tracking-[0.15em] ${getStatusClasses(lead.score)}`}>
                     {getStatusLabel(lead.score)} ({lead.score}%)
                   </div>

@@ -5,6 +5,7 @@ import DashboardPage from './pages/DashboardPage';
 import LeadGenerationPage from './pages/LeadGenerationPage';
 import HistoryPage from './pages/HistoryPage';
 import UsersPage from './pages/UsersPage';
+import LeadAutomationPage from './pages/LeadAutomationPage';
 import RoleSelectionPage from './pages/RoleSelectionPage';
 import BuilderLoginPage from './pages/BuilderLoginPage';
 import AgentLoginPage from './pages/AgentLoginPage';
@@ -35,6 +36,8 @@ function App() {
           <Route path="/history" element={<HistoryPage />} />
           <Route path="/lead/:id" element={<LeadGenerationPage />} />
           <Route path="/users" element={<UsersPage />} />
+          <Route path="/lead-automation" element={<LeadAutomationPage />} />
+          <Route path="/lead-automation/:leadId" element={<LeadAutomationPage />} />
           {/* Add more protected routes here */}
         </Route>
         
