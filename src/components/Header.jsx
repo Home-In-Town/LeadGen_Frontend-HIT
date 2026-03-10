@@ -72,6 +72,14 @@ const Header = ({ showNav }) => {
                     Automation
                   </Link>
                 </li>
+                <li>
+                  <Link 
+                    to="/integrations" 
+                    className={`uppercase tracking-widest text-[10px] sm:text-[11px] font-black transition-all pb-1 border-b-2 ${isActive('/integrations') ? 'text-primary border-primary' : 'text-charcoal/40 border-transparent hover:text-charcoal'}`}
+                  >
+                    Integrations
+                  </Link>
+                </li>
               </ul>
 
               <div className="flex items-center gap-4 sm:gap-6 border-l border-charcoal/10 pl-6 h-8 ml-4">
@@ -153,6 +161,13 @@ const Header = ({ showNav }) => {
               className={`py-3 uppercase tracking-widest text-[11px] font-black transition-all ${isActive('/lead-automation') ? 'text-primary' : 'text-charcoal/60'}`}
             >
               Automation
+            </Link>
+            <Link 
+              to="/integrations" 
+              onClick={() => setIsMenuOpen(false)}
+              className={`py-3 uppercase tracking-widest text-[11px] font-black transition-all ${isActive('/integrations') ? 'text-primary' : 'text-charcoal/60'}`}
+            >
+              Integrations
             </Link>
           </nav>
           
