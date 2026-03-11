@@ -27,8 +27,7 @@ const SSOPage = () => {
         if (response.data) {
           // SSO successful
           localStorage.setItem('currentUser', JSON.stringify(response.data));
-          
-          // Small delay for UX so they see the success state
+          localStorage.setItem('token', token);
           setTimeout(() => {
             navigate('/dashboard');
           }, 1000);

@@ -11,6 +11,13 @@ const FacebookIntegrationPage = () => {
         const redirectUri = import.meta.env.VITE_FB_REDIRECT_URI;
         const scope = 'pages_show_list,pages_read_engagement,pages_manage_ads,leads_retrieval';
         
+        console.log("Connecting FB with:", { appId, redirectUri });
+
+        if (!appId || appId === 'undefined') {
+            alert("Error: Facebook App ID is missing from environment variables.");
+            return;
+        }
+
         const authUrl = `https://www.facebook.com/v20.0/dialog/oauth?client_id=${appId}&redirect_uri=${redirectUri}&scope=${scope}&response_type=code`;
         
         window.location.href = authUrl;

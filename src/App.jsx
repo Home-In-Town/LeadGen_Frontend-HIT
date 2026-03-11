@@ -13,6 +13,7 @@ import AdminLoginPage from './pages/AdminLoginPage';
 import SSOPage from './pages/SSOPage';
 import IntegrationsPage from './pages/IntegrationsPage';
 import FacebookIntegrationPage from './pages/FacebookIntegrationPage';
+import GoogleIntegrationPage from './pages/GoogleIntegrationPage';
 
 import DashboardLayout from './layouts/DashboardLayout';
 import PublicLayout from './layouts/PublicLayout';
@@ -42,6 +43,7 @@ function App() {
           <Route path="/lead-automation/:leadId" element={<LeadAutomationPage />} />
           <Route path="/integrations" element={<IntegrationsPage />} />
           <Route path="/integrations/facebook" element={<FacebookIntegrationPage />} />
+          <Route path="/integrations/google" element={<GoogleIntegrationPage />} />
           {/* Add more protected routes here */}
         </Route>
         

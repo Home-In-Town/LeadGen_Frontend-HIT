@@ -66,8 +66,12 @@ const LoginPage = ({ role }) => {
             });
 
             if (response.data) {
-                const userWithRole = { ...response.data, role };
+                const { token, ...userData } = response.data;
+                const userWithRole = { ...userData, role };
                 localStorage.setItem('currentUser', JSON.stringify(userWithRole));
+                if (token) {
+                    localStorage.setItem('token', token);
+                }
                 navigate('/dashboard');
             }
         } catch (err) {

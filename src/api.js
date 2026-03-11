@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Use environment variable for API URL with fallback
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5002';
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://lead-filteration-backend-624770114041.asia-south1.run.app';
 export const API_URL = `${BASE_URL}/api/leads`;
 const VOICE_API_URL = `${BASE_URL}/api/voice`;
 
