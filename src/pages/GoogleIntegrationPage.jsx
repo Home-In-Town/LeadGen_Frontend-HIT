@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import api from '../api';
+import { getBuilderProjects, getGoogleMappings, createGoogleMapping, deleteGoogleMapping } from '../api';
 
 const GoogleIntegrationPage = () => {
     const [mappings, setMappings] = useState([]);
@@ -24,8 +24,8 @@ const GoogleIntegrationPage = () => {
         setLoading(true);
         try {
             const [mappingsRes, projectsRes] = await Promise.all([
-                api.get(`/google/mapping`),
-                api.get(`/facebook/projects`) // Reusing the same bridge for projects
+                getGoogleMappings(),
+                getBuilderProjects()
             ]);
 
             setMappings(mappingsRes.data.data || []);
@@ -46,7 +46,7 @@ const GoogleIntegrationPage = () => {
 
         setSubmitting(true);
         try {
-            await api.post(`/google/mapping`, newMapping);
+            await createGoogleMapping(newMapping);
             
             setNewMapping({ googleKey: '', salesWebsiteProjectId: '', formName: '' });
             fetchData();
@@ -62,7 +62,7 @@ const GoogleIntegrationPage = () => {
         if (!window.confirm('Are you sure you want to delete this mapping?')) return;
 
         try {
-            await api.delete(`/google/mapping/${id}`);
+            await deleteGoogleMapping(id);
             fetchData();
         } catch (error) {
             console.error('Error deleting mapping:', error);

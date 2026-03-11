@@ -92,3 +92,7 @@ export const getGoogleMappings = () => googleApi.get('/mapping');
 export const createGoogleMapping = (data) => googleApi.post('/mapping', data);
 export const deleteGoogleMapping = (id) => googleApi.delete(`/mapping/${id}`);
 
+// ====== SHARED: PROJECT LIST (used by Google & Facebook integration pages) ======
+const projectsApi = createApiInstance('/projects');
+export const getBuilderProjects = () => projectsApi.get('/list');
+
