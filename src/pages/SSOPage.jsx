@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import axios from 'axios';
-import { API_URL } from '../api';
+import api from '../api';
 
 const SSOPage = () => {
   const [searchParams] = useSearchParams();
@@ -21,19 +20,20 @@ const SSOPage = () => {
     const verifyToken = async () => {
       try {
         // Use the new SSO verify endpoint (which is under /api/leads)
-        // Note: API_URL in lead-filtration/frontend/src/api.js is `${BASE_URL}/api/leads`
-        const response = await axios.post(`${API_URL}/users/sso/verify`, { token });
+        // Note: api is configured with baseURL `${BASE_URL}/api/leads`
+        const response = await api.post(`/users/sso/verify`, { token });
         
         if (response.data) {
           // SSO successful
           localStorage.setItem('currentUser', JSON.stringify(response.data));
-          localStorage.setItem('token', token);
+          localStorage.setItem('token', response.data.token); // Use the new long-lived token
           setTimeout(() => {
             navigate('/dashboard');
           }, 1000);
         }
       } catch (err) {
         console.error('SSO Verification Error:', err);
+        // The interceptor will handle 401 redirects, but we can also set the error for non-401s
         if (err.response && err.response.data && err.response.data.error) {
           setError(err.response.data.error);
         } else {

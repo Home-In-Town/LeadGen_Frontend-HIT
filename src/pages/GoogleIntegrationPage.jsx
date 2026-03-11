@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../api';
 
 const GoogleIntegrationPage = () => {
     const [mappings, setMappings] = useState([]);
@@ -14,9 +14,7 @@ const GoogleIntegrationPage = () => {
         formName: ''
     });
 
-    const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://lead-filteration-backend-624770114041.asia-south1.run.app';
-    const API_URL = BASE_URL;
-    const WEBHOOK_URL = `${API_URL}/api/google/webhook`;
+    const WEBHOOK_URL = `${import.meta.env.VITE_API_BASE_URL || 'https://lead-filteration-backend-624770114041.asia-south1.run.app'}/api/google/webhook`;
 
     useEffect(() => {
         fetchData();
@@ -25,12 +23,9 @@ const GoogleIntegrationPage = () => {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const token = localStorage.getItem('token');
-            const headers = { Authorization: `Bearer ${token}` };
-
             const [mappingsRes, projectsRes] = await Promise.all([
-                axios.get(`${API_URL}/api/google/mapping`, { headers }),
-                axios.get(`${API_URL}/api/facebook/projects`, { headers }) // Reusing the same bridge for projects
+                api.get(`/google/mapping`),
+                api.get(`/facebook/projects`) // Reusing the same bridge for projects
             ]);
 
             setMappings(mappingsRes.data.data || []);
@@ -51,10 +46,7 @@ const GoogleIntegrationPage = () => {
 
         setSubmitting(true);
         try {
-            const token = localStorage.getItem('token');
-            const headers = { Authorization: `Bearer ${token}` };
-
-            await axios.post(`${API_URL}/api/google/mapping`, newMapping, { headers });
+            await api.post(`/google/mapping`, newMapping);
             
             setNewMapping({ googleKey: '', salesWebsiteProjectId: '', formName: '' });
             fetchData();
@@ -70,10 +62,7 @@ const GoogleIntegrationPage = () => {
         if (!window.confirm('Are you sure you want to delete this mapping?')) return;
 
         try {
-            const token = localStorage.getItem('token');
-            const headers = { Authorization: `Bearer ${token}` };
-
-            await axios.delete(`${API_URL}/api/google/mapping/${id}`, { headers });
+            await api.delete(`/google/mapping/${id}`);
             fetchData();
         } catch (error) {
             console.error('Error deleting mapping:', error);

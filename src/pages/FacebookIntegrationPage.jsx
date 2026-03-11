@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+// axios removed as it was unused
 
 const FacebookIntegrationPage = () => {
     const [isConnected, setIsConnected] = useState(false);
