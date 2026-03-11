@@ -11,7 +11,7 @@ import BuilderLoginPage from './pages/BuilderLoginPage';
 import AgentLoginPage from './pages/AgentLoginPage';
 import AdminLoginPage from './pages/AdminLoginPage';
 import SSOPage from './pages/SSOPage';
-import IntegrationsPage from './pages/IntegrationsPage';
+// import IntegrationsPage from './pages/IntegrationsPage';
 import FacebookIntegrationPage from './pages/FacebookIntegrationPage';
 import GoogleIntegrationPage from './pages/GoogleIntegrationPage';
 
@@ -41,7 +41,7 @@ function App() {
           <Route path="/users" element={<UsersPage />} />
           <Route path="/lead-automation" element={<LeadAutomationPage />} />
           <Route path="/lead-automation/:leadId" element={<LeadAutomationPage />} />
-          <Route path="/integrations" element={<IntegrationsPage />} />
+          {/* <Route path="/integrations" element={<IntegrationsPage />} /> */}
           <Route path="/integrations/facebook" element={<FacebookIntegrationPage />} />
           <Route path="/integrations/google" element={<GoogleIntegrationPage />} />
           {/* Add more protected routes here */}

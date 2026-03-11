@@ -117,7 +117,10 @@ const GoogleIntegrationPage = () => {
                     </div>
                     <div className="border border-black p-3 bg-white">
                         <label className="text-xs font-bold uppercase block mb-1">Google Key (Shared Secret)</label>
-                        <p className="text-sm italic text-gray-500">Provide the key you've defined in the mapping below.</p>
+                        <p className="text-sm text-gray-700 leading-tight">
+                            Define a <strong>unique key</strong> in the mapping form below (e.g., <code>my_secret_key_123</code>). 
+                            Use this exact same key in the "Google Key" field in your Google Ads dashboard.
+                        </p>
                     </div>
                 </div>
             </div>

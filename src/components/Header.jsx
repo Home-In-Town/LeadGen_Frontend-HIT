@@ -1,8 +1,7 @@
 import { useState } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 
 const Header = ({ showNav }) => {
-  const navigate = useNavigate();
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   
@@ -70,14 +69,6 @@ const Header = ({ showNav }) => {
                     className={`uppercase tracking-widest text-[10px] sm:text-[11px] font-black transition-all pb-1 border-b-2 ${isActive('/lead-automation') ? 'text-primary border-primary' : 'text-charcoal/40 border-transparent hover:text-charcoal'}`}
                   >
                     Automation
-                  </Link>
-                </li>
-                <li>
-                  <Link 
-                    to="/integrations" 
-                    className={`uppercase tracking-widest text-[10px] sm:text-[11px] font-black transition-all pb-1 border-b-2 ${isActive('/integrations') ? 'text-primary border-primary' : 'text-charcoal/40 border-transparent hover:text-charcoal'}`}
-                  >
-                    Integrations
                   </Link>
                 </li>
               </ul>
@@ -161,13 +152,6 @@ const Header = ({ showNav }) => {
               className={`py-3 uppercase tracking-widest text-[11px] font-black transition-all ${isActive('/lead-automation') ? 'text-primary' : 'text-charcoal/60'}`}
             >
               Automation
-            </Link>
-            <Link 
-              to="/integrations" 
-              onClick={() => setIsMenuOpen(false)}
-              className={`py-3 uppercase tracking-widest text-[11px] font-black transition-all ${isActive('/integrations') ? 'text-primary' : 'text-charcoal/60'}`}
-            >
-              Integrations
             </Link>
           </nav>
           
