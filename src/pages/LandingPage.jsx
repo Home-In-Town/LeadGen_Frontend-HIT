@@ -121,7 +121,7 @@ const LandingPage = () => {
                 <li className="text-charcoal/40">Security Protocols</li>
               </ul>
               <ul className="text-[10px] font-black uppercase tracking-widest space-y-2 text-right">
-                <li><button className="text-charcoal/60 hover:text-charcoal cursor-pointer transition-colors uppercase">Privacy</button></li>
+                <li><button onClick={() => navigate('/privacy')} className="text-charcoal/60 hover:text-charcoal cursor-pointer transition-colors uppercase">Privacy</button></li>
                 <li><button className="text-charcoal/60 hover:text-charcoal cursor-pointer transition-colors uppercase">Legal</button></li>
                 <li><button className="text-charcoal/60 hover:text-charcoal cursor-pointer transition-colors uppercase">SLA</button></li>
               </ul>

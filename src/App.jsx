@@ -14,6 +14,7 @@ import SSOPage from './pages/SSOPage';
 // import IntegrationsPage from './pages/IntegrationsPage';
 import FacebookIntegrationPage from './pages/FacebookIntegrationPage';
 import GoogleIntegrationPage from './pages/GoogleIntegrationPage';
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 
 import DashboardLayout from './layouts/DashboardLayout';
 import PublicLayout from './layouts/PublicLayout';
@@ -30,6 +31,7 @@ function App() {
           <Route path="/agent-login" element={<AgentLoginPage />} />
           <Route path="/admin-login" element={<AdminLoginPage />} />
           <Route path="/sso" element={<SSOPage />} />
+          <Route path="/privacy" element={<PrivacyPolicyPage />} />
         </Route>
 
         {/* Protected Routes with Dashboard Navbar */}
