@@ -43,6 +43,10 @@ const HistoryPage = () => {
   // getStatusClasses and getStatusLabel imported from utils/leadUtils.js
 
   const filteredLeads = leads.filter(lead => {
+    // Exclude leads that were auto-promoted specifically for the automation flow
+    if (lead.statusReason === 'Lead created from automation page (Initial outreach skipped)' || lead.whatsappData?.status === 'skipped') {
+      return false;
+    }
     const term = searchTerm.toLowerCase();
     const name = `${lead.first_name || ''} ${lead.last_name || ''}`.toLowerCase();
     const phone = (lead.phone_number || '').toLowerCase();
