@@ -17,7 +17,8 @@ export const getStatusLabel = (score) => {
 
 export const formatTime = (seconds) => {
     if (!seconds || seconds < 1) return '0s';
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.round(seconds % 60);
-    return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+    if (seconds >= 60) {
+        return (seconds / 60).toFixed(2) + 'min';
+    }
+    return Math.round(seconds) + 's';
 };

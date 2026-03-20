@@ -649,7 +649,11 @@ const LeadAutomationPage = () => {
                                 <div className="text-center">
                                   <div className="text-[9px] font-black text-[#232121]/40 uppercase tracking-tighter mb-1">Time Spent</div>
                                   <div className="text-lg font-black text-[#232121]">
-                                    {auto.linkActivity?.timeSpentSeconds ? `${auto.linkActivity.timeSpentSeconds}s` : '0s'}
+                                    {auto.linkActivity?.timeSpentSeconds 
+                                      ? (auto.linkActivity.timeSpentSeconds >= 60 
+                                          ? `${(auto.linkActivity.timeSpentSeconds / 60).toFixed(2)}min` 
+                                          : `${auto.linkActivity.timeSpentSeconds}s`) 
+                                      : '0s'}
                                   </div>
                                 </div>
                               </>
