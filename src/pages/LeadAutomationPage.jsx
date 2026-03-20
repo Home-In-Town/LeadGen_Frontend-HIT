@@ -298,56 +298,56 @@ const LeadAutomationPage = () => {
 
   return (
     <>
-      <div className="animate-fade-in font-display pb-10 max-w-7xl mx-auto px-6">
-      {/* Top Header Section - Re-styled to match reference layout */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center py-8 mb-4 border-b-4 border-[#232121]">
+      <div className="animate-fade-in font-display pb-5 max-w-5xl mx-auto px-4">
+      {/* Top Header Section - Re-styled to be more compact */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center py-4 mb-2 border-b-4 border-[#232121]">
         <div className="flex flex-col gap-1">
           <button 
             onClick={() => navigate(-1)}
-            className="group text-[10px] font-black uppercase tracking-widest text-[#232121]/40 hover:text-primary transition-colors flex items-center gap-1 mb-2"
+            className="group text-[9px] font-black uppercase tracking-widest text-[#232121]/40 hover:text-primary transition-colors flex items-center gap-1 mb-1"
           >
-            <span className="material-symbols-outlined text-[14px] transition-transform group-hover:-translate-x-1">arrow_back</span>
+            <span className="material-symbols-outlined text-[12px] transition-transform group-hover:-translate-x-1">arrow_back</span>
             Back to Dashboard
           </button>
           
-          <div className="flex items-baseline gap-4">
-            <h1 className="text-4xl md:text-5xl font-black uppercase tracking-tighter text-[#232121] leading-none">
+          <div className="flex items-baseline gap-3">
+            <h1 className="text-2xl md:text-3xl font-black uppercase tracking-tighter text-[#232121] leading-none">
               {currentDate.toLocaleDateString('default', { month: 'long', year: 'numeric' })}
             </h1>
             {lead && (
-              <span className="text-[12px] font-mono font-bold uppercase tracking-tight text-[#232121]/60 px-2 py-0.5 border-2 border-[#232121]/10 rounded-sm">
+              <span className="text-[10px] font-mono font-bold uppercase tracking-tight text-[#232121]/60 px-1.5 py-0.5 border-2 border-[#232121]/10 rounded-sm">
                 LEAD: {lead.first_name} {lead.last_name}
               </span>
             )}
           </div>
         </div>
         
-        <div className="flex items-center gap-3 mt-6 md:mt-0">
+        <div className="flex items-center gap-2 mt-4 md:mt-0">
           {/* "Manage in Calendar" style button */}
-          <button className="hidden sm:flex items-center gap-2 bg-white border-2 border-[#232121] px-4 py-2 text-[10px] font-black uppercase tracking-widest shadow-[4px_4px_0px_#232121] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_#232121] transition-all">
-            <span className="material-symbols-outlined text-sm">calendar_month</span>
+          <button className="hidden sm:flex items-center gap-2 bg-white border-2 border-[#232121] px-3 py-1.5 text-[9px] font-black uppercase tracking-widest shadow-[3px_3px_0px_#232121] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_#232121] transition-all">
+            <span className="material-symbols-outlined text-xs">calendar_month</span>
             Manage in Calendar
           </button>
 
           {/* Navigation Controls */}
-          <div className="flex items-center bg-white border-2 border-[#232121] shadow-[4px_4px_0px_#232121]">
+          <div className="flex items-center bg-white border-2 border-[#232121] shadow-[3px_3px_0px_#232121]">
             <button 
               onClick={handlePrevMonth}
-              className="p-3 border-r-2 border-[#232121] hover:bg-[#232121] hover:text-white transition-colors"
+              className="p-2 border-r-2 border-[#232121] hover:bg-[#232121] hover:text-white transition-colors"
             >
-              <span className="material-symbols-outlined block">chevron_left</span>
+              <span className="material-symbols-outlined block text-sm">chevron_left</span>
             </button>
             <button 
               onClick={() => setCurrentDate(new Date())}
-              className="px-6 py-2 text-[10px] font-black uppercase tracking-widest hover:bg-surface-subtle transition-colors"
+              className="px-4 py-1.5 text-[9px] font-black uppercase tracking-widest hover:bg-surface-subtle transition-colors"
             >
               Today
             </button>
             <button 
               onClick={handleNextMonth}
-              className="p-3 border-l-2 border-[#232121] hover:bg-[#232121] hover:text-white transition-colors"
+              className="p-2 border-l-2 border-[#232121] hover:bg-[#232121] hover:text-white transition-colors"
             >
-              <span className="material-symbols-outlined block">chevron_right</span>
+              <span className="material-symbols-outlined block text-sm">chevron_right</span>
             </button>
           </div>
         </div>
@@ -438,27 +438,27 @@ const LeadAutomationPage = () => {
       {/* Add Automation Modal - Refined */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#232121]/80 backdrop-blur-md animate-fade-in">
-          <div className="bg-white border-4 border-[#232121] shadow-[12px_12px_0px_#232121] max-w-lg w-full flex flex-col overflow-hidden animate-slide-up">
+          <div className="bg-white border-4 border-[#232121] shadow-[8px_8px_0px_#232121] max-w-md w-full flex flex-col overflow-hidden animate-slide-up">
             
-            <div className="flex justify-between items-center p-6 border-b-4 border-[#232121] bg-surface-subtle">
+            <div className="flex justify-between items-center p-4 border-b-4 border-[#232121] bg-surface-subtle">
               <div>
-                <h3 className="text-xl font-black uppercase tracking-tighter text-[#232121]">
+                <h3 className="text-lg font-black uppercase tracking-tighter text-[#232121]">
                   New Automation
                 </h3>
-                <p className="text-[12px] font-mono font-bold text-[#232121]/60 uppercase flex items-center gap-2 mt-1">
-                  <span className="material-symbols-outlined text-sm">calendar_today</span>
+                <p className="text-[10px] font-mono font-bold text-[#232121]/60 uppercase flex items-center gap-2 mt-0.5">
+                  <span className="material-symbols-outlined text-xs">calendar_today</span>
                   {selectedDateStamp && selectedDateStamp.toLocaleDateString('default', { day: 'numeric', month: 'long', year: 'numeric' })}
                 </p>
               </div>
               <button 
                 onClick={() => setIsModalOpen(false)}
-                className="w-10 h-10 flex items-center justify-center border-2 border-[#232121] hover:bg-[#232121] hover:text-white transition-colors"
+                className="w-8 h-8 flex items-center justify-center border-2 border-[#232121] hover:bg-[#232121] hover:text-white transition-colors"
               >
-                <span className="material-symbols-outlined font-black">close</span>
+                <span className="material-symbols-outlined font-black text-sm">close</span>
               </button>
             </div>
             
-            <div className="p-8 space-y-8">
+            <div className="p-6 space-y-6">
               {/* Recipient Card / Selector */}
               <div className="bg-[#13ec13]/5 border-2 border-[#232121] p-4 flex flex-col gap-4">
                 <div className="flex items-center gap-4">
@@ -537,20 +537,20 @@ const LeadAutomationPage = () => {
               </div>
             </div>
             
-            <div className="bg-surface-subtle p-6 border-t-4 border-[#232121] flex justify-end gap-4 mt-auto">
+            <div className="bg-surface-subtle p-4 border-t-4 border-[#232121] flex justify-end gap-3 mt-auto">
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="px-8 py-3 border-2 border-[#232121] text-[10px] font-black uppercase tracking-widest hover:bg-white transition-all shadow-[4px_4px_0px_#232121] active:shadow-none active:translate-x-1 active:translate-y-1"
+                className="px-6 py-2 border-2 border-[#232121] text-[9px] font-black uppercase tracking-widest hover:bg-white transition-all shadow-[3px_3px_0px_#232121] active:shadow-none active:translate-x-0.5 active:translate-y-0.5"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSaveAutomation}
                 disabled={isSaving || !newAutomation.templateName || (!lead && !newAutomation.selectedLeadId)}
-                className="px-10 py-3 bg-[#13ec13] border-2 border-[#232121] text-[#232121] text-[10px] font-black uppercase tracking-widest hover:bg-[#232121] hover:text-[#13ec13] transition-all shadow-[6px_6px_0px_#232121] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 active:shadow-none active:translate-x-1 auto:translate-y-1"
+                className="px-8 py-2 bg-[#13ec13] border-2 border-[#232121] text-[#232121] text-[9px] font-black uppercase tracking-widest hover:bg-[#232121] hover:text-[#13ec13] transition-all shadow-[4px_4px_0px_#232121] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 active:shadow-none active:translate-x-0.5 auto:translate-y-0.5"
               >
                 {isSaving ? 'Processing...' : 'Confirm Schedule'}
-                {!isSaving && <span className="material-symbols-outlined text-[16px] font-black">rocket_launch</span>}
+                {!isSaving && <span className="material-symbols-outlined text-[14px] font-black">rocket_launch</span>}
               </button>
             </div>
             
@@ -561,35 +561,35 @@ const LeadAutomationPage = () => {
       {/* Day History Modal — NEW */}
       {isHistoryModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#232121]/80 backdrop-blur-md animate-fade-in text-left">
-          <div className="bg-white border-4 border-[#232121] shadow-[12px_12px_0px_#232121] max-w-2xl w-full flex flex-col overflow-hidden animate-slide-up">
+          <div className="bg-white border-4 border-[#232121] shadow-[8px_8px_0px_#232121] max-w-xl w-full flex flex-col overflow-hidden animate-slide-up">
             
-            <div className="flex justify-between items-center p-6 border-b-4 border-[#232121] bg-[#13ec13]/10">
+            <div className="flex justify-between items-center p-4 border-b-4 border-[#232121] bg-[#13ec13]/10">
               <div>
-                <h3 className="text-xl font-black uppercase tracking-tighter text-[#232121]">
+                <h3 className="text-lg font-black uppercase tracking-tighter text-[#232121]">
                   Automation History
                 </h3>
-                <p className="text-[12px] font-mono font-bold text-[#232121]/60 uppercase flex items-center gap-2 mt-1">
-                  <span className="material-symbols-outlined text-sm">event</span>
+                <p className="text-[10px] font-mono font-bold text-[#232121]/60 uppercase flex items-center gap-2 mt-0.5">
+                  <span className="material-symbols-outlined text-xs">event</span>
                   {selectedHistoryDate && selectedHistoryDate.toLocaleDateString('default', { day: 'numeric', month: 'long', year: 'numeric' })}
                 </p>
               </div>
               <button 
                 onClick={() => setIsHistoryModalOpen(false)}
-                className="w-10 h-10 flex items-center justify-center border-2 border-[#232121] hover:bg-[#232121] hover:text-white transition-colors"
+                className="w-8 h-8 flex items-center justify-center border-2 border-[#232121] hover:bg-[#232121] hover:text-white transition-colors"
                 title="ESC to Close"
               >
-                <span className="material-symbols-outlined font-black">close</span>
+                <span className="material-symbols-outlined font-black text-sm">close</span>
               </button>
             </div>
 
-            <div className="p-8 max-h-[60vh] overflow-y-auto">
+            <div className="p-4 max-h-[50vh] overflow-y-auto">
               {getAutomationsForDate(selectedHistoryDate).length === 0 ? (
-                <div className="text-center py-12 border-2 border-dashed border-gray-200">
-                  <span className="material-symbols-outlined text-4xl text-gray-300">history_off</span>
-                  <p className="mt-2 text-[11px] font-black uppercase text-gray-400 tracking-widest">No automations scheduled for this date</p>
+                <div className="text-center py-6 border-2 border-dashed border-gray-100">
+                  <span className="material-symbols-outlined text-2xl text-gray-300">history_off</span>
+                  <p className="mt-2 text-[9px] font-black uppercase text-gray-400 tracking-widest">No automations scheduled</p>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-2">
                     {getAutomationsForDate(selectedHistoryDate).map((auto, i) => {
                       // Extract project name from button_0
                       const projectId = auto.button_0?.split('#')[0];
@@ -601,28 +601,28 @@ const LeadAutomationPage = () => {
                       const recipientName = recipientLead ? `${recipientLead.first_name} ${recipientLead.last_name}` : 'Unknown';
 
                       return (
-                        <div key={auto._id || i} className="border-2 border-[#232121] p-5 flex items-center justify-between gap-6 hover:translate-x-1 hover:-translate-y-1 transition-transform bg-white shadow-[4px_4px_0px_#232121]">
+                        <div key={auto._id || i} className="border-2 border-[#232121] p-3 flex items-center justify-between gap-4 hover:translate-x-1 hover:-translate-y-1 transition-transform bg-white shadow-[3px_3px_0px_#232121]">
                           <div className="flex gap-4 items-center">
                             <div className="w-12 h-12 bg-[#232121] text-[#13ec13] flex items-center justify-center shrink-0">
                               <span className="material-symbols-outlined font-black">
                                 {auto.status === 'sent' ? 'done_all' : (auto.status === 'failed' ? 'error' : 'schedule')}
                               </span>
                             </div>
-                            <div className="text-left">
-                              <div className="text-[10px] font-black uppercase tracking-widest text-[#232121]/40 mb-1">
+                            <div className="text-left py-1">
+                              <div className="text-[9px] font-black uppercase tracking-widest text-[#232121]/40 mb-0.5">
                                 {recipientName} &bull; {auto.status}
                               </div>
-                              <div className="text-sm font-black text-[#232121]">
+                              <div className="text-xs font-black text-[#232121]">
                                 {getTemplateLabel(auto.templateName)}
                                 {auto.templateName === 'lead_street_view' && (
-                                  <span className="ml-2 text-[10px] font-mono font-bold text-[#13ec13] bg-[#232121] px-1.5 py-0.5 uppercase">
+                                  <span className="ml-2 text-[8px] font-mono font-bold text-[#13ec13] bg-[#232121] px-1 py-0.5 uppercase">
                                     {projectName}
                                   </span>
                                 )}
                               </div>
-                              <div className="flex gap-3 text-[10px] items-center mt-1 text-left">
-                                <span className="font-mono bg-[#232121] text-white px-2 py-0.5">{formatTime(auto.scheduledAt)}</span>
-                                <span className={`px-1.5 py-0.5 font-bold uppercase ${auto.status === 'sent' ? 'bg-[#13ec13]/20 text-[#13ec13]' : 'bg-gray-100 text-gray-600'}`}>
+                              <div className="flex gap-2 text-[9px] items-center mt-1 text-left">
+                                <span className="font-mono bg-[#232121] text-white px-1.5 py-0.5">{formatTime(auto.scheduledAt)}</span>
+                                <span className={`px-1 py-0.5 font-bold uppercase ${auto.status === 'sent' ? 'bg-[#13ec13]/20 text-[#13ec13]' : 'bg-gray-100 text-gray-600'}`}>
                                   {auto.status}
                                 </span>
                               </div>
@@ -662,10 +662,10 @@ const LeadAutomationPage = () => {
               )}
             </div>
 
-            <div className="p-8 bg-surface-subtle border-t-2 border-[#232121] flex justify-end">
+            <div className="p-4 bg-surface-subtle border-t-2 border-[#232121] flex justify-end">
               <button
                 onClick={() => setIsHistoryModalOpen(false)}
-                className="px-8 py-3 bg-[#232121] text-white text-[10px] font-black uppercase tracking-widest hover:bg-[#13ec13] hover:text-[#232121] transition-all"
+                className="px-6 py-2 bg-[#232121] text-white text-[9px] font-black uppercase tracking-widest hover:bg-[#13ec13] hover:text-[#232121] transition-all"
               >
                 Done
               </button>
@@ -677,18 +677,18 @@ const LeadAutomationPage = () => {
       {/* User Selection Modal — MANDATORY if no leadId */}
       {isUserPickerOpen && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-[#232121]/95 backdrop-blur-xl animate-fade-in">
-          <div className="bg-white border-4 border-[#232121] shadow-[16px_16px_0px_#232121] max-w-2xl w-full flex flex-col overflow-hidden animate-slide-up">
+          <div className="bg-white border-4 border-[#232121] shadow-[8px_8px_0px_#232121] max-w-xl w-full flex flex-col overflow-hidden animate-slide-up">
             
-            <div className="p-8 border-b-4 border-[#232121] bg-[#13ec13]/10">
-              <h3 className="text-3xl font-black uppercase tracking-tighter text-[#232121]">
+            <div className="p-6 border-b-4 border-[#232121] bg-[#13ec13]/10">
+              <h3 className="text-2xl font-black uppercase tracking-tighter text-[#232121]">
                 Select User
               </h3>
-              <p className="text-[12px] font-mono font-bold text-[#232121]/60 uppercase mt-2">
+              <p className="text-[10px] font-mono font-bold text-[#232121]/60 uppercase mt-1">
                 Choose a user to set or view automation history
               </p>
             </div>
 
-            <div className="p-8 max-h-[60vh] overflow-y-auto bg-surface-subtle">
+            <div className="p-6 max-h-[50vh] overflow-y-auto bg-surface-subtle">
               {allLeads.length === 0 ? (
                 <div className="text-center py-12 border-4 border-dashed border-[#232121]/10 rounded-xl">
                   <span className="material-symbols-outlined text-5xl text-[#232121]/20">person_off</span>
@@ -720,15 +720,15 @@ const LeadAutomationPage = () => {
               )}
             </div>
 
-            <div className="p-8 border-t-4 border-[#232121] flex justify-between items-center bg-white">
+            <div className="p-4 border-t-4 border-[#232121] flex justify-between items-center bg-white">
                <button 
                  onClick={() => navigate('/dashboard')}
-                 className="text-[10px] font-black uppercase tracking-widest text-[#232121]/40 hover:text-primary transition-colors flex items-center gap-1"
+                 className="text-[9px] font-black uppercase tracking-widest text-[#232121]/40 hover:text-primary transition-colors flex items-center gap-1"
                >
-                 <span className="material-symbols-outlined text-[14px]">arrow_back</span>
+                 <span className="material-symbols-outlined text-[12px]">arrow_back</span>
                  Cancel & Go Back
                </button>
-               <div className="text-[10px] font-mono font-bold text-[#232121]/60 uppercase">
+               <div className="text-[9px] font-mono font-bold text-[#232121]/60 uppercase">
                  Total Users: {allLeads.length}
                </div>
             </div>
