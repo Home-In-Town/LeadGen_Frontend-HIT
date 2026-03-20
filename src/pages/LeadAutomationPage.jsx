@@ -22,9 +22,11 @@ const LeadAutomationPage = () => {
   
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [projects, setProjects] = useState([]);
   const [newAutomation, setNewAutomation] = useState({
     templateName: '',
-    time: '09:00'
+    time: '09:00',
+    projectId: ''
   });
   const [isSaving, setIsSaving] = useState(false);
 
@@ -66,6 +68,12 @@ const LeadAutomationPage = () => {
       const tplRes = await api.getWhatsappTemplates();
       if (tplRes.data.success) {
         setTemplates(tplRes.data.data);
+      }
+
+      // 4. Fetch Projects for dynamic variables
+      const projRes = await api.getBuilderProjects();
+      if (projRes.data.success) {
+        setProjects(projRes.data.data);
       }
 
     } catch (err) {
@@ -143,7 +151,7 @@ const LeadAutomationPage = () => {
 
   const openAddModal = (dateObj) => {
     setSelectedDateStamp(dateObj);
-    setNewAutomation({ templateName: '', time: '09:00' });
+    setNewAutomation({ templateName: '', time: '09:00', projectId: '' });
     setIsModalOpen(true);
   };
 
@@ -169,7 +177,7 @@ const LeadAutomationPage = () => {
 
     try {
       const payload = {
-        leadId: leadId || 'global', // if we want to support global later
+        leadId: leadId || 'global',
         templateName: newAutomation.templateName,
         scheduledAt: scheduledAt.toISOString(),
         createdBy: {
@@ -178,6 +186,11 @@ const LeadAutomationPage = () => {
            name: currentUser.name
         }
       };
+
+      // Add dynamic button suffix if Virtual View is selected
+      if (newAutomation.templateName === 'lead_street_view' && newAutomation.projectId) {
+        payload.button_0 = `${newAutomation.projectId}#street`;
+      }
 
       const res = await api.createLeadAutomation(payload);
       
@@ -427,9 +440,32 @@ const LeadAutomationPage = () => {
                   </div>
                 </div>
 
+                {/* Project Selection Dropdown - Only if Virtual View template is picked */}
+                {newAutomation.templateName === 'lead_street_view' && (
+                  <div className="space-y-3 animate-fade-in md:col-span-2">
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-primary">
+                      2. Select Project for Virtual View
+                    </label>
+                    <div className="relative">
+                      <select
+                        value={newAutomation.projectId}
+                        onChange={(e) => setNewAutomation({...newAutomation, projectId: e.target.value})}
+                        className="w-full appearance-none bg-white border-2 border-primary px-4 py-3 text-[11px] font-black uppercase text-[#232121] focus:bg-primary/5 focus:outline-none transition-colors"
+                      >
+                        <option value="" disabled>Select Project</option>
+                        {projects.map(p => (
+                          <option key={p.id} value={p.projectId}>{p.projectName}</option>
+                        ))}
+                      </select>
+                      <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none opacity-40">apartment</span>
+                    </div>
+                    <p className="text-[10px] font-mono text-[#232121]/40 uppercase">This will generate a custom street view link suffix.</p>
+                  </div>
+                )}
+
                 <div className="space-y-3">
                   <label className="block text-[10px] font-black uppercase tracking-widest text-[#232121]">
-                    2. Dispatch Time
+                    {newAutomation.templateName === 'lead_street_view' ? '3. Dispatch Time' : '2. Dispatch Time'}
                   </label>
                   <input 
                     type="time" 
