@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import * as api from '../api';
 
@@ -15,6 +15,7 @@ const LeadAutomationPage = () => {
   // Automations & Templates
   const [automations, setAutomations] = useState([]);
   const [templates, setTemplates] = useState([]);
+  const [allLeads, setAllLeads] = useState([]);
   
   // Calendar State
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -22,45 +23,73 @@ const LeadAutomationPage = () => {
   
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [selectedHistoryDate, setSelectedHistoryDate] = useState(null);
   const [projects, setProjects] = useState([]);
   const [newAutomation, setNewAutomation] = useState({
     templateName: '',
     time: '09:00',
-    projectId: ''
+    projectId: '',
+    selectedLeadId: '' // For when page is opened directly
   });
+
   const [isSaving, setIsSaving] = useState(false);
+  const [isUserPickerOpen, setIsUserPickerOpen] = useState(!leadId);
 
   useEffect(() => {
-    const userStr = localStorage.getItem('currentUser');
-    if (!userStr) {
-      navigate('/select-role');
-      return;
+    if (!leadId) {
+      setIsUserPickerOpen(true);
+    } else {
+      setIsUserPickerOpen(false);
     }
-    setCurrentUser(JSON.parse(userStr));
-    fetchData();
   }, [leadId]);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      // 1. Fetch Lead
+      const userStr = localStorage.getItem('currentUser');
+      const user = JSON.parse(userStr);
+      
+      // Fetch Users instead of Leads for the "Recipient" list as requested
+      const usersRes = await api.getAllUsers({ userId: user.id, role: user.role });
+      if (usersRes.data) {
+        setAllLeads(usersRes.data);
+      }
+
+      // 2. Fetch all existing automations created by this user
+      // This allows the builder to see their entire schedule as requested
+      const autoRes = await api.getCreatorAutomations(user.id);
+      if (autoRes.data.success) {
+        setAutomations(autoRes.data.data);
+      }
+
+      // If we have a specific leadId, load its context
       if (leadId) {
-        // Find lead from global list since we don't have a single GET lead endpoint exposed right now
-        // Normally we'd use a specific endpoint, extracting from full list is a workaround
-        const userStr = localStorage.getItem('currentUser');
-        const user = JSON.parse(userStr);
-        const leadsRes = await api.getAllLeads({ userId: user.id, role: user.role });
-        const currentLead = leadsRes.data.find(l => l.id === leadId);
-        
-        if (!currentLead) {
-          throw new Error('Lead not found');
-        }
-        setLead(currentLead);
-        
-        // 2. Fetch existing automations for this lead
-        const autoRes = await api.getLeadAutomations(leadId);
-        if (autoRes.data.success) {
-          setAutomations(autoRes.data.data);
+        try {
+          const leadsRes = await api.getAllLeads({ userId: user.id, role: user.role });
+          let currentLead = leadsRes.data.find(l => l.id === leadId);
+          
+          if (!currentLead) {
+            // Maybe leadId is actually a userId? Look in allLeads (Users)
+            const userRef = usersRes.data.find(u => u.id === leadId);
+            if (userRef) {
+              // Auto-promote User to Lead for automation context
+              const creatorData = {
+                creatorId: user.id,
+                creatorName: `${user.first_name} ${user.last_name}`,
+                creatorRole: user.role || 'agent',
+                skipCall: true 
+              };
+              const promoteRes = await api.createLeadFromUser(userRef.id, creatorData);
+              currentLead = promoteRes.data;
+            }
+          }
+
+          if (currentLead) {
+            setLead(currentLead);
+          }
+        } catch (err) {
+          console.error('Error identifying lead:', err);
         }
       }
 
@@ -82,7 +111,17 @@ const LeadAutomationPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [leadId]); // Add dependencies as needed
+
+  useEffect(() => {
+    const userStr = localStorage.getItem('currentUser');
+    if (!userStr) {
+      navigate('/select-role');
+      return;
+    }
+    setCurrentUser(JSON.parse(userStr));
+    fetchData();
+  }, [leadId, navigate, fetchData]);
 
   // Calendar Helpers
   const getDaysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
@@ -117,15 +156,15 @@ const LeadAutomationPage = () => {
     return grid;
   };
 
-  // Check if a date has automations
+  // Check if a date has automations (using local date comparison to avoid timezone shifts)
   const getAutomationsForDate = (dateObj) => {
     if (!dateObj) return [];
     
-    const targetDateStr = dateObj.toISOString().split('T')[0];
+    const targetDateStr = dateObj.toDateString(); // "Fri Mar 20 2026"
     
     return automations.filter(auto => {
-      const autoDateStr = new Date(auto.scheduledAt).toISOString().split('T')[0];
-      return autoDateStr === targetDateStr;
+      const autoDate = new Date(auto.scheduledAt);
+      return autoDate.toDateString() === targetDateStr;
     });
   };
 
@@ -151,8 +190,18 @@ const LeadAutomationPage = () => {
 
   const openAddModal = (dateObj) => {
     setSelectedDateStamp(dateObj);
-    setNewAutomation({ templateName: '', time: '09:00', projectId: '' });
+    setNewAutomation({ 
+      templateName: '', 
+      time: '09:00', 
+      projectId: '',
+      selectedLeadId: lead ? lead.id : ''
+    });
     setIsModalOpen(true);
+  };
+
+  const openHistoryModal = (dateObj) => {
+    setSelectedHistoryDate(dateObj);
+    setIsHistoryModalOpen(true);
   };
 
   const handleSaveAutomation = async () => {
@@ -160,6 +209,13 @@ const LeadAutomationPage = () => {
       alert("Please select a template and time.");
       return;
     }
+
+    if (!lead) {
+      alert("Please select a recipient user.");
+      return;
+    }
+
+    const finalLeadId = lead.id;
 
     setIsSaving(true);
     
@@ -177,13 +233,13 @@ const LeadAutomationPage = () => {
 
     try {
       const payload = {
-        leadId: leadId || 'global',
+        leadId: finalLeadId,
         templateName: newAutomation.templateName,
         scheduledAt: scheduledAt.toISOString(),
         createdBy: {
            userId: currentUser.id,
            role: currentUser.role,
-           name: currentUser.name
+           name: currentUser.name || `${currentUser.first_name} ${currentUser.last_name}`
         }
       };
 
@@ -193,6 +249,7 @@ const LeadAutomationPage = () => {
       }
 
       const res = await api.createLeadAutomation(payload);
+
       
       if (res.data.success) {
         // Add to local state
@@ -240,7 +297,8 @@ const LeadAutomationPage = () => {
   const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
   return (
-    <div className="animate-fade-in font-display pb-10 max-w-7xl mx-auto px-6">
+    <>
+      <div className="animate-fade-in font-display pb-10 max-w-7xl mx-auto px-6">
       {/* Top Header Section - Re-styled to match reference layout */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center py-8 mb-4 border-b-4 border-[#232121]">
         <div className="flex flex-col gap-1">
@@ -335,7 +393,8 @@ const LeadAutomationPage = () => {
             return (
               <div 
                 key={dateObj.toISOString()} 
-                className={`relative border-r-[1px] border-b-[1px] border-[#E5E7EB] aspect-square group transition-all duration-200 ease-in-out flex flex-col items-center justify-center
+                onClick={() => openHistoryModal(dateObj)}
+                className={`relative border-r-[1px] border-b-[1px] border-[#E5E7EB] aspect-square group transition-all duration-200 ease-in-out flex flex-col items-center justify-center cursor-pointer 
                   ${!isCurrentMonth ? 'bg-gray-50/50' : 'bg-white hover:bg-gray-50/50'}
                 `}
               >
@@ -348,12 +407,10 @@ const LeadAutomationPage = () => {
                     <span className="text-[14px] relative z-10">{dateObj.getDate()}</span>
                   </div>
 
-                  {/* Automation Count Indicator (Minimal Dots) */}
+                  {/* Automation Count Indicator (Badge) as requested */}
                   {dayAutomations.length > 0 && (
-                    <div className="absolute -bottom-3 flex gap-1 justify-center">
-                      {dayAutomations.slice(0, 3).map((_, i) => (
-                        <div key={i} className={`w-1 h-1 rounded-full ${isToday ? 'bg-[#FF6B6B]/40' : 'bg-gray-300'}`} />
-                      ))}
+                    <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 flex items-center justify-center bg-[#FF6B6B] text-white w-5 h-5 rounded-full border-2 border-white shadow-sm font-black text-[9px] z-10 animate-bounce">
+                      {dayAutomations.length}
                     </div>
                   )}
                 </div>
@@ -369,16 +426,13 @@ const LeadAutomationPage = () => {
                   </button>
                 )}
 
-                {/* Automation Tooltip/Quick View (Subtle overlay) */}
-                {dayAutomations.length > 0 && (
-                   <div className="absolute bottom-2 right-2 text-[9px] font-mono text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                     {dayAutomations.length} JOBS
-                   </div>
-                )}
+                {/* Removed redundant JOBS tooltip as requested */}
               </div>
             );
           })}
         </div>
+      </div>
+
       </div>
 
       {/* Add Automation Modal - Refined */}
@@ -405,17 +459,23 @@ const LeadAutomationPage = () => {
             </div>
             
             <div className="p-8 space-y-8">
-              {/* Recipient Card */}
-              <div className="bg-[#13ec13]/5 border-2 border-[#232121] p-4 flex items-center gap-4">
-                <div className="w-12 h-12 bg-[#232121] text-[#13ec13] flex items-center justify-center">
-                  <span className="material-symbols-outlined text-2xl font-black">person</span>
-                </div>
-                <div>
-                  <div className="text-[10px] font-black uppercase text-[#232121]/40 tracking-widest">Recipient</div>
-                  <div className="text-sm font-mono font-bold text-[#232121]">
-                    {lead ? `${lead.first_name} ${lead.last_name}` : 'No Lead Selected'}
+              {/* Recipient Card / Selector */}
+              <div className="bg-[#13ec13]/5 border-2 border-[#232121] p-4 flex flex-col gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-[#232121] text-[#13ec13] flex items-center justify-center">
+                    <span className="material-symbols-outlined text-2xl font-black">person</span>
                   </div>
-                  <div className="text-[10px] font-mono text-[#232121]/60">{lead?.phone_number}</div>
+                  <div className="flex-1">
+                    <div className="text-[10px] font-black uppercase text-[#232121]/40 tracking-widest">Recipient</div>
+                    {lead && (
+                      <>
+                        <div className="text-sm font-mono font-bold text-[#232121]">
+                          {lead.first_name} {lead.last_name}
+                        </div>
+                        <div className="text-[10px] font-mono text-[#232121]/60">{lead.phone_number}</div>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -486,7 +546,7 @@ const LeadAutomationPage = () => {
               </button>
               <button
                 onClick={handleSaveAutomation}
-                disabled={isSaving || !newAutomation.templateName || !lead}
+                disabled={isSaving || !newAutomation.templateName || (!lead && !newAutomation.selectedLeadId)}
                 className="px-10 py-3 bg-[#13ec13] border-2 border-[#232121] text-[#232121] text-[10px] font-black uppercase tracking-widest hover:bg-[#232121] hover:text-[#13ec13] transition-all shadow-[6px_6px_0px_#232121] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 active:shadow-none active:translate-x-1 auto:translate-y-1"
               >
                 {isSaving ? 'Processing...' : 'Confirm Schedule'}
@@ -497,7 +557,186 @@ const LeadAutomationPage = () => {
           </div>
         </div>
       )}
-    </div>
+
+      {/* Day History Modal — NEW */}
+      {isHistoryModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#232121]/80 backdrop-blur-md animate-fade-in text-left">
+          <div className="bg-white border-4 border-[#232121] shadow-[12px_12px_0px_#232121] max-w-2xl w-full flex flex-col overflow-hidden animate-slide-up">
+            
+            <div className="flex justify-between items-center p-6 border-b-4 border-[#232121] bg-[#13ec13]/10">
+              <div>
+                <h3 className="text-xl font-black uppercase tracking-tighter text-[#232121]">
+                  Automation History
+                </h3>
+                <p className="text-[12px] font-mono font-bold text-[#232121]/60 uppercase flex items-center gap-2 mt-1">
+                  <span className="material-symbols-outlined text-sm">event</span>
+                  {selectedHistoryDate && selectedHistoryDate.toLocaleDateString('default', { day: 'numeric', month: 'long', year: 'numeric' })}
+                </p>
+              </div>
+              <button 
+                onClick={() => setIsHistoryModalOpen(false)}
+                className="w-10 h-10 flex items-center justify-center border-2 border-[#232121] hover:bg-[#232121] hover:text-white transition-colors"
+                title="ESC to Close"
+              >
+                <span className="material-symbols-outlined font-black">close</span>
+              </button>
+            </div>
+
+            <div className="p-8 max-h-[60vh] overflow-y-auto">
+              {getAutomationsForDate(selectedHistoryDate).length === 0 ? (
+                <div className="text-center py-12 border-2 border-dashed border-gray-200">
+                  <span className="material-symbols-outlined text-4xl text-gray-300">history_off</span>
+                  <p className="mt-2 text-[11px] font-black uppercase text-gray-400 tracking-widest">No automations scheduled for this date</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                    {getAutomationsForDate(selectedHistoryDate).map((auto, i) => {
+                      // Extract project name from button_0
+                      const projectId = auto.button_0?.split('#')[0];
+                      const project = projects.find(p => p.projectId === projectId);
+                      const projectName = project ? project.projectName : 'N/A';
+                      
+                      // Find lead name from leads list
+                      const recipientLead = allLeads.find(l => l.id === auto.leadId);
+                      const recipientName = recipientLead ? `${recipientLead.first_name} ${recipientLead.last_name}` : 'Unknown';
+
+                      return (
+                        <div key={auto._id || i} className="border-2 border-[#232121] p-5 flex items-center justify-between gap-6 hover:translate-x-1 hover:-translate-y-1 transition-transform bg-white shadow-[4px_4px_0px_#232121]">
+                          <div className="flex gap-4 items-center">
+                            <div className="w-12 h-12 bg-[#232121] text-[#13ec13] flex items-center justify-center shrink-0">
+                              <span className="material-symbols-outlined font-black">
+                                {auto.status === 'sent' ? 'done_all' : (auto.status === 'failed' ? 'error' : 'schedule')}
+                              </span>
+                            </div>
+                            <div className="text-left">
+                              <div className="text-[10px] font-black uppercase tracking-widest text-[#232121]/40 mb-1">
+                                {recipientName} &bull; {auto.status}
+                              </div>
+                              <div className="text-sm font-black text-[#232121]">
+                                {getTemplateLabel(auto.templateName)}
+                                {auto.templateName === 'lead_street_view' && (
+                                  <span className="ml-2 text-[10px] font-mono font-bold text-[#13ec13] bg-[#232121] px-1.5 py-0.5 uppercase">
+                                    {projectName}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex gap-3 text-[10px] items-center mt-1 text-left">
+                                <span className="font-mono bg-[#232121] text-white px-2 py-0.5">{formatTime(auto.scheduledAt)}</span>
+                                <span className={`px-1.5 py-0.5 font-bold uppercase ${auto.status === 'sent' ? 'bg-[#13ec13]/20 text-[#13ec13]' : 'bg-gray-100 text-gray-600'}`}>
+                                  {auto.status}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex gap-4 border-l-2 border-[#232121]/10 pl-6 animate-fade-in">
+                            {auto.status === 'pending' ? (
+                              <button 
+                                onClick={(e) => handleDelete(auto._id, e)}
+                                className="w-10 h-10 flex items-center justify-center border-2 border-[#232121]/10 text-danger hover:border-danger hover:bg-danger/5 transition-all group/del"
+                                title="Delete Scheduled Message"
+                              >
+                                <span className="material-symbols-outlined text-xl group-hover/del:scale-110 transition-transform">delete_forever</span>
+                              </button>
+                            ) : (
+                              <>
+                                <div className="text-center">
+                                  <div className="text-[9px] font-black text-[#232121]/40 uppercase tracking-tighter mb-1">Opened</div>
+                                  <div className={`text-lg font-black ${auto.linkActivity?.opened ? 'text-[#13ec13]' : 'text-gray-300'}`}>
+                                    {auto.linkActivity?.opened ? 'YES' : 'NO'}
+                                  </div>
+                                </div>
+                                <div className="text-center">
+                                  <div className="text-[9px] font-black text-[#232121]/40 uppercase tracking-tighter mb-1">Time Spent</div>
+                                  <div className="text-lg font-black text-[#232121]">
+                                    {auto.linkActivity?.timeSpentSeconds ? `${auto.linkActivity.timeSpentSeconds}s` : '0s'}
+                                  </div>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              )}
+            </div>
+
+            <div className="p-8 bg-surface-subtle border-t-2 border-[#232121] flex justify-end">
+              <button
+                onClick={() => setIsHistoryModalOpen(false)}
+                className="px-8 py-3 bg-[#232121] text-white text-[10px] font-black uppercase tracking-widest hover:bg-[#13ec13] hover:text-[#232121] transition-all"
+              >
+                Done
+              </button>
+            </div>
+            
+          </div>
+        </div>
+      )}
+      {/* User Selection Modal — MANDATORY if no leadId */}
+      {isUserPickerOpen && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-[#232121]/95 backdrop-blur-xl animate-fade-in">
+          <div className="bg-white border-4 border-[#232121] shadow-[16px_16px_0px_#232121] max-w-2xl w-full flex flex-col overflow-hidden animate-slide-up">
+            
+            <div className="p-8 border-b-4 border-[#232121] bg-[#13ec13]/10">
+              <h3 className="text-3xl font-black uppercase tracking-tighter text-[#232121]">
+                Select User
+              </h3>
+              <p className="text-[12px] font-mono font-bold text-[#232121]/60 uppercase mt-2">
+                Choose a user to set or view automation history
+              </p>
+            </div>
+
+            <div className="p-8 max-h-[60vh] overflow-y-auto bg-surface-subtle">
+              {allLeads.length === 0 ? (
+                <div className="text-center py-12 border-4 border-dashed border-[#232121]/10 rounded-xl">
+                  <span className="material-symbols-outlined text-5xl text-[#232121]/20">person_off</span>
+                  <p className="mt-4 text-sm font-black uppercase text-[#232121]/40 tracking-widest">No users found in your records</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {allLeads.map(u => (
+                    <button
+                      key={u.id}
+                      onClick={() => navigate(`/lead-automation/${u.id}`)}
+                      className="group border-4 border-[#232121] p-4 flex items-center gap-4 bg-white hover:bg-[#13ec13] hover:translate-x-1 hover:-translate-y-1 transition-all text-left shadow-[6px_6px_0px_#232121] active:shadow-none active:translate-x-0 active:translate-y-0"
+                    >
+                      <div className="w-12 h-12 bg-[#232121] text-[#13ec13] group-hover:bg-white group-hover:text-[#232121] transition-colors flex items-center justify-center text-xl font-black rounded-sm">
+                        {u.first_name[0]}{u.last_name[0]}
+                      </div>
+                      <div className="flex-1 overflow-hidden">
+                        <div className="font-black uppercase text-sm truncate text-[#232121]">
+                          {u.first_name} {u.last_name}
+                        </div>
+                        <div className="font-mono text-[10px] text-[#232121]/60 group-hover:text-[#232121] transition-colors">
+                          {u.phone_number}
+                        </div>
+                      </div>
+                      <span className="material-symbols-outlined text-lg opacity-0 group-hover:opacity-100 transition-opacity">arrow_forward</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="p-8 border-t-4 border-[#232121] flex justify-between items-center bg-white">
+               <button 
+                 onClick={() => navigate('/dashboard')}
+                 className="text-[10px] font-black uppercase tracking-widest text-[#232121]/40 hover:text-primary transition-colors flex items-center gap-1"
+               >
+                 <span className="material-symbols-outlined text-[14px]">arrow_back</span>
+                 Cancel & Go Back
+               </button>
+               <div className="text-[10px] font-mono font-bold text-[#232121]/60 uppercase">
+                 Total Users: {allLeads.length}
+               </div>
+            </div>
+            
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 

@@ -9,6 +9,9 @@ const UsersPage = () => {
 
   const [selectedUsers, setSelectedUsers] = useState(new Set());
   const [processing, setProcessing] = useState(false);
+  const [showProjectModal, setShowProjectModal] = useState(false);
+  const [projects, setProjects] = useState([]);
+  const [fetchingProjects, setFetchingProjects] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -55,6 +58,27 @@ const UsersPage = () => {
 
   const handleBulkCreateLead = async () => {
     if (selectedUsers.size === 0) return;
+    setFetchingProjects(true);
+    try {
+      const res = await api.getBuilderProjects();
+      const projList = res.data.data || [];
+      if (projList.length === 0) {
+        alert("No projects available");
+        setFetchingProjects(false);
+        return;
+      }
+      setProjects(projList);
+      setShowProjectModal(true);
+    } catch (err) {
+      console.error("Failed to fetch projects", err);
+      alert("Failed to fetch projects");
+    } finally {
+      setFetchingProjects(false);
+    }
+  };
+
+  const executeBulkCreate = async (projectSlug, projectName) => {
+    setShowProjectModal(false);
     setProcessing(true);
     
     try {
@@ -67,7 +91,9 @@ const UsersPage = () => {
       const creatorData = {
         creatorId: currentUser.id,
         creatorName: `${currentUser.first_name} ${currentUser.last_name}`,
-        creatorRole: currentUser.role || 'agent'
+        creatorRole: currentUser.role || 'agent',
+        projectSlug,
+        projectName
       };
 
       const promises = Array.from(selectedUsers).map(userId => 
@@ -170,7 +196,7 @@ const UsersPage = () => {
             </span>
             <button 
               onClick={handleBulkCreateLead}
-              disabled={processing}
+              disabled={processing || fetchingProjects}
               className="bg-primary text-white px-3 py-1.5 font-black uppercase tracking-widest text-[9px] border border-primary hover:bg-charcoal hover:border-charcoal transition-all cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
             >
               <span className="material-symbols-outlined text-[14px] font-black">bolt</span>
@@ -256,6 +282,34 @@ const UsersPage = () => {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Project Selection Modal */}
+      {showProjectModal && (
+        <div className="fixed inset-0 bg-charcoal/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-md border-2 border-charcoal shadow-lg">
+            <div className="flex justify-between items-center p-4 border-b-2 border-charcoal/10">
+              <h2 className="text-lg font-black uppercase tracking-tight">Select Project</h2>
+              <button onClick={() => setShowProjectModal(false)} className="text-charcoal/50 hover:text-charcoal cursor-pointer">
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            <div className="p-4 max-h-[60vh] overflow-y-auto">
+              <p className="text-xs text-charcoal/50 uppercase font-bold tracking-widest mb-3">Choose project to link leads</p>
+              <div className="space-y-2">
+                {projects.map(p => (
+                  <button
+                    key={p._id || p.id || p.slug}
+                    onClick={() => executeBulkCreate(p.slug, p.projectName)}
+                    className="w-full text-left p-3 border-2 border-charcoal/10 hover:border-primary hover:bg-primary/5 transition-all cursor-pointer font-bold"
+                  >
+                    {p.projectName}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       )}

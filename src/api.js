@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Use environment variable for API URL with fallback
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://lead-filteration-backend-624770114041.asia-south1.run.app';
-const SALES_WEBSITE_URL = 'https://www.homeintown.in';
+const SALES_WEBSITE_URL = import.meta.env.VITE_SALES_WEBSITE_URL || 'https://www.homeintown.in';
 
 // Helper to create an axios instance with shared interceptors
 const createApiInstance = (path) => {
@@ -84,6 +84,7 @@ export const getCallStatus = (leadId) => voiceApi.get(`/status/${leadId}`);
 // ====== LEAD AUTOMATION ENDPOINTS ======
 export const getWhatsappTemplates = () => automationApi.get(`/templates`);
 export const getLeadAutomations = (leadId) => automationApi.get(`/lead/${leadId}`);
+export const getCreatorAutomations = (userId) => automationApi.get(`/creator/${userId}`);
 export const createLeadAutomation = (data) => automationApi.post('', data);
 export const deleteLeadAutomation = (id) => automationApi.delete(`/${id}`);
 
