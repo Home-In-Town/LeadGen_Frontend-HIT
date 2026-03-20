@@ -20,7 +20,7 @@ const Header = ({ showNav }) => {
     }
   };
 
-  const isActive = (path) => location.pathname === path;
+  const isActive = (path) => location.pathname === path || location.pathname.startsWith(path + '/');
 
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-charcoal/10 font-display">

@@ -508,13 +508,13 @@ const LeadAutomationPage = () => {
                     </label>
                     <div className="relative">
                       <select
-                        value={newAutomation.projectId}
+                        value={newAutomation.projectId} // keeping variable name for state but storing slug
                         onChange={(e) => setNewAutomation({...newAutomation, projectId: e.target.value})}
                         className="w-full appearance-none bg-white border-2 border-primary px-4 py-3 text-[11px] font-black uppercase text-[#232121] focus:bg-primary/5 focus:outline-none transition-colors"
                       >
                         <option value="" disabled>Select Project</option>
                         {projects.map(p => (
-                          <option key={p.id} value={p.projectId}>{p.projectName}</option>
+                          <option key={p._id || p.id} value={p.slug}>{p.projectName}</option>
                         ))}
                       </select>
                       <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none opacity-40">apartment</span>
@@ -591,14 +591,14 @@ const LeadAutomationPage = () => {
               ) : (
                 <div className="space-y-2">
                     {getAutomationsForDate(selectedHistoryDate).map((auto, i) => {
-                      // Extract project name from button_0
-                      const projectId = auto.button_0?.split('#')[0];
-                      const project = projects.find(p => p.projectId === projectId);
-                      const projectName = project ? project.projectName : 'N/A';
+                      // Extract project name from button_0 (it stores the slug)
+                      const projectSlug = auto.button_0?.split('#')[0];
+                      const project = projects.find(p => p.slug === projectSlug);
+                      const projectName = project ? project.projectName : (projectSlug || 'N/A');
                       
-                      // Find lead name from leads list
+                      // Find lead name from leads list or use enriched backend name
                       const recipientLead = allLeads.find(l => l.id === auto.leadId);
-                      const recipientName = recipientLead ? `${recipientLead.first_name} ${recipientLead.last_name}` : 'Unknown';
+                      const recipientName = auto.leadName || (recipientLead ? `${recipientLead.first_name} ${recipientLead.last_name}` : 'Unknown');
 
                       return (
                         <div key={auto._id || i} className="border-2 border-[#232121] p-3 flex items-center justify-between gap-4 hover:translate-x-1 hover:-translate-y-1 transition-transform bg-white shadow-[3px_3px_0px_#232121]">
