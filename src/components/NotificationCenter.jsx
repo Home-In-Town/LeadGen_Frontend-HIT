@@ -95,7 +95,7 @@ const NotificationCenter = () => {
                 className={`fixed top-0 right-0 h-screen w-[400px] max-w-[90vw] bg-white border-l border-charcoal/5 shadow-[-30px_0_60px_rgba(0,0,0,0.12)] z-[1001] flex flex-col transform transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
                     isOpen ? 'translate-x-0' : 'translate-x-full'
                 }`}
-                aria-hidden={!isOpen}
+                inert={!isOpen ? '' : undefined}
                 aria-label="Activity center"
             >
                 {/* Header: Activity & Actions */}
