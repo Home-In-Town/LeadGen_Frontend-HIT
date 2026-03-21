@@ -50,16 +50,20 @@ const NotificationCenter = () => {
 
     const getNotificationRoute = (n) => {
         const { type, leadId } = n;
-        
+
+        // WhatsApp replies → open that lead's chat directly
+        if (type === 'WHATSAPP_REPLY') {
+            return '/chat';  // ChatDashboard will select the lead via sidebar
+        }
+
         // Lead Automation Page always wants the leadId to show the calendar
         if (type === 'AUTOMATION_STATUS') {
             return leadId ? `/lead-automation/${leadId}` : '/lead-automation';
         }
-        
-        // Most other notifications (LEAD_CREATED, LINK_OPENED, WHATSAPP_REPLY) 
-        // point to the context of a specific lead.
+
+        // LEAD_CREATED, LINK_OPENED → lead detail page
         if (leadId) return `/lead/${leadId}`;
-        
+
         return '/history'; // fallback
     };
 
