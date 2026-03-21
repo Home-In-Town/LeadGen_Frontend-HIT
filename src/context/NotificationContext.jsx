@@ -111,15 +111,17 @@ export const NotificationProvider = ({ children }) => {
 
         socket.on('new_chat_message', (payload) => {
             console.log('💬 New chat message:', payload);
-            
-            // Push into toast queue for chat specifically
+
+            // Only toast for inbound messages from the lead — NOT for outbound (system/agent/builder)
+            if (payload.sender !== 'lead') return;
+
             setToasts(prev => [
                 ...prev,
                 { 
                     id: `chat_${Date.now()}_${Math.random()}`,
                     type: 'message', 
                     title: 'New WhatsApp Message', 
-                    message: payload.message?.text || payload.message?.body || 'New message received',
+                    message: payload.content || 'New message received',  // payload IS the ChatMessage doc
                     leadId: payload.leadId
                 }
             ]);
