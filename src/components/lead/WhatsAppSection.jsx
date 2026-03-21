@@ -40,14 +40,6 @@ const WhatsAppSection = ({ leadData, isHighlighted }) => {
                             <p className="font-mono text-[9px] uppercase text-charcoal/30">Sent: {new Date(leadData.whatsappData.sentAt).toLocaleString()}</p>
                         )}
                     </div>
-                    {/* Chat Trigger Button */}
-                    <button 
-                        onClick={() => window.dispatchEvent(new CustomEvent('open-lead-chat', { detail: { id: leadData.id || leadData._id, name: `${leadData.first_name} ${leadData.last_name}` } }))}
-                        className="bg-emerald-500 text-white p-2 hover:bg-emerald-600 transition-all shadow-[2px_2px_0px_#232121] active:translate-x-0.5 active:translate-y-0.5"
-                        title="Live Chat"
-                    >
-                        <span className="material-symbols-outlined text-sm font-black">chat</span>
-                    </button>
                 </div>
             </div>
         </div>
