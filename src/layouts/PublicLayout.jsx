@@ -1,8 +1,7 @@
-import { Outlet, Navigate, useLocation } from 'react-router-dom';
+import { Outlet } from 'react-router-dom';
 import Header from '../components/Header';
 
 const PublicLayout = () => {
-  const isAuthenticated = !!localStorage.getItem('currentUser');
 
   // Optional: Redirect authenticated users to dashboard?
   // User's request implied seeing "Landing Page" but without "Navbar".

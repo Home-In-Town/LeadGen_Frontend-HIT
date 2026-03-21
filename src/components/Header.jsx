@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import NotificationCenter from './NotificationCenter';
 
 const Header = ({ showNav }) => {
   const location = useLocation();
@@ -11,6 +12,8 @@ const Header = ({ showNav }) => {
     agent: 'text-blue-500 bg-blue-500/5 border-blue-500/20',
     admin: 'text-charcoal/60 bg-charcoal/5 border-charcoal/20'
   };
+  
+  const userName = user.name || (user.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : '');
 
   const handleLogout = () => {
     if (confirm('Exit to Sales Dashboard? This will end your session here.')) {
@@ -23,8 +26,8 @@ const Header = ({ showNav }) => {
   const isActive = (path) => location.pathname === path || location.pathname.startsWith(path + '/');
 
   return (
-    <header className="sticky top-0 z-50 bg-white border-b border-charcoal/10 font-display">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+    <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-charcoal/5 font-display">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2.5 flex items-center justify-between">
         {/* Brand */}
         <div className="shrink-0">
           <Link to={showNav ? "/dashboard" : "/"} className="flex items-center gap-2 no-underline group">
@@ -57,6 +60,14 @@ const Header = ({ showNav }) => {
                 </li>
                 <li>
                   <Link 
+                    to="/chat" 
+                    className={`uppercase tracking-widest text-[10px] sm:text-[11px] font-black transition-all pb-1 border-b-2 ${isActive('/chat') ? 'text-primary border-primary' : 'text-charcoal/40 border-transparent hover:text-charcoal'}`}
+                  >
+                    Chat
+                  </Link>
+                </li>
+                <li>
+                  <Link 
                     to="/users" 
                     className={`uppercase tracking-widest text-[10px] sm:text-[11px] font-black transition-all pb-1 border-b-2 ${isActive('/users') ? 'text-primary border-primary' : 'text-charcoal/40 border-transparent hover:text-charcoal'}`}
                   >
@@ -73,30 +84,30 @@ const Header = ({ showNav }) => {
                 </li>
               </ul>
 
-              <div className="flex items-center gap-4 sm:gap-6 border-l border-charcoal/10 pl-6 h-8 ml-4">
-                <div className="text-right hidden sm:block">
-                  <div className="text-[8px] font-black uppercase tracking-widest text-charcoal/30 leading-none mb-1">
-                    Identified User
+              <div className="flex items-center gap-4 sm:gap-4 border-l border-charcoal/10 pl-4 h-8 ml-4">
+                <NotificationCenter />
+                <div className="hidden sm:flex flex-col items-end">
+                  <div className={`mb-1 px-1.5 py-0.5 border font-mono text-[8px] font-bold uppercase tracking-widest leading-none ${roleColors[user.role] || roleColors.admin}`}>
+                    {user.role}
                   </div>
-                  <div className="text-[10px] font-black uppercase tracking-tight text-charcoal leading-none">
-                    {user.name || 'System User'}
+                  <div className="text-[9px] font-black uppercase tracking-tight text-charcoal/80 leading-none">
+                    {userName}
                   </div>
-                </div>
-                <div className={`px-2 py-1 border font-mono text-[8px] font-bold uppercase tracking-widest leading-none ${roleColors[user.role] || roleColors.admin}`}>
-                  {user.role}
                 </div>
                 <button 
                   onClick={handleLogout}
-                  className="bg-white border border-charcoal/20 px-3 py-1.5 font-black uppercase tracking-widest text-[9px] text-charcoal/60 hover:bg-charcoal hover:text-white cursor-pointer transition-all flex items-center gap-2"
+                  title="Return to Homeintown Dashboard"
+                  className="bg-white border border-charcoal/20 px-2 py-1.5 font-black uppercase tracking-widest text-[9px] text-charcoal/60 hover:bg-charcoal hover:text-white cursor-pointer transition-all flex items-center gap-1.5"
                 >
-                  <span className="material-symbols-outlined text-[10px]">arrow_back</span>
-                  Sales Dashboard
+                  <span className="material-symbols-outlined text-[14px]">arrow_back</span>
+                  <span className="hidden sm:inline">Homeintown</span>
                 </button>
               </div>
             </nav>
 
             {/* Mobile/Tablet Menu Button */}
             <div className="lg:hidden flex items-center gap-4">
+               <NotificationCenter />
                <div className={`px-2 py-1 border font-mono text-[8px] font-bold uppercase tracking-widest leading-none ${roleColors[user.role] || roleColors.admin}`}>
                   {user.role}
                </div>
@@ -140,6 +151,13 @@ const Header = ({ showNav }) => {
               History
             </Link>
             <Link 
+              to="/chat" 
+              onClick={() => setIsMenuOpen(false)}
+              className={`py-3 uppercase tracking-widest text-[11px] font-black transition-all ${isActive('/chat') ? 'text-primary' : 'text-charcoal/60'}`}
+            >
+              Chat
+            </Link>
+            <Link 
               to="/users" 
               onClick={() => setIsMenuOpen(false)}
               className={`py-3 uppercase tracking-widest text-[11px] font-black transition-all ${isActive('/users') ? 'text-primary' : 'text-charcoal/60'}`}
@@ -156,17 +174,12 @@ const Header = ({ showNav }) => {
           </nav>
           
           <div className="p-4 bg-surface-subtle/50 space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-[8px] font-black uppercase tracking-widest text-charcoal/30 leading-none mb-1">
-                  Active Identification
-                </div>
-                <div className="text-[11px] font-black uppercase tracking-tight text-charcoal leading-none">
-                  {user.name || 'System User'}
-                </div>
-              </div>
-              <div className={`px-2 py-1 border font-mono text-[8px] font-bold uppercase tracking-widest leading-none ${roleColors[user.role] || roleColors.admin}`}>
+            <div className="flex flex-col gap-2">
+              <div className={`w-fit px-2 py-1 border font-mono text-[8px] font-bold uppercase tracking-widest leading-none ${roleColors[user.role] || roleColors.admin}`}>
                 {user.role}
+              </div>
+              <div className="text-[11px] font-black uppercase tracking-tight text-charcoal leading-none">
+                {userName}
               </div>
             </div>
             
@@ -178,7 +191,7 @@ const Header = ({ showNav }) => {
               className="w-full bg-charcoal text-white py-3 font-black uppercase tracking-widest text-[10px] border-2 border-charcoal hover:bg-primary transition-all cursor-pointer flex items-center justify-center gap-2"
             >
               <span className="material-symbols-outlined text-[14px]">arrow_back</span>
-              Back to Sales Dashboard
+              Homeintown Dashboard
             </button>
           </div>
         </div>

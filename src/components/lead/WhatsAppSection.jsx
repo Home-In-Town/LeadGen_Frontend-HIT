@@ -31,13 +31,23 @@ const WhatsAppSection = ({ leadData, isHighlighted }) => {
                 {leadData.whatsappData?.status === 'sent' && !leadData.whatsappResult && <p className="text-sm text-charcoal/60">Waiting for reply to template...</p>}
                 {leadData.whatsappData?.error && <p className="text-xs text-red-500 italic">Error: {leadData.whatsappData.error}</p>}
 
-                <div className="pt-4 border-t border-charcoal/5 space-y-2">
-                    {leadData.whatsappData?.messageSid && (
-                        <p className="font-mono text-[9px] uppercase text-charcoal/30">ID: {leadData.whatsappData.messageSid.slice(0, 16)}...</p>
-                    )}
-                    {leadData.whatsappData?.sentAt && (
-                        <p className="font-mono text-[9px] uppercase text-charcoal/30">Sent: {new Date(leadData.whatsappData.sentAt).toLocaleString()}</p>
-                    )}
+                <div className="pt-4 border-t border-charcoal/5 flex justify-between items-center gap-2">
+                    <div className="space-y-1">
+                        {leadData.whatsappData?.messageSid && (
+                            <p className="font-mono text-[9px] uppercase text-charcoal/30 line-clamp-1">ID: {leadData.whatsappData.messageSid.slice(0, 16)}...</p>
+                        )}
+                        {leadData.whatsappData?.sentAt && (
+                            <p className="font-mono text-[9px] uppercase text-charcoal/30">Sent: {new Date(leadData.whatsappData.sentAt).toLocaleString()}</p>
+                        )}
+                    </div>
+                    {/* Chat Trigger Button */}
+                    <button 
+                        onClick={() => window.dispatchEvent(new CustomEvent('open-lead-chat', { detail: { id: leadData.id || leadData._id, name: `${leadData.first_name} ${leadData.last_name}` } }))}
+                        className="bg-emerald-500 text-white p-2 hover:bg-emerald-600 transition-all shadow-[2px_2px_0px_#232121] active:translate-x-0.5 active:translate-y-0.5"
+                        title="Live Chat"
+                    >
+                        <span className="material-symbols-outlined text-sm font-black">chat</span>
+                    </button>
                 </div>
             </div>
         </div>

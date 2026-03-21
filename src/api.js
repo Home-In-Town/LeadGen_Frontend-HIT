@@ -93,7 +93,19 @@ export const getGoogleMappings = () => googleApi.get('/mapping');
 export const createGoogleMapping = (data) => googleApi.post('/mapping', data);
 export const deleteGoogleMapping = (id) => googleApi.delete(`/mapping/${id}`);
 
+// ====== NOTIFICATION ENDPOINTS ======
+const notificationApi = createApiInstance('/notifications');
+export const getNotifications = (userId) => notificationApi.get('', { params: { userId } });
+export const markNotificationRead = (id) => notificationApi.patch(`/${id}/read`);
+export const markAllNotificationsRead = (userId) => notificationApi.patch(`/read-all`, { userId });
+
 // ====== SHARED: PROJECT LIST (used by Google & Facebook integration pages) ======
 const projectsApi = createApiInstance('/projects');
 export const getBuilderProjects = () => projectsApi.get('/list');
+
+// ====== CHAT ENDPOINTS ======
+const chatApi = createApiInstance('/chat');
+export const getChatConversations = (userId, role) => chatApi.get('/conversations', { params: { userId, role } });
+export const getChatMessages = (leadId) => chatApi.get(`/${leadId}/messages`);
+export const sendChatMessage = (leadId, data) => chatApi.post(`/${leadId}/send`, data);
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as api from '../api';
 import IntegrationSelectorModal from '../components/IntegrationSelectorModal';
@@ -8,7 +8,7 @@ const DashboardPage = () => {
   const [users, setUsers] = useState([]);
   const [isIntegrationModalOpen, setIsIntegrationModalOpen] = useState(false);
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       const currentUserStr = localStorage.getItem('currentUser');
       if (!currentUserStr) {
@@ -22,11 +22,11 @@ const DashboardPage = () => {
     } catch (err) {
       console.error('Failed to fetch users:', err);
     }
-  };
+  }, [navigate]);
 
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [fetchUsers]);
 
   return (
     <div className="animate-fade-in font-display text-charcoal pb-10">

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as api from '../api';
 
@@ -13,11 +13,7 @@ const UsersPage = () => {
   const [projects, setProjects] = useState([]);
   const [fetchingProjects, setFetchingProjects] = useState(false);
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
-
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       const currentUserStr = localStorage.getItem('currentUser');
       if (!currentUserStr) {
@@ -31,7 +27,11 @@ const UsersPage = () => {
     } catch (err) {
       console.error('Failed to fetch users:', err);
     }
-  };
+  }, [navigate]);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
 
   const filteredUsers = users.filter(user => {
     const fullName = `${user.first_name} ${user.last_name}`.toLowerCase();

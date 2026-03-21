@@ -1,14 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { io } from "socket.io-client";
+import { useNotifications } from "../context/NotificationContext";
 import * as api from "../api";
 import WhatsAppSection from "../components/lead/WhatsAppSection";
 import VoiceCallSection from "../components/lead/VoiceCallSection";
 import LinkActivitySection from "../components/lead/LinkActivitySection";
 
 const LeadGenerationPage = () => {
-  const [id] = useParams().id ? [useParams().id] : [null];
+  const { id } = useParams();
   const navigate = useNavigate();
+  const { socketRef } = useNotifications();
   const [leadData, setLeadData] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -16,44 +17,8 @@ const LeadGenerationPage = () => {
   const [lastUpdateType, setLastUpdateType] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
 
-  useEffect(() => {
-    const userStr = localStorage.getItem('currentUser');
-    if (userStr) setCurrentUser(JSON.parse(userStr));
-    
-    if (id) {
-      refreshData();
-
-      const socket = io(import.meta.env.VITE_API_BASE_URL || 'http://localhost:5002');
-      
-      socket.on('connect', () => {
-        console.log('🔌 Connected to real-time server');
-        setIsConnected(true);
-        socket.emit('join_lead', id);
-      });
-
-      socket.on('disconnect', () => {
-        console.log('❌ Disconnected from real-time server');
-        setIsConnected(false);
-      });
-
-      const handleUpdate = (data, type) => {
-        console.log(`📡 Received ${type} update:`, data);
-        setLeadData(prev => ({ ...prev, ...data }));
-        setLastUpdateType(type);
-        setShowLiveBadge(true);
-        setTimeout(() => setShowLiveBadge(false), 3000);
-        setTimeout(() => setLastUpdateType(prev => prev === type ? null : prev), 5000);
-      };
-
-      socket.on('whatsapp_update', (data) => handleUpdate(data, 'whatsapp'));
-      socket.on('analytics_update', (data) => handleUpdate(data, 'analytics'));
-      socket.on('call_update', (data) => handleUpdate(data, 'call'));
-
-      return () => { socket.disconnect(); };
-    }
-  }, [id]);
-
-  const refreshData = async () => {
+  const refreshData = useCallback(async () => {
+    if (!id) return;
     try {
       setIsRefreshing(true);
       const res = await api.getSummary(id);
@@ -64,9 +29,10 @@ const LeadGenerationPage = () => {
     } finally {
       setIsRefreshing(false);
     }
-  };
+  }, [id]);
 
-  const refreshCallStatus = async () => {
+  const refreshCallStatus = useCallback(async () => {
+    if (!id) return;
     try {
       setIsRefreshing(true);
       await api.getCallStatus(id);
@@ -76,7 +42,63 @@ const LeadGenerationPage = () => {
     } finally {
       setIsRefreshing(false);
     }
-  };
+  }, [id, refreshData]);
+
+  useEffect(() => {
+    const userStr = localStorage.getItem('currentUser');
+    if (userStr) setCurrentUser(JSON.parse(userStr));
+    
+    if (id) {
+      refreshData();
+
+      const socket = socketRef.current;
+      if (!socket) return;
+
+      const setupLiveConnection = () => {
+        console.log('🔌 Connected to real-time server (lead channel)');
+        setIsConnected(true);
+        socket.emit('join_lead', id);
+      };
+
+      if (socket.connected) {
+        setupLiveConnection();
+      }
+      
+      socket.on('connect', setupLiveConnection);
+
+      const handleDisconnect = () => {
+        console.log('❌ Disconnected from real-time server (lead channel)');
+        setIsConnected(false);
+      };
+      socket.on('disconnect', handleDisconnect);
+
+      const handleUpdate = (data, type) => {
+        console.log(`📡 Received ${type} update:`, data);
+        setLeadData(prev => ({ ...prev, ...data }));
+        setLastUpdateType(type);
+        setShowLiveBadge(true);
+        setTimeout(() => setShowLiveBadge(false), 3000);
+        setTimeout(() => setLastUpdateType(prev => prev === type ? null : prev), 5000);
+      };
+
+      const handleWhatsapp = (data) => handleUpdate(data, 'whatsapp');
+      const handleAnalytics = (data) => handleUpdate(data, 'analytics');
+      const handleCall = (data) => handleUpdate(data, 'call');
+
+      socket.on('whatsapp_update', handleWhatsapp);
+      socket.on('analytics_update', handleAnalytics);
+      socket.on('call_update', handleCall);
+
+      return () => { 
+        socket.emit('leave_lead', id);
+        socket.off('connect', setupLiveConnection);
+        socket.off('disconnect', handleDisconnect);
+        socket.off('whatsapp_update', handleWhatsapp);
+        socket.off('analytics_update', handleAnalytics);
+        socket.off('call_update', handleCall);
+      };
+    }
+  }, [id, refreshData, socketRef]);
 
   if (!leadData) {
     return (

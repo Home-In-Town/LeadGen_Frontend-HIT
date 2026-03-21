@@ -15,28 +15,26 @@
   --radius-xl: 0px;
   --radius-2xl: 0px;
   --radius-3xl: 0px;
-  --radius-full: 0px;
+  --radius-full: 9999px;
 
   --font-display: "Inter", sans-serif;
   --font-mono: "Roboto Mono", monospace;
 
   --animate-fade-in: fadeIn 0.4s ease-out forwards;
+  --animate-toast-in: toastIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 
   @keyframes fadeIn {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
   }
+
+  @keyframes toastIn {
+    from { opacity: 0; transform: translateX(24px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
 }
 
 @layer base {
-  * {
-    border-style: none;
-    transition-property: all;
-    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-    transition-duration: 200ms;
-    border-radius: 0px !important;
-  }
-  
   body {
     background-color: var(--color-background-light);
     color: var(--color-charcoal);
@@ -44,6 +42,7 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     min-height: 100vh;
+    overflow-x: hidden;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -51,11 +50,31 @@
     text-transform: uppercase;
     letter-spacing: -0.025em;
   }
+
+  /* Improved focus and selection states */
+  ::selection {
+    background-color: var(--color-primary);
+    color: white;
+  }
 }
 
 @layer utilities {
   .debug-grid {
     background-size: 20px 20px;
     background-image: radial-gradient(circle, #E2E8F0 1px, transparent 1px);
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(15, 17, 21, 0.05);
+    border-radius: 9999px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(15, 17, 21, 0.1);
   }
 }
