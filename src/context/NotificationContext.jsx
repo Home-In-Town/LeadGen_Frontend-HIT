@@ -124,18 +124,9 @@ export const NotificationProvider = ({ children }) => {
 
             const messageContent = payload.content || payload.body || 'New message received';
             
-            setToasts(prev => [
-                ...prev,
-                { 
-                    id: `chat_${Date.now()}_${Math.random()}`,
-                    type: 'message', 
-                    title: 'New WhatsApp Message', 
-                    message: messageContent,
-                    leadId: payload.leadId
-                }
-            ]);
-            
-            playChime();
+            // Note: We no longer create a manual toast or chime here because 
+            // the backend already emits a 'new_notification' event ('WhatsApp Reply Received')
+            // which is handled by the 'new_notification' listener above.
         });
 
         socket.connect();
