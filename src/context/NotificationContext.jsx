@@ -9,7 +9,9 @@ const SOCKET_URL = import.meta.env.VITE_API_BASE_URL || 'https://lead-filteratio
 function getCurrentUserId() {
     try {
         const u = localStorage.getItem('currentUser');
-        return u ? JSON.parse(u)?.id : null;
+        if (!u) return null;
+        const parsed = JSON.parse(u);
+        return parsed.userId || parsed.id || parsed._id || null;
     } catch { return null; }
 }
 
@@ -110,18 +112,23 @@ export const NotificationProvider = ({ children }) => {
         });
 
         socket.on('new_chat_message', (payload) => {
-            console.log('💬 New chat message:', payload);
+            console.log('💬 New chat message received in NotificationContext:', payload);
 
             // Only toast for inbound messages from the lead — NOT for outbound (system/agent/builder)
             if (payload.sender !== 'lead') return;
 
+            // Optional: Don't show toast if already on the chat page with this lead active?
+            // For now, show it anyway as requested.
+
+            const messageContent = payload.content || payload.body || 'New message received';
+            
             setToasts(prev => [
                 ...prev,
                 { 
                     id: `chat_${Date.now()}_${Math.random()}`,
                     type: 'message', 
                     title: 'New WhatsApp Message', 
-                    message: payload.content || 'New message received',  // payload IS the ChatMessage doc
+                    message: messageContent,
                     leadId: payload.leadId
                 }
             ]);

@@ -9,6 +9,7 @@ const TYPE_CONFIG = {
     CALL_COMPLETED:   { icon: 'call',               accent: 'text-emerald-500', bg: 'bg-emerald-500/10' },
     LINK_OPENED:      { icon: 'bolt',               accent: 'text-primary',     bg: 'bg-primary/10' },
     AUTOMATION_STATUS:{ icon: 'schedule_send',      accent: 'text-purple-500',  bg: 'bg-purple-500/10' },
+    message:          { icon: 'forum',               accent: 'text-primary',     bg: 'bg-primary/10' },
 };
 
 const TOAST_DURATION_MS = 4500;
@@ -41,6 +42,7 @@ const ToastCard = ({ notification, onDismiss }) => {
     const cfg = TYPE_CONFIG[notification.type] || TYPE_CONFIG.LINK_OPENED;
 
     const getRoute = () => {
+        if (notification.type === 'message') return '/chat';
         if (notification.type === 'AUTOMATION_STATUS') {
             return notification.leadId ? `/lead-automation/${notification.leadId}` : '/lead-automation';
         }

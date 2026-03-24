@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
-import { getChatConversations, getChatMessages, sendChatMessage } from '../api';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { getChatConversations, getChatMessages, sendChatMessage, markChatAsRead } from '../api';
 import { useNotifications } from '../context/NotificationContext';
 
 const EmptyChatPlaceholder = () => (
@@ -10,7 +10,7 @@ const EmptyChatPlaceholder = () => (
    </div>
 );
 
-const ChatSidebar = ({ conversations, activeLeadId, onSelect }) => (
+const ChatSidebar = ({ conversations, activeLeadId, onSelect, loading }) => (
     <div className="flex flex-col h-full bg-white font-display border-r border-charcoal/10">
         <div className="p-4 border-b border-charcoal/10 bg-surface-subtle shrink-0">
             <h2 className="text-sm font-black uppercase tracking-widest text-charcoal m-0 flex items-center gap-2">
@@ -19,59 +19,103 @@ const ChatSidebar = ({ conversations, activeLeadId, onSelect }) => (
             </h2>
         </div>
         <div className="flex-1 overflow-y-auto">
-            {conversations.length === 0 ? (
+            {loading ? (
+                <div className="p-8 flex flex-col items-center justify-center gap-3">
+                    <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                    <span className="text-[10px] uppercase font-black tracking-widest text-charcoal/30">Loading...</span>
+                </div>
+            ) : conversations.length === 0 ? (
                 <div className="p-8 text-center text-charcoal/40 text-xs font-bold uppercase tracking-wider">
                     No active conversations
                 </div>
             ) : (
                 <ul className="m-0 p-0 list-none divide-y divide-charcoal/5">
-                    {conversations.map(conv => (
-                        <li 
-                            key={conv.lead.id} 
-                            onClick={() => onSelect(conv.lead.id)}
-                            className={`p-4 cursor-pointer transition-colors hover:bg-surface-subtle ${activeLeadId === conv.lead.id ? 'bg-primary/5 border-l-4 border-primary' : 'border-l-4 border-transparent'}`}
-                        >
-                            <div className="flex justify-between items-baseline mb-1">
-                                <h4 className="m-0 text-sm font-bold text-charcoal truncate">
-                                    {conv.lead.first_name} {conv.lead.last_name || ''}
-                                </h4>
-                                <span className="text-[10px] uppercase font-bold text-charcoal/40 whitespace-nowrap ml-2 shrink-0">
-                                    {new Date(conv.latestMessage.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                </span>
-                            </div>
-                            <p className="m-0 text-xs font-medium text-charcoal/60 truncate">
-                                {conv.latestMessage.sender === 'system' && <span className="material-symbols-outlined text-[12px] inline-block align-text-bottom mr-1 opacity-50">smart_toy</span>}
-                                {conv.latestMessage.content}
-                            </p>
-                        </li>
-                    ))}
+                    {conversations.map(conv => {
+                        const displayName = (conv.lead.first_name || conv.lead.last_name) 
+                            ? `${conv.lead.first_name || ''} ${conv.lead.last_name || ''}`.trim()
+                            : conv.lead.phone_number;
+                            
+                        return (
+                            <li 
+                                key={conv.lead.id} 
+                                onClick={() => onSelect(conv.lead.id)}
+                                className={`p-4 cursor-pointer transition-colors hover:bg-surface-subtle ${activeLeadId === conv.lead.id ? 'bg-primary/5 border-l-4 border-primary' : 'border-l-4 border-transparent'}`}
+                            >
+                                <div className="flex justify-between items-baseline mb-1">
+                                    <h4 className="m-0 text-sm font-bold text-charcoal truncate pr-2">
+                                        {displayName}
+                                    </h4>
+                                    <div className="flex flex-col items-end gap-1">
+                                        <span className="text-[10px] uppercase font-bold text-charcoal/40 whitespace-nowrap shrink-0">
+                                            {new Date(conv.latestMessage.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        </span>
+                                        {conv.unreadCount > 0 && activeLeadId !== conv.lead.id && (
+                                            <div className="flex items-center gap-1.5 h-3">
+                                                <div className="w-2 h-2 bg-green-500 rounded-full shadow-[0_0_8px_rgba(34,197,94,0.6)] animate-pulse"></div>
+                                                <span className="text-[8px] font-black tracking-widest text-green-600 uppercase">New</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                                <p className="m-0 text-xs font-medium text-charcoal/60 truncate">
+                                    {conv.latestMessage.sender === 'system' && <span className="material-symbols-outlined text-[12px] inline-block align-text-bottom mr-1 opacity-50">smart_toy</span>}
+                                    {conv.latestMessage.content}
+                                </p>
+                            </li>
+                        );
+                    })}
                 </ul>
             )}
         </div>
     </div>
 );
 
-const ChatWindow = ({ leadId }) => {
+const ChatWindow = ({ leadId, onMessageReceived }) => {
     const [messages, setMessages] = useState([]);
     const [inputText, setInputText] = useState("");
     const messagesEndRef = useRef(null);
-    const { socketRef } = useNotifications(); // reuse shared socket — same server, already connected
+    const containerRef = useRef(null);
+    const { socketRef } = useNotifications(); 
+    const [isAtBottom, setIsAtBottom] = useState(true);
 
-    const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const scrollToBottom = (behavior = "smooth") => {
+        if (!isAtBottom && behavior === "smooth") return;
+        messagesEndRef.current?.scrollIntoView({ behavior });
     };
+
+    const handleScroll = (e) => {
+        const { scrollTop, scrollHeight, clientHeight } = e.target;
+        const atBottom = scrollHeight - scrollTop - clientHeight < 100;
+        setIsAtBottom(atBottom);
+    };
+
+    const handleMarkAsRead = useCallback(async () => {
+        if (!leadId) return;
+        try {
+            await markChatAsRead(leadId);
+            if (onMessageReceived) onMessageReceived();
+        } catch (err) {
+            console.error("Error marking as read:", err);
+        }
+    }, [leadId, onMessageReceived]);
 
     useEffect(() => {
         const fetchMessages = async () => {
             try {
                 const res = await getChatMessages(leadId);
                 setMessages(res.data?.data || res.data || []);
-                scrollToBottom();
+                setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'auto' }), 100);
             } catch (error) {
                 console.error("Error fetching messages:", error);
             }
         };
         fetchMessages();
+        // Do NOT include handleMarkAsRead in deps - it would cause an infinite re-fetch loop
+        // because handleMarkAsRead calls onMessageReceived → fetchConversations → re-renders parent
+        // → new onMessageReceived ref → handleMarkAsRead recreates → this effect re-runs.
+        // markAsRead is a side-effect that should only fire once when leadId changes.
+        markChatAsRead(leadId).catch(console.error);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [leadId]);
 
     useEffect(() => {
@@ -82,9 +126,7 @@ const ChatWindow = ({ leadId }) => {
         const socket = socketRef.current;
         if (!socket || !leadId) return;
 
-        // Join this lead's room so server can target us with new_chat_message
         socket.emit('join_lead', leadId);
-        console.log('ChatWindow joined lead room:', leadId);
 
         const handleNewMessage = (payload) => {
             if (payload.leadId === leadId) {
@@ -92,15 +134,21 @@ const ChatWindow = ({ leadId }) => {
                     if (payload._id && prev.some(m => m._id === payload._id)) return prev;
                     return [...prev, payload];
                 });
+                
+                // Only mark as read if this chat is active
+                handleMarkAsRead();
+                
+                if (onMessageReceived) onMessageReceived();
             }
         };
 
         const handleChatListUpdate = (payload) => {
             if (payload.leadId === leadId) {
-                // FALLBACK: if we missed real-time message, refetch full history
                 getChatMessages(leadId).then(res => {
                     setMessages(res.data?.data || res.data || []);
                 }).catch(console.error);
+                
+                if (onMessageReceived) onMessageReceived();
             }
         };
 
@@ -111,19 +159,18 @@ const ChatWindow = ({ leadId }) => {
             socket.off('new_chat_message', handleNewMessage);
             socket.off('chat_list_update', handleChatListUpdate);
         };
-    }, [leadId, socketRef]);
+    }, [leadId, socketRef, handleMarkAsRead, onMessageReceived]);
 
     const handleSend = async (e) => {
         e.preventDefault();
         if (!inputText.trim()) return;
 
         const originalText = inputText;
-        // Optimistically add to state
         const optimisticMsg = {
             _id: Date.now().toString(),
             leadId: leadId,
             content: originalText,
-            sender: 'agent', // or builder, system
+            sender: 'agent', 
             createdAt: new Date().toISOString(),
             status: 'sent'
         };
@@ -132,11 +179,9 @@ const ChatWindow = ({ leadId }) => {
 
         try {
             await sendChatMessage(leadId, { message: originalText });
-            // The socket will eventually fetch the real DB message. The deduplication logic will prevent duplicates if IDs match, but since it's an optimistic random string _id we might see it twice if no dedupe by content/date exists.
-            // Still, following the plan: "and optimistically adds them to state."
+            if (onMessageReceived) onMessageReceived();
         } catch (error) {
             console.error("Error sending message:", error);
-            // Revert on error
             setMessages(prev => prev.filter(m => m._id !== optimisticMsg._id));
             setInputText(originalText);
         }
@@ -166,7 +211,10 @@ const ChatWindow = ({ leadId }) => {
             </div>
             
             {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto p-4 sm:p-6 z-10 flex flex-col space-y-4">
+            <div 
+                className="flex-1 overflow-y-auto p-4 sm:p-6 z-10 flex flex-col space-y-4"
+                onScroll={handleScroll}
+            >
                 {messages.length === 0 ? (
                     <div className="flex-1 flex items-center justify-center">
                         <div className="bg-white/50 px-4 py-2 rounded-full text-[11px] font-bold uppercase tracking-wider text-charcoal/40 border border-charcoal/5">
@@ -239,48 +287,45 @@ const ChatWindow = ({ leadId }) => {
 
 export default function ChatDashboard() {
     const [conversations, setConversations] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
     const [activeLeadId, setActiveLeadId] = useState(null);
-    const { socketRef } = useNotifications(); // reuse shared socket
+    const { socketRef } = useNotifications(); 
+
+    const fetchConversations = useCallback(async (quiet = false) => {
+        try {
+            if (!quiet) setIsLoading(true);
+            const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
+            const res = await getChatConversations(user.userId || user.id, user.role);
+            setConversations(res.data);
+        } catch (err) {
+            console.error("Error fetching conversations:", err);
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
 
     useEffect(() => {
-        const fetchConversations = async () => {
-            try {
-                const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
-                const res = await getChatConversations(user.userId || user.id, user.role);
-                setConversations(res.data);
-            } catch (err) {
-                console.error("Error fetching conversations:", err);
-            }
-        };
-
         fetchConversations();
+    }, [fetchConversations]);
 
+    // Handle Socket Updates
+    useEffect(() => {
         const socket = socketRef.current;
         if (!socket) return;
 
-        const handleChatListUpdate = (payload) => {
-            setConversations(prev => {
-                const existingIndex = prev.findIndex(c => c.lead.id === payload.leadId);
-                let newConversations = [...prev];
-                if (existingIndex >= 0) {
-                    newConversations[existingIndex] = {
-                        ...newConversations[existingIndex],
-                        latestMessage: payload.message
-                    };
-                } else {
-                    fetchConversations();
-                    return prev;
-                }
-                return newConversations.sort((a, b) => new Date(b.latestMessage.createdAt) - new Date(a.latestMessage.createdAt));
-            });
+        const handleChatListUpdate = () => {
+            fetchConversations(true); // Quiet update
         };
 
+        // Also listen for new messages broadly to refresh sidebar
+        socket.on('new_chat_message', handleChatListUpdate);
         socket.on('chat_list_update', handleChatListUpdate);
 
         return () => {
+            socket.off('new_chat_message', handleChatListUpdate);
             socket.off('chat_list_update', handleChatListUpdate);
         };
-    }, [socketRef]);
+    }, [socketRef, fetchConversations]); // Use the stable ref object, not .current
 
     return (
         <div className="flex h-[calc(100vh-140px)] w-full overflow-hidden bg-white border border-charcoal/10 rounded-xl shadow-sm my-0 mx-0">
@@ -289,6 +334,7 @@ export default function ChatDashboard() {
                     conversations={conversations} 
                     activeLeadId={activeLeadId} 
                     onSelect={setActiveLeadId} 
+                    loading={isLoading}
                 />
             </div>
             
@@ -298,6 +344,7 @@ export default function ChatDashboard() {
                     conversations={conversations} 
                     activeLeadId={activeLeadId} 
                     onSelect={setActiveLeadId} 
+                    loading={isLoading}
                 />
             </div>
             
@@ -317,7 +364,10 @@ export default function ChatDashboard() {
                 )}
                 
                 {activeLeadId ? (
-                    <ChatWindow leadId={activeLeadId} />
+                    <ChatWindow 
+                        leadId={activeLeadId} 
+                        onMessageReceived={() => fetchConversations(true)}
+                    />
                 ) : (
                     <EmptyChatPlaceholder />
                 )}
