@@ -6,7 +6,7 @@ const LeadChatSidebar = ({ isOpen, onClose, leadId, leadName }) => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { socketRef } = useNotifications();
+  const { socket } = useNotifications();
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
@@ -24,14 +24,32 @@ const LeadChatSidebar = ({ isOpen, onClose, leadId, leadName }) => {
   }, [messages]);
 
   useEffect(() => {
-    const socket = socketRef.current;
     if (!socket || !leadId) return;
 
     socket.emit('join_lead', leadId); // joins lead_${leadId} room on server
 
     const handleNewMessage = (payload) => {
-        if (payload.leadId === leadId || payload._id) {
-            setMessages(prev => [...prev, payload]);
+        if (payload.leadId === leadId) {
+            setMessages(prev => {
+                // Avoid duplicates by real _id
+                if (payload._id && prev.some(m => m._id === payload._id)) return prev;
+                
+                // Check if this is a duplicate of an optimistic message
+                const isOutbound = payload.sender === 'system' || payload.sender === 'agent' || payload.sender === 'builder';
+                if (isOutbound) {
+                    const optimisticIdx = prev.findIndex(m => 
+                        m.content === payload.content && 
+                        /^\d+$/.test(m._id)
+                    );
+                    if (optimisticIdx !== -1) {
+                        const updated = [...prev];
+                        updated[optimisticIdx] = payload;
+                        return updated;
+                    }
+                }
+                
+                return [...prev, payload];
+            });
         }
     };
 
@@ -39,7 +57,7 @@ const LeadChatSidebar = ({ isOpen, onClose, leadId, leadName }) => {
     return () => {
         socket.off('new_chat_message', handleNewMessage);
     };
-  }, [leadId, socketRef]);
+  }, [leadId, socket]);
 
   const fetchMessages = async () => {
     try {
@@ -60,17 +78,30 @@ const LeadChatSidebar = ({ isOpen, onClose, leadId, leadName }) => {
     if (!newMessage.trim() || isLoading) return;
 
     const messageText = newMessage.trim();
+    const optimisticMsg = {
+      _id: Date.now().toString(),
+      leadId: leadId,
+      content: messageText,
+      sender: 'agent',
+      createdAt: new Date().toISOString(),
+      status: 'sent'
+    };
+    setMessages(prev => [...prev, optimisticMsg]);
     setNewMessage('');
 
     try {
       const res = await sendChatMessage(leadId, { message: messageText });
-      if (res.data.success) {
-        // Message will be added via socket or manual update
-        // To avoid double add if socket also emits to sender, check logic.
-        // Usually server emits to room.
+      // Replace optimistic message with the real saved message
+      const savedMsg = res.data?.data;
+      if (savedMsg) {
+        setMessages(prev => prev.map(m => 
+          m._id === optimisticMsg._id ? savedMsg : m
+        ));
       }
     } catch (err) {
       console.error('Failed to send message:', err);
+      setMessages(prev => prev.filter(m => m._id !== optimisticMsg._id));
+      setNewMessage(messageText);
       alert('Failed to send message');
     }
   };

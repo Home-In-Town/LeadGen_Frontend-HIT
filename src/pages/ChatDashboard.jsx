@@ -75,11 +75,12 @@ const ChatWindow = ({ leadId, onMessageReceived }) => {
     const [inputText, setInputText] = useState("");
     const messagesEndRef = useRef(null);
     const containerRef = useRef(null);
-    const { socketRef } = useNotifications(); 
+    const { socket } = useNotifications(); 
     const [isAtBottom, setIsAtBottom] = useState(true);
 
-    const scrollToBottom = (behavior = "smooth") => {
-        if (!isAtBottom && behavior === "smooth") return;
+    const scrollToBottom = (behavior = "smooth", force = false) => {
+        // Sticky logic: if not using 'force' and not at bottom, skip scroll
+        if (!force && !isAtBottom) return;
         messagesEndRef.current?.scrollIntoView({ behavior });
     };
 
@@ -99,31 +100,31 @@ const ChatWindow = ({ leadId, onMessageReceived }) => {
         }
     }, [leadId, onMessageReceived]);
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => {
         const fetchMessages = async () => {
             try {
                 const res = await getChatMessages(leadId);
                 setMessages(res.data?.data || res.data || []);
-                setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'auto' }), 100);
+                // Force scroll on initial load (force = true)
+                setTimeout(() => scrollToBottom("auto", true), 100);
             } catch (error) {
                 console.error("Error fetching messages:", error);
             }
         };
         fetchMessages();
-        // Do NOT include handleMarkAsRead in deps - it would cause an infinite re-fetch loop
-        // because handleMarkAsRead calls onMessageReceived → fetchConversations → re-renders parent
-        // → new onMessageReceived ref → handleMarkAsRead recreates → this effect re-runs.
-        // markAsRead is a side-effect that should only fire once when leadId changes.
+
+        // Mark as read (one-time side effect on leadId change)
         markChatAsRead(leadId).catch(console.error);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [leadId]);
+        
+    }, [leadId]); // Stabilized: only runs when leadId changes
 
     useEffect(() => {
-        scrollToBottom();
+        // Sticky auto-scroll: Only fires when messages array changes
+        scrollToBottom("smooth");
     }, [messages]);
 
     useEffect(() => {
-        const socket = socketRef.current;
         if (!socket || !leadId) return;
 
         socket.emit('join_lead', leadId);
@@ -131,13 +132,33 @@ const ChatWindow = ({ leadId, onMessageReceived }) => {
         const handleNewMessage = (payload) => {
             if (payload.leadId === leadId) {
                 setMessages(prev => {
+                    // Avoid duplicates by real _id
                     if (payload._id && prev.some(m => m._id === payload._id)) return prev;
+                    
+                    // Check if this is a duplicate of an optimistic message
+                    // (optimistic messages have numeric string _ids like Date.now())
+                    const isOutbound = payload.sender === 'system' || payload.sender === 'agent' || payload.sender === 'builder';
+                    if (isOutbound) {
+                        // Find and replace matching optimistic message
+                        const optimisticIdx = prev.findIndex(m => 
+                            m.content === payload.content && 
+                            /^\d+$/.test(m._id) // Optimistic IDs are pure digits
+                        );
+                        if (optimisticIdx !== -1) {
+                            // Replace optimistic with real message
+                            const updated = [...prev];
+                            updated[optimisticIdx] = payload;
+                            return updated;
+                        }
+                    }
+                    
                     return [...prev, payload];
                 });
                 
-                // Only mark as read if this chat is active
-                handleMarkAsRead();
+                // Track reading on inbound
+                markChatAsRead(leadId).catch(console.error);
                 
+                // Trigger parent update (if exists) without looping
                 if (onMessageReceived) onMessageReceived();
             }
         };
@@ -159,7 +180,7 @@ const ChatWindow = ({ leadId, onMessageReceived }) => {
             socket.off('new_chat_message', handleNewMessage);
             socket.off('chat_list_update', handleChatListUpdate);
         };
-    }, [leadId, socketRef, handleMarkAsRead, onMessageReceived]);
+    }, [leadId, socket]); // Removed onMessageReceived and handleMarkAsRead to stop loops and handleMarkAsRead
 
     const handleSend = async (e) => {
         e.preventDefault();
@@ -178,7 +199,14 @@ const ChatWindow = ({ leadId, onMessageReceived }) => {
         setInputText("");
 
         try {
-            await sendChatMessage(leadId, { message: originalText });
+            const res = await sendChatMessage(leadId, { message: originalText });
+            // Replace optimistic message with real saved message from backend
+            const savedMsg = res.data?.data;
+            if (savedMsg) {
+                setMessages(prev => prev.map(m => 
+                    m._id === optimisticMsg._id ? savedMsg : m
+                ));
+            }
             if (onMessageReceived) onMessageReceived();
         } catch (error) {
             console.error("Error sending message:", error);
@@ -289,7 +317,7 @@ export default function ChatDashboard() {
     const [conversations, setConversations] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [activeLeadId, setActiveLeadId] = useState(null);
-    const { socketRef } = useNotifications(); 
+    const { socket } = useNotifications(); 
 
     const fetchConversations = useCallback(async (quiet = false) => {
         try {
@@ -310,7 +338,6 @@ export default function ChatDashboard() {
 
     // Handle Socket Updates
     useEffect(() => {
-        const socket = socketRef.current;
         if (!socket) return;
 
         const handleChatListUpdate = () => {
@@ -325,7 +352,7 @@ export default function ChatDashboard() {
             socket.off('new_chat_message', handleChatListUpdate);
             socket.off('chat_list_update', handleChatListUpdate);
         };
-    }, [socketRef, fetchConversations]); // Use the stable ref object, not .current
+    }, [socket, fetchConversations]);
 
     return (
         <div className="flex h-[calc(100vh-140px)] w-full overflow-hidden bg-white border border-charcoal/10 rounded-xl shadow-sm my-0 mx-0">

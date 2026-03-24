@@ -43,6 +43,7 @@ export const NotificationProvider = ({ children }) => {
     }, []);
 
     const socketRef = useRef(null);
+    const [socketInstance, setSocketInstance] = useState(null);
 
     // Audio chime for new notifications
     const audioRef = useRef(null);
@@ -80,6 +81,7 @@ export const NotificationProvider = ({ children }) => {
         });
 
         socketRef.current = socket;
+        setSocketInstance(socket);
 
         socket.on('connect', () => {
             console.log('📡 Socket.IO connected for notifications');
@@ -142,8 +144,10 @@ export const NotificationProvider = ({ children }) => {
             socket.off('connect');
             socket.off('disconnect');
             socket.off('new_notification');
+            socket.off('new_chat_message');
             socket.disconnect();
             socketRef.current = null;
+            setSocketInstance(null);
         };
     }, [userId]);
 
@@ -187,6 +191,7 @@ export const NotificationProvider = ({ children }) => {
             markAllRead,
             fetchNotifications,
             socketRef,
+            socket: socketInstance,
         }}>
             {children}
         </NotificationContext.Provider>

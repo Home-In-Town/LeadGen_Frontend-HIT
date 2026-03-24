@@ -9,7 +9,7 @@ import LinkActivitySection from "../components/lead/LinkActivitySection";
 const LeadGenerationPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { socketRef } = useNotifications();
+  const { socket } = useNotifications();
   const [leadData, setLeadData] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -51,7 +51,6 @@ const LeadGenerationPage = () => {
     if (id) {
       refreshData();
 
-      const socket = socketRef.current;
       if (!socket) return;
 
       const setupLiveConnection = () => {
@@ -98,7 +97,7 @@ const LeadGenerationPage = () => {
         socket.off('call_update', handleCall);
       };
     }
-  }, [id, refreshData, socketRef]);
+  }, [id, refreshData, socket]);
 
   if (!leadData) {
     return (
