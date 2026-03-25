@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { getChatConversations, getChatMessages, sendChatMessage, markChatAsRead } from '../api';
 import { useNotifications } from '../context/NotificationContext';
 
@@ -13,8 +14,17 @@ const EmptyChatPlaceholder = () => (
 const ChatSidebar = ({ conversations, activeLeadId, onSelect, loading }) => (
     <div className="flex flex-col h-full bg-white font-display border-r border-charcoal/10">
         <div className="p-4 border-b border-charcoal/10 bg-surface-subtle shrink-0">
-            <h2 className="text-sm font-black uppercase tracking-widest text-charcoal m-0 flex items-center gap-2">
-                <span className="material-symbols-outlined text-[18px]">forum</span>
+            <div className="flex items-center justify-between mb-2">
+                <Link to="/chat" className="text-[9px] font-black uppercase tracking-widest text-charcoal/40 hover:text-primary transition-all flex items-center gap-1 group/back">
+                    <span className="material-symbols-outlined text-[12px] group-hover/back:-translate-x-0.5 transition-transform">arrow_back</span>
+                    Switch Platform
+                </Link>
+                <div className="flex items-center gap-1.5 grayscale opacity-50">
+                    <span className="material-symbols-outlined text-[14px]">forum</span>
+                    <span className="text-[9px] font-black uppercase tracking-widest">WhatsApp</span>
+                </div>
+            </div>
+            <h2 className="text-xs font-black uppercase tracking-widest text-charcoal m-0 flex items-center gap-2">
                 Conversations
             </h2>
         </div>
@@ -314,10 +324,24 @@ const ChatWindow = ({ leadId, onMessageReceived }) => {
 };
 
 export default function ChatDashboard() {
+    const { leadId: urlLeadId } = useParams();
+    const navigate = useNavigate();
     const [conversations, setConversations] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [activeLeadId, setActiveLeadId] = useState(null);
+    const [activeLeadId, setActiveLeadId] = useState(urlLeadId || null);
     const { socket } = useNotifications(); 
+
+    // Sync state with URL parameter (deep linking)
+    useEffect(() => {
+        if (urlLeadId && urlLeadId !== activeLeadId) {
+            setActiveLeadId(urlLeadId);
+        }
+    }, [urlLeadId, activeLeadId]);
+
+    const handleSelectLead = (id) => {
+        setActiveLeadId(id);
+        navigate(`/chat/whatsapp/${id}`);
+    };
 
     const fetchConversations = useCallback(async (quiet = false) => {
         try {
@@ -360,7 +384,7 @@ export default function ChatDashboard() {
                 <ChatSidebar 
                     conversations={conversations} 
                     activeLeadId={activeLeadId} 
-                    onSelect={setActiveLeadId} 
+                    onSelect={handleSelectLead} 
                     loading={isLoading}
                 />
             </div>
@@ -370,7 +394,7 @@ export default function ChatDashboard() {
                 <ChatSidebar 
                     conversations={conversations} 
                     activeLeadId={activeLeadId} 
-                    onSelect={setActiveLeadId} 
+                    onSelect={handleSelectLead} 
                     loading={isLoading}
                 />
             </div>
@@ -381,7 +405,7 @@ export default function ChatDashboard() {
                 {activeLeadId && (
                     <div className="md:hidden bg-white border-b border-charcoal/10 p-2 flex items-center shrink-0">
                         <button 
-                            onClick={() => setActiveLeadId(null)}
+                            onClick={() => handleSelectLead(null)}
                             className="flex items-center text-charcoal/60 hover:text-primary transition-colors p-2"
                         >
                             <span className="material-symbols-outlined text-[20px] mr-1">arrow_back</span>

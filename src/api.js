@@ -110,3 +110,17 @@ export const getChatMessages = (leadId) => chatApi.get(`/${leadId}/messages`);
 export const sendChatMessage = (leadId, data) => chatApi.post(`/${leadId}/send`, data);
 export const markChatAsRead = (leadId) => chatApi.post(`/${leadId}/read`);
 
+// ====== EMAIL DASHBOARD ENDPOINTS ======
+const emailApi = createApiInstance('/email');
+export const getEmailFolder = (folder, params) => emailApi.get(`/folder/${folder}`, { params });
+export const getEmailById = (id) => emailApi.get(`/${id}`);
+export const sendEmail = (data) => emailApi.post('/send', data);
+export const testEmailConnection = () => emailApi.get('/test-connection');
+export const disconnectEmail = () => emailApi.delete('/disconnect');
+export const getEmailConnectionStatus = () => emailApi.get('/connection-status');
+
+// ====== AUTH / OAUTH ENDPOINTS ======
+export const getGoogleAuthUrl = (ownerId) => `${BASE_URL}/api/auth/google/login?ownerId=${ownerId}`;
+export const getMicrosoftAuthUrl = (ownerId) => `${BASE_URL}/api/auth/microsoft/login?ownerId=${ownerId}`;
+
+

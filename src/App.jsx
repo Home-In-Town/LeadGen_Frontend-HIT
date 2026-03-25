@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import EmailDashboardPage from './pages/EmailDashboardPage';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { NotificationProvider } from './context/NotificationContext';
 import { useNotifications } from './context/NotificationContext';
@@ -19,9 +20,18 @@ import FacebookIntegrationPage from './pages/FacebookIntegrationPage';
 import GoogleIntegrationPage from './pages/GoogleIntegrationPage';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import ChatDashboard from './pages/ChatDashboard';
+import ChatSelectionPage from './pages/ChatSelectionPage';
 import DashboardLayout from './layouts/DashboardLayout';
 import PublicLayout from './layouts/PublicLayout';
 import LeadChatSidebar from './components/lead/LeadChatSidebar';
+
+const ComingSoonPage = () => (
+    <div className="flex flex-col items-center justify-center p-20 text-center animate-fade-in">
+        <span className="material-symbols-outlined text-6xl text-charcoal/10 mb-6">explore</span>
+        <h1 className="text-3xl font-black uppercase tracking-tighter text-charcoal mb-2">Coming Soon</h1>
+        <p className="text-[11px] font-black uppercase tracking-[0.4em] text-charcoal/40">This feature is under development</p>
+    </div>
+);
 
 // Reads toast state from context and renders the container.
 // Must live inside NotificationProvider but outside Router so portals work.
@@ -79,7 +89,11 @@ function App() {
           <Route path="/users" element={<UsersPage />} />
           <Route path="/lead-automation" element={<LeadAutomationPage />} />
           <Route path="/lead-automation/:leadId" element={<LeadAutomationPage />} />
-          <Route path="/chat" element={<ChatDashboard />} />
+          <Route path="/chat" element={<ChatSelectionPage />} />
+          <Route path="/chat/whatsapp" element={<ChatDashboard />} />
+          <Route path="/chat/whatsapp/:leadId" element={<ChatDashboard />} />
+          <Route path="/chat/email" element={<EmailDashboardPage />} />
+          <Route path="/chat/email/:leadId" element={<EmailDashboardPage />} />
           {/* <Route path="/integrations" element={<IntegrationsPage />} /> */}
           <Route path="/integrations/facebook" element={<FacebookIntegrationPage />} />
           <Route path="/integrations/google" element={<GoogleIntegrationPage />} />
