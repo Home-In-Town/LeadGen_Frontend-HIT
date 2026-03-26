@@ -19,6 +19,7 @@ import SSOPage from './pages/SSOPage';
 import FacebookIntegrationPage from './pages/FacebookIntegrationPage';
 import GoogleIntegrationPage from './pages/GoogleIntegrationPage';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
+import TermsOfServicePage from './pages/TermsOfServicePage';
 import ChatDashboard from './pages/ChatDashboard';
 import ChatSelectionPage from './pages/ChatSelectionPage';
 import DashboardLayout from './layouts/DashboardLayout';
@@ -78,6 +79,7 @@ function App() {
           <Route path="/admin-login" element={<AdminLoginPage />} />
           <Route path="/sso" element={<SSOPage />} />
           <Route path="/privacy" element={<PrivacyPolicyPage />} />
+          <Route path="/terms" element={<TermsOfServicePage />} />
         </Route>
 
         {/* Protected Routes with Dashboard Navbar */}

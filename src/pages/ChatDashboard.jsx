@@ -101,7 +101,7 @@ const ChatWindow = ({ leadId, onMessageReceived }) => {
     };
 
     const handleMarkAsRead = useCallback(async () => {
-        if (!leadId) return;
+        if (!leadId || leadId === 'null') return;
         try {
             await markChatAsRead(leadId);
             if (onMessageReceived) onMessageReceived();
@@ -113,6 +113,7 @@ const ChatWindow = ({ leadId, onMessageReceived }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => {
         const fetchMessages = async () => {
+            if (!leadId || leadId === 'null') return;
             try {
                 const res = await getChatMessages(leadId);
                 setMessages(res.data?.data || res.data || []);
@@ -125,7 +126,9 @@ const ChatWindow = ({ leadId, onMessageReceived }) => {
         fetchMessages();
 
         // Mark as read (one-time side effect on leadId change)
-        markChatAsRead(leadId).catch(console.error);
+        if (leadId && leadId !== 'null') {
+            markChatAsRead(leadId).catch(console.error);
+        }
         
     }, [leadId]); // Stabilized: only runs when leadId changes
 
@@ -235,7 +238,7 @@ const ChatWindow = ({ leadId, onMessageReceived }) => {
                     </div>
                     <div>
                         <h3 className="m-0 text-sm font-black uppercase tracking-widest text-charcoal">
-                            Lead #{leadId.substring(0, 6)}...
+                            Lead #{leadId ? leadId.substring(0, 6) : '...'}...
                         </h3>
                         <div className="flex items-center gap-1.5 mt-0.5">
                             <span className="relative flex h-1.5 w-1.5">
@@ -328,19 +331,22 @@ export default function ChatDashboard() {
     const navigate = useNavigate();
     const [conversations, setConversations] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [activeLeadId, setActiveLeadId] = useState(urlLeadId || null);
+    const [activeLeadId, setActiveLeadId] = useState(urlLeadId && urlLeadId !== 'null' ? urlLeadId : null);
     const { socket } = useNotifications(); 
 
     // Sync state with URL parameter (deep linking)
     useEffect(() => {
-        if (urlLeadId && urlLeadId !== activeLeadId) {
-            setActiveLeadId(urlLeadId);
-        }
-    }, [urlLeadId, activeLeadId]);
+        const sanitizedId = urlLeadId && urlLeadId !== 'null' ? urlLeadId : null;
+        setActiveLeadId(sanitizedId);
+    }, [urlLeadId]);
 
     const handleSelectLead = (id) => {
         setActiveLeadId(id);
-        navigate(`/chat/whatsapp/${id}`);
+        if (id && id !== 'null') {
+            navigate(`/chat/whatsapp/${id}`);
+        } else {
+            navigate('/chat/whatsapp');
+        }
     };
 
     const fetchConversations = useCallback(async (quiet = false) => {

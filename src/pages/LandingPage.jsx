@@ -122,8 +122,7 @@ const LandingPage = () => {
               </ul>
               <ul className="text-[10px] font-black uppercase tracking-widest space-y-2 text-right">
                 <li><button onClick={() => navigate('/privacy')} className="text-charcoal/60 hover:text-charcoal cursor-pointer transition-colors uppercase">Privacy</button></li>
-                <li><button className="text-charcoal/60 hover:text-charcoal cursor-pointer transition-colors uppercase">Legal</button></li>
-                <li><button className="text-charcoal/60 hover:text-charcoal cursor-pointer transition-colors uppercase">SLA</button></li>
+                <li><button onClick={() => navigate('/terms')} className="text-charcoal/60 hover:text-charcoal cursor-pointer transition-colors uppercase">Terms of Service</button></li>
               </ul>
             </div>
             <div className="pt-4 flex justify-between items-center font-mono text-[9px] text-charcoal/30">
