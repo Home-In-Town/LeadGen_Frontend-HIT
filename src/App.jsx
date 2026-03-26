@@ -78,7 +78,7 @@ function App() {
           <Route path="/agent-login" element={<AgentLoginPage />} />
           <Route path="/admin-login" element={<AdminLoginPage />} />
           <Route path="/sso" element={<SSOPage />} />
-          <Route path="/privacy" element={<PrivacyPolicyPage />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
           <Route path="/terms" element={<TermsOfServicePage />} />
         </Route>
 
