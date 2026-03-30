@@ -82,14 +82,14 @@ const IntegrationsPage = () => {
                 <div className="w-full lg:w-64 space-y-2">
                     <button 
                         onClick={() => setActiveTab('call')}
-                        className={`w-full flex items-center gap-3 px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] transition-all border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[1px] active:translate-y-[1px] ${activeTab === 'call' ? 'bg-black text-white' : 'bg-white text-charcoal hover:bg-charcoal/5'}`}
+                        className={`w-full flex items-center gap-3 px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] transition-all border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[1px] active:translate-y-[1px] cursor-pointer ${activeTab === 'call' ? 'bg-black text-white' : 'bg-white text-charcoal hover:bg-charcoal/5'}`}
                     >
                         <span className="material-symbols-outlined text-lg">call</span>
                         Aguken Voice
                     </button>
                     <button 
                         onClick={() => setActiveTab('whatsapp')}
-                        className={`w-full flex items-center gap-3 px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] transition-all border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[1px] active:translate-y-[1px] ${activeTab === 'whatsapp' ? 'bg-[#25D366] text-white' : 'bg-white text-charcoal hover:bg-charcoal/5'}`}
+                        className={`w-full flex items-center gap-3 px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] transition-all border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[1px] active:translate-y-[1px] cursor-pointer ${activeTab === 'whatsapp' ? 'bg-[#25D366] text-white' : 'bg-white text-charcoal hover:bg-charcoal/5'}`}
                     >
                         <span className="material-symbols-outlined text-lg">chat</span>
                         WhatsApp
@@ -129,7 +129,7 @@ const IntegrationsPage = () => {
                                             <button 
                                                 type="button" 
                                                 onClick={() => setShowAgukenAgentSecret(!showAgukenAgentSecret)}
-                                                className="absolute right-4 top-1/2 -translate-y-1/2 text-charcoal/40 hover:text-charcoal transition-colors"
+                                                className="absolute right-4 top-1/2 -translate-y-1/2 text-charcoal/40 hover:text-charcoal transition-colors cursor-pointer"
                                             >
                                                 <span className="material-symbols-outlined text-lg">
                                                     {showAgukenAgentSecret ? 'visibility_off' : 'visibility'}
@@ -150,7 +150,7 @@ const IntegrationsPage = () => {
                                             <button 
                                                 type="button" 
                                                 onClick={() => setShowAgukenSecret(!showAgukenSecret)}
-                                                className="absolute right-4 top-1/2 -translate-y-1/2 text-charcoal/40 hover:text-charcoal transition-colors"
+                                                className="absolute right-4 top-1/2 -translate-y-1/2 text-charcoal/40 hover:text-charcoal transition-colors cursor-pointer"
                                             >
                                                 <span className="material-symbols-outlined text-lg">
                                                     {showAgukenSecret ? 'visibility_off' : 'visibility'}
@@ -163,7 +163,7 @@ const IntegrationsPage = () => {
                                         <button 
                                             type="submit"
                                             disabled={saving}
-                                            className="bg-black text-white px-8 py-4 text-[10px] font-black uppercase tracking-[0.2em] shadow-[4px_4px_0px_0px_rgba(37,211,102,1)] hover:shadow-[6px_6px_0px_0px_rgba(37,211,102,1)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                            className="bg-black text-white px-8 py-4 text-[10px] font-black uppercase tracking-[0.2em] shadow-[4px_4px_0px_0px_rgba(37,211,102,1)] hover:shadow-[6px_6px_0px_0px_rgba(37,211,102,1)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
                                             {saving ? 'Saving...' : 'Save Aguken Settings'}
                                         </button>
@@ -204,7 +204,7 @@ const IntegrationsPage = () => {
                                             <button 
                                                 type="button" 
                                                 onClick={() => setShowWhatsappVendorSecret(!showWhatsappVendorSecret)}
-                                                className="absolute right-4 top-1/2 -translate-y-1/2 text-charcoal/40 hover:text-charcoal transition-colors"
+                                                className="absolute right-4 top-1/2 -translate-y-1/2 text-charcoal/40 hover:text-charcoal transition-colors cursor-pointer"
                                             >
                                                 <span className="material-symbols-outlined text-lg">
                                                     {showWhatsappVendorSecret ? 'visibility_off' : 'visibility'}
@@ -225,7 +225,7 @@ const IntegrationsPage = () => {
                                             <button 
                                                 type="button" 
                                                 onClick={() => setShowWhatsappSecret(!showWhatsappSecret)}
-                                                className="absolute right-4 top-1/2 -translate-y-1/2 text-charcoal/40 hover:text-charcoal transition-colors"
+                                                className="absolute right-4 top-1/2 -translate-y-1/2 text-charcoal/40 hover:text-charcoal transition-colors cursor-pointer"
                                             >
                                                 <span className="material-symbols-outlined text-lg">
                                                     {showWhatsappSecret ? 'visibility_off' : 'visibility'}
@@ -238,7 +238,7 @@ const IntegrationsPage = () => {
                                         <button 
                                             type="submit"
                                             disabled={saving}
-                                            className="bg-black text-white px-8 py-4 text-[10px] font-black uppercase tracking-[0.2em] shadow-[4px_4px_0px_0px_rgba(37,211,102,1)] hover:shadow-[6px_6px_0px_0px_rgba(37,211,102,1)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                            className="bg-black text-white px-8 py-4 text-[10px] font-black uppercase tracking-[0.2em] shadow-[4px_4px_0px_0px_rgba(37,211,102,1)] hover:shadow-[6px_6px_0px_0px_rgba(37,211,102,1)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
                                             {saving ? 'Saving...' : 'Save WhatsApp Settings'}
                                         </button>
