@@ -1,8 +1,18 @@
+import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import ConfirmationModal from './ConfirmationModal';
 
 const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
   const location = useLocation();
   const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
+  const [modalConfig, setModalConfig] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    confirmText: '',
+    onConfirm: () => {},
+    type: 'default'
+  });
   
   const isActive = (path) => 
     location.pathname === path || (path !== '/' && location.pathname.startsWith(path + '/'));
@@ -16,14 +26,34 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
     { name: 'Integrations', path: '/integrations', icon: 'integration_instructions' },
   ];
 
-  const handleLogout = () => {
-    if (confirm('Exit to Dashboard? This will end your session here.')) {
-      localStorage.removeItem('currentUser');
-      const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-      const redirectUrl = isLocal 
-        ? 'http://localhost:3000/dashboard' 
-        : 'https://www.homeintown.in/dashboard';
-      window.location.href = redirectUrl;
+  const executeLogout = () => {
+    localStorage.removeItem('currentUser');
+    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const redirectUrl = isLocal 
+      ? 'http://localhost:3000/dashboard' 
+      : 'https://www.homeintown.in/dashboard';
+    window.location.href = redirectUrl;
+  };
+
+  const openConfirmation = (type) => {
+    if (type === 'back_to_site') {
+      setModalConfig({
+        isOpen: true,
+        title: 'Return to HomeInTown?',
+        message: 'Redirecting you to the HomeInTown site. This will end your current session.',
+        confirmText: 'Return to site',
+        onConfirm: executeLogout,
+        type: 'default'
+      });
+    } else if (type === 'logout') {
+      setModalConfig({
+        isOpen: true,
+        title: 'Sign Out?',
+        message: 'Are you sure you want to end your current session?',
+        confirmText: 'Logout',
+        onConfirm: executeLogout,
+        type: 'danger'
+      });
     }
   };
 
@@ -98,7 +128,7 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
       {/* Footer */}
       <div className={`border-t border-charcoal/5 transition-all duration-300 ${isCollapsed ? 'p-2 space-y-1' : 'p-4 space-y-2'}`}>
         <button
-          onClick={() => handleLogout()}
+          onClick={() => openConfirmation('back_to_site')}
           className={`w-full flex items-center justify-center transition-all bg-slate-50 border border-charcoal/5 cursor-pointer hover:bg-white group relative ${isCollapsed ? 'p-3' : 'gap-3 px-4 py-3 uppercase tracking-[0.2em] text-[10px] font-black text-charcoal/60 hover:text-charcoal'}`}
         >
           <span className="material-symbols-outlined text-lg">arrow_back</span>
@@ -110,7 +140,7 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
           )}
         </button>
         <button
-          onClick={() => handleLogout()}
+          onClick={() => openConfirmation('logout')}
           className={`w-full flex items-center justify-center transition-all border cursor-pointer hover:bg-red-50 group relative ${isCollapsed ? 'p-3 border-transparent' : 'gap-3 px-4 py-3 uppercase tracking-[0.2em] text-[10px] font-black text-red-500 border-red-50'}`}
         >
           <span className="material-symbols-outlined text-lg">logout</span>
@@ -122,6 +152,16 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
           )}
         </button>
       </div>
+
+      <ConfirmationModal
+        isOpen={modalConfig.isOpen}
+        onClose={() => setModalConfig({ ...modalConfig, isOpen: false })}
+        onConfirm={modalConfig.onConfirm}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        confirmText={modalConfig.confirmText}
+        type={modalConfig.type}
+      />
     </aside>
   );
 };
