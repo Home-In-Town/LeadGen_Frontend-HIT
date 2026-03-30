@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import * as api from '../api';
 
@@ -349,23 +350,29 @@ const UsersPage = () => {
       </div>
 
       {/* Project Selection Modal */}
-      {showProjectModal && (
-        <div className="fixed inset-0 bg-charcoal/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-md border-2 border-charcoal shadow-lg">
-            <div className="flex justify-between items-center p-4 border-b-2 border-charcoal/10">
-              <h2 className="text-lg font-black uppercase tracking-tight">Select Project</h2>
-              <button onClick={() => setShowProjectModal(false)} className="text-charcoal/50 hover:text-charcoal cursor-pointer">
-                <span className="material-symbols-outlined">close</span>
+      {showProjectModal && createPortal(
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 overflow-hidden">
+          <div className="bg-white w-full max-w-sm border-2 border-charcoal shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] animate-scale-in">
+            <div className="flex justify-between items-center px-4 py-3 border-b-2 border-charcoal/10">
+              <h2 className="text-lg font-black uppercase tracking-tighter">Select Project</h2>
+              <button 
+                onClick={() => setShowProjectModal(false)} 
+                className="text-charcoal/40 hover:text-charcoal transition-colors cursor-pointer flex items-center justify-center"
+              >
+                <span className="material-symbols-outlined text-xl font-black">close</span>
               </button>
             </div>
-            <div className="p-4 max-h-[60vh] overflow-y-auto">
-              <p className="text-xs text-charcoal/50 uppercase font-bold tracking-widest mb-3">Choose project to link leads</p>
+            <div className="p-5 max-h-[60vh] overflow-y-auto custom-scrollbar">
+              <p className="text-[9px] text-charcoal/40 uppercase font-black tracking-[0.2em] mb-4">Choose project to link leads</p>
               <div className="space-y-2">
                 {projects.map(p => (
                   <button
                     key={p._id || p.id || p.slug}
-                    onClick={() => executeBulkCreate(p.slug, p.projectName)}
-                    className="w-full text-left p-3 border-2 border-charcoal/10 hover:border-primary hover:bg-primary/5 transition-all cursor-pointer font-bold"
+                    onClick={() => {
+                        executeBulkCreate(p.slug, p.projectName);
+                        setShowProjectModal(false);
+                    }}
+                    className="w-full text-left px-4 py-3 border-2 border-charcoal/5 hover:border-black hover:bg-black hover:text-white transition-all cursor-pointer font-black uppercase tracking-tight text-xs"
                   >
                     {p.projectName}
                   </button>
@@ -373,7 +380,8 @@ const UsersPage = () => {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
