@@ -18,6 +18,7 @@ import AdminLoginPage from './pages/AdminLoginPage';
 import SSOPage from './pages/SSOPage';
 import FacebookIntegrationPage from './pages/FacebookIntegrationPage';
 import GoogleIntegrationPage from './pages/GoogleIntegrationPage';
+import IntegrationsPage from './pages/IntegrationsPage';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import TermsOfServicePage from './pages/TermsOfServicePage';
 import ChatDashboard from './pages/ChatDashboard';
@@ -96,7 +97,7 @@ function App() {
           <Route path="/chat/whatsapp/:leadId" element={<ChatDashboard />} />
           <Route path="/chat/email" element={<EmailDashboardPage />} />
           <Route path="/chat/email/:leadId" element={<EmailDashboardPage />} />
-          {/* <Route path="/integrations" element={<IntegrationsPage />} /> */}
+          <Route path="/integrations" element={<IntegrationsPage />} />
           <Route path="/integrations/facebook" element={<FacebookIntegrationPage />} />
           <Route path="/integrations/google" element={<GoogleIntegrationPage />} />
           {/* Add more protected routes here */}

@@ -172,11 +172,18 @@ export const NotificationProvider = ({ children }) => {
         }
     }, [userId]);
 
+    const addToast = useCallback((message, type = 'info', title = 'Notification') => {
+        const id = `toast_${Date.now()}_${Math.random()}`;
+        setToasts(prev => [...prev, { id, message, type, title }]);
+        return id;
+    }, []);
+
     return (
         <NotificationContext.Provider value={{
             notifications,
             unreadCount,
             toasts,
+            addToast,
             dismissToast,
             markAsRead,
             markAllRead,

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import NotificationCenter from './NotificationCenter';
 
-const Header = ({ showNav }) => {
+const Header = ({ onMenuClick }) => {
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   
@@ -18,184 +18,57 @@ const Header = ({ showNav }) => {
   const handleLogout = () => {
     if (confirm('Exit to Sales Dashboard? This will end your session here.')) {
       localStorage.removeItem('currentUser');
-      // Redirect to the main sales website dashboard
-      window.location.href = 'https://www.homeintown.in/dashboard';
+      const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      const redirectUrl = isLocal 
+        ? 'http://localhost:3000/dashboard' 
+        : 'https://www.homeintown.in/dashboard';
+      window.location.href = redirectUrl;
     }
   };
 
   const isActive = (path) => location.pathname === path || location.pathname.startsWith(path + '/');
 
   return (
-    <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-charcoal/5 font-display">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2.5 flex items-center justify-between">
-        {/* Brand */}
-        <div className="shrink-0">
-          <Link to={showNav ? "/dashboard" : "/"} className="flex items-center gap-2 no-underline group">
-            <span className="text-lg sm:text-xl font-black tracking-tighter uppercase text-charcoal group-hover:text-primary transition-colors">
+    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-sm border-b border-charcoal/5 font-display flex-shrink-0">
+      <div className="mx-auto px-6 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={onMenuClick}
+            className="lg:hidden p-2 hover:bg-charcoal/5 transition-colors cursor-pointer"
+          >
+            <span className="material-symbols-outlined text-charcoal">menu</span>
+          </button>
+          
+          <Link to="/dashboard" className="lg:hidden no-underline">
+            <span className="text-sm font-black tracking-tighter uppercase text-charcoal">
               One Employee
             </span>
           </Link>
+
+          <h1 className="hidden lg:block text-[11px] font-black uppercase tracking-[0.2em] text-charcoal/40 m-0">
+            {location.pathname.split('/').pop() || 'Dashboard'}
+          </h1>
         </div>
         
-        {showNav ? (
-          <>
-            {/* Desktop Navigation */}
-            <nav className="hidden lg:flex items-center gap-8">
-              <ul className="flex items-center gap-6 list-none p-0 m-0">
-                <li>
-                  <Link 
-                    to="/dashboard" 
-                    className={`uppercase tracking-widest text-[10px] sm:text-[11px] font-black transition-all pb-1 border-b-2 ${isActive('/dashboard') ? 'text-primary border-primary' : 'text-charcoal/40 border-transparent hover:text-charcoal'}`}
-                  >
-                    Dashboard
-                  </Link>
-                </li>
-                <li>
-                  <Link 
-                    to="/history" 
-                    className={`uppercase tracking-widest text-[10px] sm:text-[11px] font-black transition-all pb-1 border-b-2 ${isActive('/history') ? 'text-primary border-primary' : 'text-charcoal/40 border-transparent hover:text-charcoal'}`}
-                  >
-                    History
-                  </Link>
-                </li>
-                <li>
-                  <Link 
-                    to="/chat" 
-                    className={`uppercase tracking-widest text-[10px] sm:text-[11px] font-black transition-all pb-1 border-b-2 ${isActive('/chat') ? 'text-primary border-primary' : 'text-charcoal/40 border-transparent hover:text-charcoal'}`}
-                  >
-                    Chat
-                  </Link>
-                </li>
-                <li>
-                  <Link 
-                    to="/users" 
-                    className={`uppercase tracking-widest text-[10px] sm:text-[11px] font-black transition-all pb-1 border-b-2 ${isActive('/users') ? 'text-primary border-primary' : 'text-charcoal/40 border-transparent hover:text-charcoal'}`}
-                  >
-                    Users
-                  </Link>
-                </li>
-                <li>
-                  <Link 
-                    to="/lead-automation" 
-                    className={`uppercase tracking-widest text-[10px] sm:text-[11px] font-black transition-all pb-1 border-b-2 ${isActive('/lead-automation') ? 'text-primary border-primary' : 'text-charcoal/40 border-transparent hover:text-charcoal'}`}
-                  >
-                    Automation
-                  </Link>
-                </li>
-              </ul>
-
-              <div className="flex items-center gap-4 sm:gap-4 border-l border-charcoal/10 pl-4 h-8 ml-4">
-                <NotificationCenter />
-                <div className="hidden sm:flex flex-col items-end">
-                  <div className={`mb-1 px-1.5 py-0.5 border font-mono text-[8px] font-bold uppercase tracking-widest leading-none ${roleColors[user.role] || roleColors.admin}`}>
-                    {user.role}
-                  </div>
-                  <div className="text-[9px] font-black uppercase tracking-tight text-charcoal/80 leading-none">
-                    {userName}
-                  </div>
-                </div>
-                <button 
-                  onClick={handleLogout}
-                  title="Return to Homeintown Dashboard"
-                  className="bg-white border border-charcoal/20 px-2 py-1.5 font-black uppercase tracking-widest text-[9px] text-charcoal/60 hover:bg-charcoal hover:text-white cursor-pointer transition-all flex items-center gap-1.5"
-                >
-                  <span className="material-symbols-outlined text-[14px]">arrow_back</span>
-                  <span className="hidden sm:inline">Homeintown</span>
-                </button>
-              </div>
-            </nav>
-
-            {/* Mobile/Tablet Menu Button */}
-            <div className="lg:hidden flex items-center gap-4">
-               <NotificationCenter />
-               <div className={`px-2 py-1 border font-mono text-[8px] font-bold uppercase tracking-widest leading-none ${roleColors[user.role] || roleColors.admin}`}>
-                  {user.role}
-               </div>
-               <button 
-                onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="p-1 hover:bg-surface-subtle transition-colors cursor-pointer"
-               >
-                 <span className="material-symbols-outlined text-charcoal text-2xl">
-                   {isMenuOpen ? 'close' : 'menu'}
-                 </span>
-               </button>
-            </div>
-          </>
-        ) : (
-          <div className="flex items-center gap-1.5">
-            <span className="relative flex h-1.5 w-1.5 sm:h-2 sm:w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-1.5 w-1.5 sm:h-2 sm:w-2 bg-primary"></span>
-            </span>
-            <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-charcoal/40 ml-1">System Live</span>
-          </div>
-        )}
-      </div>
-
-      {/* Mobile Drawer */}
-      {showNav && isMenuOpen && (
-        <div className="lg:hidden border-t border-charcoal/5 bg-white bg-opacity-95 backdrop-blur-sm animate-fade-in divide-y divide-charcoal/5">
-          <nav className="flex flex-col p-4">
-            <Link 
-              to="/dashboard" 
-              onClick={() => setIsMenuOpen(false)}
-              className={`py-3 uppercase tracking-widest text-[11px] font-black transition-all ${isActive('/dashboard') ? 'text-primary' : 'text-charcoal/60'}`}
-            >
-              Dashboard
-            </Link>
-            <Link 
-              to="/history" 
-              onClick={() => setIsMenuOpen(false)}
-              className={`py-3 uppercase tracking-widest text-[11px] font-black transition-all ${isActive('/history') ? 'text-primary' : 'text-charcoal/60'}`}
-            >
-              History
-            </Link>
-            <Link 
-              to="/chat" 
-              onClick={() => setIsMenuOpen(false)}
-              className={`py-3 uppercase tracking-widest text-[11px] font-black transition-all ${isActive('/chat') ? 'text-primary' : 'text-charcoal/60'}`}
-            >
-              Chat
-            </Link>
-            <Link 
-              to="/users" 
-              onClick={() => setIsMenuOpen(false)}
-              className={`py-3 uppercase tracking-widest text-[11px] font-black transition-all ${isActive('/users') ? 'text-primary' : 'text-charcoal/60'}`}
-            >
-              Users
-            </Link>
-            <Link 
-              to="/lead-automation" 
-              onClick={() => setIsMenuOpen(false)}
-              className={`py-3 uppercase tracking-widest text-[11px] font-black transition-all ${isActive('/lead-automation') ? 'text-primary' : 'text-charcoal/60'}`}
-            >
-              Automation
-            </Link>
-          </nav>
+        <div className="flex items-center gap-6">
+          <NotificationCenter />
           
-          <div className="p-4 bg-surface-subtle/50 space-y-4">
-            <div className="flex flex-col gap-2">
-              <div className={`w-fit px-2 py-1 border font-mono text-[8px] font-bold uppercase tracking-widest leading-none ${roleColors[user.role] || roleColors.admin}`}>
+          <div className="flex items-center gap-3 border-l border-charcoal/10 pl-6 h-8">
+            <div className="flex flex-col items-end justify-center">
+              <div className={`mb-0.5 px-1.5 py-0.5 border font-mono text-[7px] font-bold uppercase tracking-widest leading-none ${roleColors[user.role] || roleColors.admin}`}>
                 {user.role}
               </div>
-              <div className="text-[11px] font-black uppercase tracking-tight text-charcoal leading-none">
+              <div className="text-[9px] font-black uppercase tracking-tight text-charcoal/80 leading-none">
                 {userName}
               </div>
             </div>
             
-            <button 
-              onClick={() => {
-                setIsMenuOpen(false);
-                handleLogout();
-              }}
-              className="w-full bg-charcoal text-white py-3 font-black uppercase tracking-widest text-[10px] border-2 border-charcoal hover:bg-primary transition-all cursor-pointer flex items-center justify-center gap-2"
-            >
-              <span className="material-symbols-outlined text-[14px]">arrow_back</span>
-              Homeintown Dashboard
-            </button>
+            <div className="w-8 h-8 bg-charcoal text-white flex items-center justify-center font-black text-[10px] uppercase">
+              {userName ? userName.charAt(0) : 'U'}
+            </div>
           </div>
         </div>
-      )}
+      </div>
     </header>
   );
 };

@@ -6,6 +6,8 @@ const UsersPage = () => {
   const navigate = useNavigate();
   const [users, setUsers] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 15;
 
   const [selectedUsers, setSelectedUsers] = useState(new Set());
   const [processing, setProcessing] = useState(false);
@@ -32,6 +34,11 @@ const UsersPage = () => {
   useEffect(() => {
     fetchUsers();
   }, [fetchUsers]);
+
+  // Reset to page 1 whenever searching
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
 
   const filteredUsers = users.filter(user => {
     const fullName = `${user.first_name} ${user.last_name}`.toLowerCase();
@@ -113,6 +120,12 @@ const UsersPage = () => {
     }
   };
 
+  // Pagination Logic
+  const totalItems = filteredUsers.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedUsers = filteredUsers.slice(startIndex, startIndex + itemsPerPage);
+
   const handleBulkDelete = async () => {
     if (selectedUsers.size === 0) return;
     if (!confirm(`Are you sure you want to delete ${selectedUsers.size} users?`)) return;
@@ -138,46 +151,51 @@ const UsersPage = () => {
 
   return (
     <div className="animate-fade-in font-display text-charcoal pb-10">
-      {/* Top Action Bar */}
-      <div className="flex flex-col sm:flex-row justify-between items-center bg-white border-2 border-charcoal p-4 sm:p-5 mb-6 sm:mb-8 shadow-sm gap-4">
-        <div className="text-center sm:text-left">
-          <h1 className="text-xl md:text-2xl font-black uppercase tracking-tighter leading-tight">
-            User Management
-          </h1>
-          <p className="text-charcoal/40 text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.2em]">
-            Manage all registered users
-          </p>
-        </div>
-        <button 
-          onClick={() => navigate('/add-user')}
-          className="w-full sm:w-auto bg-primary text-white py-2.5 sm:py-3 px-5 sm:px-6 font-black uppercase tracking-widest text-[10px] sm:text-xs border-2 border-primary hover:bg-charcoal hover:border-charcoal transition-all cursor-pointer flex items-center justify-center gap-2"
-        >
-          <span className="material-symbols-outlined text-base sm:text-lg font-black">person_add</span>
-          ADD NEW
-        </button>
-      </div>
-
-      {/* Stats & Search Bar */}
-      <div className="bg-white border-2 border-charcoal/10 p-4 sm:p-6 mb-8 sm:mb-10 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-4 w-full sm:w-auto">
-          <span className="material-symbols-outlined text-3xl sm:text-4xl text-charcoal/10">groups</span>
-          <div>
-            <h3 className="text-[8px] sm:text-[9px] font-black uppercase tracking-[0.3em] text-charcoal/30 mb-0.5">Total Users</h3>
-            <div className="text-2xl sm:text-4xl font-black text-charcoal">{filteredUsers.length}</div>
+      {/* Unified Header & Search Bar */}
+      <div className="bg-white border-2 border-charcoal p-4 sm:p-5 mb-8 shadow-sm">
+        <div className="flex flex-col lg:flex-row justify-between items-center gap-6">
+          {/* Left: Title & Stats */}
+          <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-8 w-full lg:w-auto">
+            <div className="text-center sm:text-left">
+              <h1 className="text-xl md:text-2xl font-black uppercase tracking-tighter leading-tight">
+                User Management
+              </h1>
+              <p className="text-charcoal/40 text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.2em]">
+                Manage all registered users
+              </p>
+            </div>
+            
+            <div className="h-10 w-[2px] bg-charcoal/10 hidden sm:block"></div>
+            
+            <div className="flex items-center gap-3 bg-surface-subtle px-4 py-2 border border-charcoal/5">
+              <span className="material-symbols-outlined text-2xl text-charcoal/10">groups</span>
+              <div>
+                <h3 className="text-[8px] font-black uppercase tracking-[0.2em] text-charcoal/30">Total Users</h3>
+                <div className="text-xl font-black text-charcoal leading-none">{filteredUsers.length}</div>
+              </div>
+            </div>
           </div>
-        </div>
-        
-        <div className="w-full sm:w-auto flex-1 max-w-md">
-           <div className="relative">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-charcoal/30 text-lg">search</span>
-            <input 
-              type="text" 
-              placeholder="Filter by name..." 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-surface-subtle border-2 border-transparent focus:border-charcoal/20 pl-10 pr-4 py-2 text-sm font-bold placeholder-charcoal/30 outline-none transition-all"
-            />
-           </div>
+
+          {/* Right: Search & Add Button */}
+          <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
+            <div className="relative w-full sm:w-64">
+              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-charcoal/30 text-lg">search</span>
+              <input 
+                type="text" 
+                placeholder="FILTER BY NAME..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-surface-subtle border-2 border-transparent focus:border-charcoal/20 pl-10 pr-4 py-2 text-[10px] font-black placeholder-charcoal/20 outline-none transition-all uppercase tracking-widest"
+              />
+            </div>
+            <button 
+              onClick={() => navigate('/add-user')}
+              className="w-full sm:w-auto bg-primary text-white py-2 px-5 font-black uppercase tracking-widest text-[10px] border-2 border-primary hover:bg-charcoal hover:border-charcoal transition-all cursor-pointer flex items-center justify-center gap-2"
+            >
+              <span className="material-symbols-outlined text-base font-black">person_add</span>
+              ADD NEW
+            </button>
+          </div>
         </div>
       </div>
 
@@ -256,7 +274,7 @@ const UsersPage = () => {
 
           {/* List Items */}
           <div className="divide-y divide-charcoal/5">
-            {filteredUsers.map((user) => (
+            {paginatedUsers.map((user) => (
               <div 
                 key={user.id}
                 className={`flex items-center gap-4 p-3 transition-colors ${selectedUsers.has(user.id) ? 'bg-primary/5' : 'hover:bg-gray-50'}`}
@@ -285,6 +303,50 @@ const UsersPage = () => {
           </div>
         </div>
       )}
+
+      {/* Pagination Controls */}
+      {totalPages > 1 && (
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-2">
+          <button
+            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+            disabled={currentPage === 1}
+            className="px-4 py-2 border-2 border-charcoal text-[10px] font-black uppercase tracking-widest hover:bg-charcoal hover:text-white transition-all disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-charcoal cursor-pointer"
+          >
+            PREV
+          </button>
+          
+          {[...Array(totalPages)].map((_, i) => (
+            <button
+              key={i + 1}
+              onClick={() => setCurrentPage(i + 1)}
+              className={`w-10 h-10 border-2 font-black text-[10px] transition-all cursor-pointer flex items-center justify-center
+                ${currentPage === i + 1 ? 'bg-primary border-primary text-white' : 'border-charcoal hover:bg-surface-subtle text-charcoal'}`}
+            >
+              {i + 1}
+            </button>
+          ))}
+
+          <button
+            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+            disabled={currentPage === totalPages}
+            className="px-4 py-2 border-2 border-charcoal text-[10px] font-black uppercase tracking-widest hover:bg-charcoal hover:text-white transition-all disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-charcoal cursor-pointer"
+          >
+            NEXT
+          </button>
+        </div>
+      )}
+
+      {/* Stats Footer */}
+      <div className="mt-12 flex flex-col sm:flex-row items-center justify-between gap-6 border-t-2 border-charcoal/5 pt-8">
+        <div className="flex flex-col">
+          <span className="text-[8px] font-black uppercase tracking-widest text-charcoal/30">Database Growth</span>
+          <span className="text-xl font-black">{users.length} Registered Users</span>
+        </div>
+        <div className="text-right">
+          <span className="text-[8px] font-black uppercase tracking-widest text-charcoal/30">Navigation</span>
+          <p className="font-mono text-xs font-bold uppercase">Page {currentPage} of {totalPages || 1}</p>
+        </div>
+      </div>
 
       {/* Project Selection Modal */}
       {showProjectModal && (
