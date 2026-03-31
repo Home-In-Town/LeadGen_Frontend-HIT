@@ -26,7 +26,8 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
     { name: 'Integrations', path: '/integrations', icon: 'integration_instructions' },
   ];
 
-  const executeLogout = () => {
+  // Handler for back to main site button
+  const handleReturnToSite = () => {
     localStorage.removeItem('currentUser');
     const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
     const redirectUrl = isLocal 
@@ -35,6 +36,13 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
     window.location.href = redirectUrl;
   };
 
+  // Handler for direct logout
+  const handleLogout = () => {
+    localStorage.removeItem('currentUser');
+    window.location.href = '/';
+  };
+
+
   const openConfirmation = (type) => {
     if (type === 'back_to_site') {
       setModalConfig({
@@ -42,7 +50,7 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
         title: 'Return to HomeInTown?',
         message: 'Redirecting you to the HomeInTown site. This will end your current session.',
         confirmText: 'Return to site',
-        onConfirm: executeLogout,
+        onConfirm: handleReturnToSite,
         type: 'default'
       });
     } else if (type === 'logout') {
@@ -51,7 +59,7 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
         title: 'Sign Out?',
         message: 'Are you sure you want to end your current session?',
         confirmText: 'Logout',
-        onConfirm: executeLogout,
+        onConfirm: handleLogout,
         type: 'danger'
       });
     }

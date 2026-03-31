@@ -15,16 +15,6 @@ const Header = ({ onMenuClick }) => {
   
   const userName = user.name || (user.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : '');
 
-  const handleLogout = () => {
-    if (confirm('Exit to Sales Dashboard? This will end your session here.')) {
-      localStorage.removeItem('currentUser');
-      const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-      const redirectUrl = isLocal 
-        ? 'http://localhost:3000/dashboard' 
-        : 'https://www.homeintown.in/dashboard';
-      window.location.href = redirectUrl;
-    }
-  };
 
   const isActive = (path) => location.pathname === path || location.pathname.startsWith(path + '/');
 

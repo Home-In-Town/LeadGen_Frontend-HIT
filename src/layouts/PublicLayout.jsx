@@ -1,5 +1,4 @@
 import { Outlet } from 'react-router-dom';
-import Header from '../components/Header';
 
 const PublicLayout = () => {
 
@@ -10,12 +9,9 @@ const PublicLayout = () => {
   // implies hiding the navbar on landing page (even if logged in).
   
   return (
-    <>
-      <Header showNav={false} />
-      <main>
-        <Outlet />
-      </main>
-    </>
+    <main>
+      <Outlet />
+    </main>
   );
 };
 
