@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as api from '../api';
+import { useAuth } from '../context/AuthContext';
 import { getStatusClasses, getStatusLabel } from '../utils/leadUtils';
 
 const HistoryPage = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [currentUser, setCurrentUser] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
@@ -23,13 +24,7 @@ const HistoryPage = () => {
 
   const fetchLeads = async () => {
     try {
-      const currentUserStr = localStorage.getItem('currentUser');
-      if (!currentUserStr) {
-        navigate('/select-role');
-        return;
-      }
-      const user = JSON.parse(currentUserStr);
-      setCurrentUser(user);
+      if (!user) return;
       const params = { userId: user.id, role: user.role };
       const res = await api.getAllLeads(params);
       setLeads(res.data);
@@ -123,7 +118,7 @@ const HistoryPage = () => {
                       <span>{lead.phone_number}</span>
                       <span className="text-[10px] opacity-30">|</span>
                       <span>{new Date(lead.createdAt || Date.now()).toLocaleDateString()}</span>
-                      {currentUser?.role === 'admin' && lead.createdBy?.name && (
+                      {user?.role === 'admin' && lead.createdBy?.name && (
                         <>
                           <span className="text-[10px] opacity-30">|</span>
                           <span className="text-primary/70 bg-primary/5 px-1.5 py-0.5 border border-primary/10 rounded-sm">SRC: {lead.createdBy.name}</span>

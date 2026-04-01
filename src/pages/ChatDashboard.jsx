@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { getChatConversations, getChatMessages, sendChatMessage, markChatAsRead } from '../api';
 import { useNotifications } from '../context/NotificationContext';
+import { useAuth } from '../context/AuthContext';
 
 const EmptyChatPlaceholder = () => (
    <div className="flex-1 flex flex-col items-center justify-center text-charcoal/40 bg-surface-subtle">
@@ -150,7 +151,7 @@ const ChatWindow = ({ leadId, onMessageReceived }) => {
                     
                     // Check if this is a duplicate of an optimistic message
                     // (optimistic messages have numeric string _ids like Date.now())
-                    const isOutbound = payload.sender === 'system' || payload.sender === 'agent' || payload.sender === 'builder';
+                    const isOutbound = payload.sender === 'system' || payload.sender === 'agent' || payload.sender === 'builder' || payload.sender === 'service_user';
                     if (isOutbound) {
                         // Find and replace matching optimistic message
                         const optimisticIdx = prev.findIndex(m => 
@@ -264,7 +265,7 @@ const ChatWindow = ({ leadId, onMessageReceived }) => {
                     </div>
                 ) : (
                     messages.map((msg, idx) => {
-                        const isSystem = msg.sender === 'system' || msg.sender === 'agent' || msg.sender === 'builder';
+                        const isSystem = msg.sender === 'system' || msg.sender === 'agent' || msg.sender === 'builder' || msg.sender === 'service_user';
                         
                         return (
                             <div key={msg._id || idx} className={`flex w-full ${isSystem ? 'justify-end' : 'justify-start'}`}>
@@ -332,7 +333,8 @@ export default function ChatDashboard() {
     const [conversations, setConversations] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [activeLeadId, setActiveLeadId] = useState(urlLeadId && urlLeadId !== 'null' ? urlLeadId : null);
-    const { socket } = useNotifications(); 
+    const { socket } = useNotifications();
+    const { user } = useAuth();
 
     // Sync state with URL parameter (deep linking)
     useEffect(() => {
@@ -352,8 +354,7 @@ export default function ChatDashboard() {
     const fetchConversations = useCallback(async (quiet = false) => {
         try {
             if (!quiet) setIsLoading(true);
-            const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
-            const res = await getChatConversations(user.userId || user.id, user.role);
+            const res = await getChatConversations(user?.id, user?.role);
             setConversations(res.data);
         } catch (err) {
             console.error("Error fetching conversations:", err);

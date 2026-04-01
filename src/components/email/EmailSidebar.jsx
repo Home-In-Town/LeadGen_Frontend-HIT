@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../../context/AuthContext';
 import { 
     getEmailConnectionStatus, 
     getGoogleAuthUrl, 
@@ -16,13 +17,13 @@ const folders = [
 ];
 
 const EmailSidebar = ({ activeFolder, onFolderChange, onCompose }) => {
+    const { user } = useAuth();
     const [connection, setConnection] = useState(null);
     const [logs, setLogs] = useState([]);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(false);
     
-    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-    const ownerId = currentUser.salesProfileId || currentUser.id;
+    const ownerId = user?.id;
 
     const fetchStatus = async () => {
         try {

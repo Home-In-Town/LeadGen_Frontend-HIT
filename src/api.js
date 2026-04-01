@@ -1,40 +1,23 @@
 import axios from 'axios';
 
-// Use environment variable for API URL with fallback
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://lead-filteration-backend-624770114041.asia-south1.run.app';
-const SALES_WEBSITE_URL = import.meta.env.VITE_SALES_WEBSITE_URL || 'https://www.homeintown.in';
 
 // Helper to create an axios instance with shared interceptors
 const createApiInstance = (path) => {
     const instance = axios.create({
-        baseURL: `${BASE_URL}/api${path}`
+        baseURL: `${BASE_URL}/api${path}`,
+        withCredentials: true  // Send cookie on every request
     });
 
-    // Request interceptor: Add the auth token
-    instance.interceptors.request.use(
-        (config) => {
-            const token = localStorage.getItem('token');
-            if (token) {
-                config.headers.Authorization = `Bearer ${token}`;
-            }
-            return config;
-        },
-        (error) => Promise.reject(error)
-    );
-
-    // Response interceptor: Handle 401 Unauthorized
+    // Response interceptor: Handle 401 — redirect to /login
     instance.interceptors.response.use(
         (response) => response,
         (error) => {
             if (error.response && error.response.status === 401) {
-                console.error(`Session expired on ${path}. Redirecting...`);
-                
-                // Clear local storage
-                localStorage.removeItem('token');
-                localStorage.removeItem('currentUser');
-
-                // Redirect to Sales Website
-                window.location.href = `${SALES_WEBSITE_URL}/dashboard?msg=session_expired`;
+                // Avoid redirect loop if already on login page
+                if (!window.location.pathname.startsWith('/login')) {
+                    window.location.href = '/login';
+                }
             }
             return Promise.reject(error);
         }
@@ -119,8 +102,20 @@ export const testEmailConnection = () => emailApi.get('/test-connection');
 export const disconnectEmail = () => emailApi.delete('/disconnect');
 export const getEmailConnectionStatus = () => emailApi.get('/connection-status');
 
-// ====== AUTH / OAUTH ENDPOINTS ======
+// ====== OAUTH ENDPOINTS (email integration) ======
 export const getGoogleAuthUrl = (ownerId) => `${BASE_URL}/api/auth/google/login?ownerId=${ownerId}`;
 export const getMicrosoftAuthUrl = (ownerId) => `${BASE_URL}/api/auth/microsoft/login?ownerId=${ownerId}`;
 
+// ====== AUTH API (cookie-based, no 401 redirect) ======
+// Uses a plain axios instance — 401 here means wrong credentials, not expired session
+const _authAxios = axios.create({ baseURL: `${BASE_URL}/api/auth`, withCredentials: true });
 
+export const authApi = {
+    register: (data) => _authAxios.post('/register', data),
+    verifyOtp: (phone, code) => _authAxios.post('/verify-otp', { phone, code }),
+    login: (phone, mpin) => _authAxios.post('/login', { phone, mpin }),
+    forgotMpin: (phone) => _authAxios.post('/forgot-mpin', { phone }),
+    resetMpin: (phone, code, newMpin) => _authAxios.post('/reset-mpin', { phone, code, newMpin }),
+    getSession: () => _authAxios.get('/session'),
+    logout: () => _authAxios.post('/logout'),
+};

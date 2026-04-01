@@ -2,9 +2,11 @@ import { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import * as api from '../api';
+import { useAuth } from '../context/AuthContext';
 
 const UsersPage = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [users, setUsers] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -18,12 +20,7 @@ const UsersPage = () => {
 
   const fetchUsers = useCallback(async () => {
     try {
-      const currentUserStr = localStorage.getItem('currentUser');
-      if (!currentUserStr) {
-        navigate('/select-role');
-        return;
-      }
-      const user = JSON.parse(currentUserStr);
+      if (!user) return;
       const params = { userId: user.id, role: user.role };
       const res = await api.getAllUsers(params);
       setUsers(res.data);
@@ -90,16 +87,11 @@ const UsersPage = () => {
     setProcessing(true);
     
     try {
-      const currentUserStr = localStorage.getItem('currentUser');
-      if (!currentUserStr) {
-        alert('Please login first.');
-        return;
-      }
-      const currentUser = JSON.parse(currentUserStr);
+      if (!user) { alert('Please login first.'); return; }
       const creatorData = {
-        creatorId: currentUser.id,
-        creatorName: `${currentUser.first_name} ${currentUser.last_name}`,
-        creatorRole: currentUser.role || 'agent',
+        creatorId: user.id,
+        creatorName: user.name,
+        creatorRole: user.role || 'agent',
         projectSlug,
         projectName
       };

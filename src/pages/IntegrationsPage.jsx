@@ -2,6 +2,10 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNotifications } from '../context/NotificationContext';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5002';
+// Cookie-based — no token needed, just withCredentials
+const ownersApi = axios.create({ baseURL: `${API_BASE_URL}/api/owners`, withCredentials: true });
+
 const IntegrationsPage = () => {
     const [activeTab, setActiveTab] = useState('call');
     const [agukenSettings, setAgukenSettings] = useState({ agentId: '', clientId: '' });
@@ -14,10 +18,6 @@ const IntegrationsPage = () => {
     const [showWhatsappSecret, setShowWhatsappSecret] = useState(false);
     const { addToast } = useNotifications();
 
-    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-    const token = currentUser.token;
-    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5002';
-
     useEffect(() => {
         fetchIntegrations();
     }, []);
@@ -25,9 +25,7 @@ const IntegrationsPage = () => {
     const fetchIntegrations = async () => {
         setLoading(true);
         try {
-            const response = await axios.get(`${API_BASE_URL}/api/owners/integrations`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const response = await ownersApi.get('/integrations');
             setAgukenSettings(response.data.aguken);
             setWhatsappSettings(response.data.whatsapp);
         } catch (error) {
@@ -42,9 +40,7 @@ const IntegrationsPage = () => {
         e.preventDefault();
         setSaving(true);
         try {
-            await axios.put(`${API_BASE_URL}/api/owners/integrations/aguken`, agukenSettings, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            await ownersApi.put('/integrations/aguken', agukenSettings);
             addToast('Aguken settings saved successfully', 'success');
         } catch (error) {
             console.error('Error saving Aguken settings:', error);
@@ -58,9 +54,7 @@ const IntegrationsPage = () => {
         e.preventDefault();
         setSaving(true);
         try {
-            await axios.put(`${API_BASE_URL}/api/owners/integrations/whatsapp`, whatsappSettings, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            await ownersApi.put('/integrations/whatsapp', whatsappSettings);
             addToast('WhatsApp settings saved successfully', 'success');
         } catch (error) {
             console.error('Error saving WhatsApp settings:', error);

@@ -13,11 +13,11 @@ const LandingPage = () => {
             Precision<br />Lead<br />Filtration
           </h1>
           <p className="text-charcoal/60 text-sm leading-relaxed max-w-[280px] font-medium uppercase tracking-tight">
-            High-volume qualification for builders and agents. Industrial-grade speed.
+            High-volume qualification for businesses and organizations. Industrial-grade speed.
           </p>
           <div className="mt-8">
             <button 
-              onClick={() => navigate('/select-role')}
+              onClick={() => navigate('/login')}
               className="bg-primary text-white px-8 py-4 font-black uppercase tracking-widest text-sm border-2 border-primary hover:bg-charcoal hover:border-charcoal transition-all cursor-pointer"
             >
               Initialize System

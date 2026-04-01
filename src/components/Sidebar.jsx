@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import ConfirmationModal from './ConfirmationModal';
+import { useAuth } from '../context/AuthContext';
 
 const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
   const location = useLocation();
-  const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
+  const navigate = useNavigate();
+  const { logout } = useAuth();
   const [modalConfig, setModalConfig] = useState({
     isOpen: false,
     title: '',
@@ -26,34 +28,17 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
     { name: 'Integrations', path: '/integrations', icon: 'integration_instructions' },
   ];
 
-  // Handler for back to main site button
-  const handleReturnToSite = () => {
-    localStorage.removeItem('currentUser');
-    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    const redirectUrl = isLocal 
-      ? 'http://localhost:3000/dashboard' 
-      : 'https://www.homeintown.in/dashboard';
-    window.location.href = redirectUrl;
-  };
+
 
   // Handler for direct logout
-  const handleLogout = () => {
-    localStorage.removeItem('currentUser');
-    window.location.href = '/';
+  const handleLogout = async () => {
+    await logout();
+    navigate('/');
   };
 
 
   const openConfirmation = (type) => {
-    if (type === 'back_to_site') {
-      setModalConfig({
-        isOpen: true,
-        title: 'Return to HomeInTown?',
-        message: 'Redirecting you to the HomeInTown site. This will end your current session.',
-        confirmText: 'Return to site',
-        onConfirm: handleReturnToSite,
-        type: 'default'
-      });
-    } else if (type === 'logout') {
+    if (type === 'logout') {
       setModalConfig({
         isOpen: true,
         title: 'Sign Out?',
@@ -135,18 +120,7 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
 
       {/* Footer */}
       <div className={`border-t border-charcoal/5 transition-all duration-300 ${isCollapsed ? 'p-2 space-y-1' : 'p-4 space-y-2'}`}>
-        <button
-          onClick={() => openConfirmation('back_to_site')}
-          className={`w-full flex items-center justify-center transition-all bg-slate-50 border border-charcoal/5 cursor-pointer hover:bg-white group relative ${isCollapsed ? 'p-3' : 'gap-3 px-4 py-3 uppercase tracking-[0.2em] text-[10px] font-black text-charcoal/60 hover:text-charcoal'}`}
-        >
-          <span className="material-symbols-outlined text-lg">arrow_back</span>
-          {!isCollapsed && <span>Back to Site</span>}
-          {isCollapsed && (
-            <div className="absolute left-20 px-3 py-1 bg-charcoal text-white text-[10px] font-bold uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
-              Back to Site
-            </div>
-          )}
-        </button>
+
         <button
           onClick={() => openConfirmation('logout')}
           className={`w-full flex items-center justify-center transition-all border cursor-pointer hover:bg-red-50 group relative ${isCollapsed ? 'p-3 border-transparent' : 'gap-3 px-4 py-3 uppercase tracking-[0.2em] text-[10px] font-black text-red-500 border-red-50'}`}

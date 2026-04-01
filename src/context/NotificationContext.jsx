@@ -1,30 +1,17 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { io } from 'socket.io-client';
 import { getNotifications, markNotificationRead, markAllNotificationsRead } from '../api';
+import { useAuth } from './AuthContext';
 
 const NotificationContext = createContext();
 
 const SOCKET_URL = import.meta.env.VITE_API_BASE_URL || 'https://lead-filteration-backend-624770114041.asia-south1.run.app';
 
-function getCurrentUserId() {
-    try {
-        const u = localStorage.getItem('currentUser');
-        if (!u) return null;
-        const parsed = JSON.parse(u);
-        return parsed.userId || parsed.id || parsed._id || null;
-    } catch { return null; }
-}
-
-function getAuthToken() {
-    try {
-        const u = localStorage.getItem('currentUser');
-        return u ? JSON.parse(u)?.token : null;
-    } catch { return null; }
-}
-
 export const NotificationProvider = ({ children }) => {
+    const { user } = useAuth();
+    const userId = user?.id || null;
+
     const [notifications, setNotifications] = useState([]);
-    const [userId, setUserId] = useState(getCurrentUserId);
 
     // Toast queue — each entry: { id, type, title, message, leadId, automationId }
     const [toasts, setToasts] = useState([]);
@@ -34,13 +21,6 @@ export const NotificationProvider = ({ children }) => {
         () => notifications.filter(n => !n.read).length,
         [notifications]
     );
-
-    // Sync userId when localStorage changes (login/logout in another tab)
-    useEffect(() => {
-        const handleStorageChange = () => setUserId(getCurrentUserId());
-        window.addEventListener('storage', handleStorageChange);
-        return () => window.removeEventListener('storage', handleStorageChange);
-    }, []);
 
     const socketRef = useRef(null);
     const [socketInstance, setSocketInstance] = useState(null);
@@ -70,13 +50,11 @@ export const NotificationProvider = ({ children }) => {
 
         fetchNotifications();
 
-        const token = getAuthToken();
-
         const socket = io(SOCKET_URL, {
             autoConnect: false,
             reconnectionAttempts: 5,
             reconnectionDelay: 2000,
-            auth: token ? { token } : {},
+            withCredentials: true,
             transports: ['polling', 'websocket'], // polling first — avoids Cloud Run WebSocket rejection on initial connect
         });
 
@@ -188,6 +166,7 @@ export const NotificationProvider = ({ children }) => {
             markAsRead,
             markAllRead,
             fetchNotifications,
+            playChime,
             socketRef,
             socket: socketInstance,
         }}>

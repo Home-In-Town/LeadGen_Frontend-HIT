@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useNotifications } from "../context/NotificationContext";
+import { useAuth } from "../context/AuthContext";
 import * as api from "../api";
 import WhatsAppSection from "../components/lead/WhatsAppSection";
 import VoiceCallSection from "../components/lead/VoiceCallSection";
@@ -10,8 +11,8 @@ const LeadGenerationPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { socket } = useNotifications();
+  const { user } = useAuth();
   const [leadData, setLeadData] = useState(null);
-  const [currentUser, setCurrentUser] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showLiveBadge, setShowLiveBadge] = useState(false);
   const [lastUpdateType, setLastUpdateType] = useState(null);
@@ -45,9 +46,6 @@ const LeadGenerationPage = () => {
   }, [id, refreshData]);
 
   useEffect(() => {
-    const userStr = localStorage.getItem('currentUser');
-    if (userStr) setCurrentUser(JSON.parse(userStr));
-    
     if (id) {
       refreshData();
 
@@ -148,7 +146,7 @@ const LeadGenerationPage = () => {
                 <span className="material-symbols-outlined text-sm sm:text-lg">call</span>
                 {leadData.phone_number}
               </div>
-              {currentUser?.role === 'admin' && leadData.createdBy?.name && (
+              {user?.role === 'admin' && leadData.createdBy?.name && (
                 <div className="flex items-center gap-2 bg-primary/5 text-primary px-2 py-0.5 border border-primary/10 rounded-sm">
                   <span className="material-symbols-outlined text-[14px]">source</span>
                   SOURCE: {leadData.createdBy.name}

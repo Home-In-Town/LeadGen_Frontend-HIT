@@ -1,21 +1,18 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as api from '../api';
+import { useAuth } from '../context/AuthContext';
 import IntegrationSelectorModal from '../components/IntegrationSelectorModal';
 
 const DashboardPage = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [users, setUsers] = useState([]);
   const [isIntegrationModalOpen, setIsIntegrationModalOpen] = useState(false);
 
   const fetchUsers = useCallback(async () => {
     try {
-      const currentUserStr = localStorage.getItem('currentUser');
-      if (!currentUserStr) {
-        navigate('/select-role');
-        return;
-      }
-      const user = JSON.parse(currentUserStr);
+      if (!user) return;
       const params = { userId: user.id, role: user.role };
       const res = await api.getAllUsers(params);
       setUsers(res.data);

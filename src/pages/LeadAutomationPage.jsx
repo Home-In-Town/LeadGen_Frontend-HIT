@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import * as api from '../api';
+import { useAuth } from '../context/AuthContext';
 
 const LeadAutomationPage = () => {
   const { leadId } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [lead, setLead] = useState(null);
-  const [currentUser, setCurrentUser] = useState(null);
   
   // Data status
   const [loading, setLoading] = useState(true);
@@ -47,8 +48,7 @@ const LeadAutomationPage = () => {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const userStr = localStorage.getItem('currentUser');
-      const user = JSON.parse(userStr);
+      if (!user) return;
       
       // Fetch Users instead of Leads for the "Recipient" list as requested
       const usersRes = await api.getAllUsers({ userId: user.id, role: user.role });
@@ -114,14 +114,8 @@ const LeadAutomationPage = () => {
   }, [leadId]); // Add dependencies as needed
 
   useEffect(() => {
-    const userStr = localStorage.getItem('currentUser');
-    if (!userStr) {
-      navigate('/select-role');
-      return;
-    }
-    setCurrentUser(JSON.parse(userStr));
-    fetchData();
-  }, [leadId, navigate, fetchData]);
+    if (user) fetchData();
+  }, [leadId, user, fetchData]);
 
   // Calendar Helpers
   const getDaysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
@@ -237,9 +231,9 @@ const LeadAutomationPage = () => {
         templateName: newAutomation.templateName,
         scheduledAt: scheduledAt.toISOString(),
         createdBy: {
-           userId: currentUser.id,
-           role: currentUser.role,
-           name: currentUser.name || `${currentUser.first_name} ${currentUser.last_name}`
+           userId: user?.id,
+           role: user?.role,
+           name: user?.name
         }
       };
 

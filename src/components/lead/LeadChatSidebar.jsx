@@ -35,7 +35,7 @@ const LeadChatSidebar = ({ isOpen, onClose, leadId, leadName }) => {
                 if (payload._id && prev.some(m => m._id === payload._id)) return prev;
                 
                 // Check if this is a duplicate of an optimistic message
-                const isOutbound = payload.sender === 'system' || payload.sender === 'agent' || payload.sender === 'builder';
+                const isOutbound = payload.sender === 'system' || payload.sender === 'agent' || payload.sender === 'builder' || payload.sender === 'service_user';
                 if (isOutbound) {
                     const optimisticIdx = prev.findIndex(m => 
                         m.content === payload.content && 

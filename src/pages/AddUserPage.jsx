@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as api from '../api';
+import { useAuth } from '../context/AuthContext';
 
 const AddUserPage = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [manualForm, setManualForm] = useState({ name: '', phone: '' });
   const [file, setFile] = useState(null);
   const [manualLoading, setManualLoading] = useState(false);
@@ -15,16 +17,11 @@ const AddUserPage = () => {
       setManualLoading(true);
     setError('');
     try {
-      const currentUserStr = localStorage.getItem('currentUser');
-      let creatorData = null;
-      if (currentUserStr) {
-        const user = JSON.parse(currentUserStr);
-        creatorData = {
-          userId: user.id,
-          role: user.role,
-          name: `${user.first_name} ${user.last_name}`
-        };
-      }
+      const creatorData = user ? {
+        userId: user.id,
+        role: user.role,
+        name: user.name
+      } : null;
       
       await api.createUser({ ...manualForm, createdBy: creatorData });
       navigate('/users');
@@ -42,16 +39,11 @@ const AddUserPage = () => {
     setFileLoading(true);
     setError('');
     try {
-      const currentUserStr = localStorage.getItem('currentUser');
-      let creatorData = null;
-      if (currentUserStr) {
-        const user = JSON.parse(currentUserStr);
-        creatorData = {
-          userId: user.id,
-          role: user.role,
-          name: `${user.first_name} ${user.last_name}`
-        };
-      }
+      const creatorData = user ? {
+        userId: user.id,
+        role: user.role,
+        name: user.name
+      } : null;
 
       await api.uploadUser(file, creatorData);
       navigate('/users');
