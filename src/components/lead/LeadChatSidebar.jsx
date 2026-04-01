@@ -29,7 +29,7 @@ const LeadChatSidebar = ({ isOpen, onClose, leadId, leadName }) => {
     socket.emit('join_lead', leadId); // joins lead_${leadId} room on server
 
     const handleNewMessage = (payload) => {
-        if (payload.leadId === leadId) {
+        if (payload && payload.leadId === leadId) {
             setMessages(prev => {
                 // Avoid duplicates by real _id
                 if (payload._id && prev.some(m => m._id === payload._id)) return prev;
@@ -67,7 +67,6 @@ const LeadChatSidebar = ({ isOpen, onClose, leadId, leadName }) => {
         setMessages(res.data.data);
       }
     } catch (err) {
-      console.error('Failed to fetch messages:', err);
     } finally {
       setIsLoading(false);
     }
@@ -99,7 +98,6 @@ const LeadChatSidebar = ({ isOpen, onClose, leadId, leadName }) => {
         ));
       }
     } catch (err) {
-      console.error('Failed to send message:', err);
       setMessages(prev => prev.filter(m => m._id !== optimisticMsg._id));
       setNewMessage(messageText);
       alert('Failed to send message');

@@ -62,16 +62,13 @@ export const NotificationProvider = ({ children }) => {
         setSocketInstance(socket);
 
         socket.on('connect', () => {
-            console.log('📡 Socket.IO connected for notifications');
             socket.emit('join_user', userId);
         });
 
         socket.on('disconnect', (reason) => {
-            console.log('🔌 Socket.IO disconnected:', reason);
         });
 
         socket.on('new_notification', (notification) => {
-            console.log('🔔 New real-time notification:', notification);
 
             // Prepend to persistent list
             setNotifications(prev => [notification, ...prev]);
@@ -92,8 +89,9 @@ export const NotificationProvider = ({ children }) => {
         });
 
         socket.on('new_chat_message', (payload) => {
-            console.log('💬 New chat message received in NotificationContext:', payload);
-
+            // Safety: ignore malformed payloads
+            if (!payload) return;
+            
             // Only toast for inbound messages from the lead — NOT for outbound (system/agent/builder)
             if (payload.sender !== 'lead') return;
 

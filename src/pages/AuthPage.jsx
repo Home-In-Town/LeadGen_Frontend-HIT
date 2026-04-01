@@ -46,9 +46,7 @@ export default function AuthPage() {
 
     // Auto-redirect if already authenticated
     useEffect(() => {
-        console.log('AuthPage: Current status', status);
         if (status === 'authenticated') {
-            console.log('AuthPage: User authenticated, redirecting...');
             const dest = localStorage.getItem('loginRedirect') || '/dashboard';
             localStorage.removeItem('loginRedirect');
             navigate(dest);
@@ -57,7 +55,6 @@ export default function AuthPage() {
 
     // Cleanup state on mount
     useEffect(() => {
-        console.log('AuthPage: Mounted');
         setError('');
         setLoading(false);
     }, []);
@@ -90,12 +87,8 @@ export default function AuthPage() {
         try {
             setLoading(true);
             const formattedPhone = formatPhone(phone);
-            console.log('Login: Attempting...', { phone: formattedPhone });
             
             const { data } = await authApi.login(formattedPhone, mpin);
-            console.log('Login: Success response received:', data);
-            
-            console.log('Login: Re-checking session state...');
             await checkAuth();
             
             // Chime and Toast
@@ -103,7 +96,6 @@ export default function AuthPage() {
             addToast(`Welcome back, ${data.user?.name || 'User'}!`, 'success', 'Login Successful');
             
             // Redirect is now handled by the status useEffect
-            console.log('Login: Handing over to redirect effect...');
             
         } catch (err) {
             console.error('Login error detail:', err);

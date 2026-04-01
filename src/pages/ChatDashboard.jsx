@@ -107,7 +107,6 @@ const ChatWindow = ({ leadId, onMessageReceived }) => {
             await markChatAsRead(leadId);
             if (onMessageReceived) onMessageReceived();
         } catch (err) {
-            console.error("Error marking as read:", err);
         }
     }, [leadId, onMessageReceived]);
 
@@ -121,7 +120,6 @@ const ChatWindow = ({ leadId, onMessageReceived }) => {
                 // Force scroll on initial load (force = true)
                 setTimeout(() => scrollToBottom("auto", true), 100);
             } catch (error) {
-                console.error("Error fetching messages:", error);
             }
         };
         fetchMessages();
@@ -144,7 +142,7 @@ const ChatWindow = ({ leadId, onMessageReceived }) => {
         socket.emit('join_lead', leadId);
 
         const handleNewMessage = (payload) => {
-            if (payload.leadId === leadId) {
+            if (payload && payload.leadId === leadId) {
                 setMessages(prev => {
                     // Avoid duplicates by real _id
                     if (payload._id && prev.some(m => m._id === payload._id)) return prev;
@@ -178,10 +176,10 @@ const ChatWindow = ({ leadId, onMessageReceived }) => {
         };
 
         const handleChatListUpdate = (payload) => {
-            if (payload.leadId === leadId) {
+            if (payload && payload.leadId === leadId) {
                 getChatMessages(leadId).then(res => {
                     setMessages(res.data?.data || res.data || []);
-                }).catch(console.error);
+                }).catch(() => {});
                 
                 if (onMessageReceived) onMessageReceived();
             }
@@ -223,7 +221,6 @@ const ChatWindow = ({ leadId, onMessageReceived }) => {
             }
             if (onMessageReceived) onMessageReceived();
         } catch (error) {
-            console.error("Error sending message:", error);
             setMessages(prev => prev.filter(m => m._id !== optimisticMsg._id));
             setInputText(originalText);
         }
@@ -357,7 +354,6 @@ export default function ChatDashboard() {
             const res = await getChatConversations(user?.id, user?.role);
             setConversations(res.data);
         } catch (err) {
-            console.error("Error fetching conversations:", err);
         } finally {
             setIsLoading(false);
         }
