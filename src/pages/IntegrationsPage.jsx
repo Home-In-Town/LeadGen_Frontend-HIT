@@ -10,12 +10,15 @@ const IntegrationsPage = () => {
     const [activeTab, setActiveTab] = useState('call');
     const [agukenSettings, setAgukenSettings] = useState({ agentId: '', clientId: '' });
     const [whatsappSettings, setWhatsappSettings] = useState({ vendorUid: '', apiKey: '' });
+    const [externalSource, setExternalSource] = useState({ sourceUrl: '', webhookSecret: '', isActive: false });
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [testing, setTesting] = useState(false);
     const [showAgukenAgentSecret, setShowAgukenAgentSecret] = useState(false);
     const [showAgukenSecret, setShowAgukenSecret] = useState(false);
     const [showWhatsappVendorSecret, setShowWhatsappVendorSecret] = useState(false);
     const [showWhatsappSecret, setShowWhatsappSecret] = useState(false);
+    const [showExternalSecret, setShowExternalSecret] = useState(false);
     const { addToast } = useNotifications();
 
     useEffect(() => {
@@ -28,6 +31,9 @@ const IntegrationsPage = () => {
             const response = await ownersApi.get('/integrations');
             setAgukenSettings(response.data.aguken);
             setWhatsappSettings(response.data.whatsapp);
+            if (response.data.externalSource) {
+                setExternalSource(response.data.externalSource);
+            }
         } catch (error) {
             console.error('Error fetching integrations:', error);
             addToast('Failed to load integration settings', 'error');
@@ -64,6 +70,42 @@ const IntegrationsPage = () => {
         }
     };
 
+    const handleSaveExternalSource = async (e) => {
+        e.preventDefault();
+        setSaving(true);
+        try {
+            await ownersApi.put('/integrations/external-source', externalSource);
+            addToast('External source settings saved successfully', 'success');
+        } catch (error) {
+            console.error('Error saving external source settings:', error);
+            addToast('Failed to save settings', 'error');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleTestConnection = async () => {
+        if (!externalSource.sourceUrl) {
+            addToast('Please provide a source URL first', 'warning');
+            return;
+        }
+        setTesting(true);
+        try {
+            // Use existing project api if available or create a test one
+            const res = await axios.get(`${API_BASE_URL}/api/projects/list`, { withCredentials: true });
+            if (res.data.success && res.data.source === 'external') {
+                addToast(`Successfully connected! Found ${res.data.data.length} projects.`, 'success');
+            } else {
+                addToast('Connected, but using legacy bridge. Ensure webhook is active.', 'warning');
+            }
+        } catch (error) {
+            console.error('Test connection error:', error);
+            addToast(error.response?.data?.error || 'Connection failed', 'error');
+        } finally {
+            setTesting(false);
+        }
+    };
+
     return (
         <div className="max-w-4xl mx-auto px-4 py-8 animate-fade-in">
             <header className="mb-10">
@@ -87,6 +129,13 @@ const IntegrationsPage = () => {
                     >
                         <span className="material-symbols-outlined text-lg">chat</span>
                         WhatsApp
+                    </button>
+                    <button 
+                        onClick={() => setActiveTab('external')}
+                        className={`w-full flex items-center gap-3 px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] transition-all border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[1px] active:translate-y-[1px] cursor-pointer ${activeTab === 'external' ? 'bg-indigo-600 text-white' : 'bg-white text-charcoal hover:bg-charcoal/5'}`}
+                    >
+                        <span className="material-symbols-outlined text-lg">webhook</span>
+                        Project Source
                     </button>
                 </div>
 
@@ -235,6 +284,94 @@ const IntegrationsPage = () => {
                                             className="bg-black text-white px-8 py-4 text-[10px] font-black uppercase tracking-[0.2em] shadow-[4px_4px_0px_0px_rgba(37,211,102,1)] hover:shadow-[6px_6px_0px_0px_rgba(37,211,102,1)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
                                             {saving ? 'Saving...' : 'Save WhatsApp Settings'}
+                                        </button>
+                                    </div>
+                                </form>
+                            )}
+                        </div>
+                    )}
+
+                    {activeTab === 'external' && (
+                        <div className="animate-fade-in">
+                            <div className="flex items-center gap-4 mb-8">
+                                <div className="w-12 h-12 bg-indigo-600 flex items-center justify-center text-white">
+                                    <span className="material-symbols-outlined text-2xl">webhook</span>
+                                </div>
+                                <div>
+                                    <h2 className="text-xl font-black uppercase tracking-tight text-charcoal">Project Source Webhook</h2>
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-charcoal/40">Fetch projects & push leads to custom URL</p>
+                                </div>
+                            </div>
+
+                            {loading ? (
+                                <div className="py-12 flex justify-center">
+                                    <div className="w-6 h-6 border-2 border-black border-t-transparent animate-spin"></div>
+                                </div>
+                            ) : (
+                                <form onSubmit={handleSaveExternalSource} className="space-y-6">
+                                    <div className="flex items-center gap-3 mb-2 p-3 bg-indigo-50 border-2 border-indigo-200">
+                                        <input 
+                                            type="checkbox"
+                                            id="isActive"
+                                            checked={externalSource.isActive}
+                                            onChange={(e) => setExternalSource({...externalSource, isActive: e.target.checked})}
+                                            className="w-4 h-4 cursor-pointer accent-indigo-600"
+                                        />
+                                        <label htmlFor="isActive" className="text-[10px] font-black uppercase tracking-widest text-indigo-900 cursor-pointer">
+                                            Enable External Project Source
+                                        </label>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-[10px] font-black uppercase tracking-widest text-charcoal/60 mb-2">Source URL (GET for projects, POST for leads)</label>
+                                        <input 
+                                            type="url"
+                                            value={externalSource.sourceUrl || ''}
+                                            onChange={(e) => setExternalSource({...externalSource, sourceUrl: e.target.value})}
+                                            className="w-full bg-slate-50 border-2 border-black/5 p-4 text-sm font-medium focus:outline-none focus:border-black transition-all"
+                                            placeholder="https://your-site.com/api/projects-webhook"
+                                            required={externalSource.isActive}
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-[10px] font-black uppercase tracking-widest text-charcoal/60 mb-2">Webhook Secret / API Key (Sent in Header)</label>
+                                        <div className="relative">
+                                            <input 
+                                                type={showExternalSecret ? "text" : "password"}
+                                                value={externalSource.webhookSecret || ''}
+                                                onChange={(e) => setExternalSource({...externalSource, webhookSecret: e.target.value})}
+                                                className="w-full bg-slate-50 border-2 border-black/5 p-4 text-sm font-medium focus:outline-none focus:border-black transition-all pr-12"
+                                                placeholder="Enter secret key"
+                                            />
+                                            <button 
+                                                type="button" 
+                                                onClick={() => setShowExternalSecret(!showExternalSecret)}
+                                                className="absolute right-4 top-1/2 -translate-y-1/2 text-charcoal/40 hover:text-charcoal transition-colors cursor-pointer"
+                                            >
+                                                <span className="material-symbols-outlined text-lg">
+                                                    {showExternalSecret ? 'visibility_off' : 'visibility'}
+                                                </span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="pt-4 flex flex-wrap gap-4">
+                                        <button 
+                                            type="submit"
+                                            disabled={saving}
+                                            className="bg-black text-white px-8 py-4 text-[10px] font-black uppercase tracking-[0.2em] shadow-[4px_4px_0px_0px_rgba(99,102,241,1)] hover:shadow-[6px_6px_0px_0px_rgba(99,102,241,1)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all cursor-pointer disabled:opacity-50"
+                                        >
+                                            {saving ? 'Saving...' : 'Save Settings'}
+                                        </button>
+                                        
+                                        <button 
+                                            type="button"
+                                            onClick={handleTestConnection}
+                                            disabled={testing || !externalSource.sourceUrl}
+                                            className="bg-white text-indigo-600 border-2 border-indigo-600 px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] hover:bg-indigo-50 transition-all cursor-pointer disabled:opacity-50"
+                                        >
+                                            {testing ? 'Testing...' : 'Test Connection'}
                                         </button>
                                     </div>
                                 </form>
