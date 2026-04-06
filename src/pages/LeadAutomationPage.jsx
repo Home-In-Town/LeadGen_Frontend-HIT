@@ -2,11 +2,13 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import * as api from '../api';
 import { useAuth } from '../context/AuthContext';
+import { useNotifications } from '../context/NotificationContext';
 
 const LeadAutomationPage = () => {
   const { leadId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { socket, addToast, playChime } = useNotifications();
   const [lead, setLead] = useState(null);
   
   // Data status
@@ -116,6 +118,66 @@ const LeadAutomationPage = () => {
   useEffect(() => {
     if (user) fetchData();
   }, [leadId, user, fetchData]);
+
+  // Real-time synchronization
+  useEffect(() => {
+    if (!socket || !leadId) return;
+
+    // 1. Join lead room for real-time tracking updates
+    socket.emit('join_lead', leadId);
+
+    // 2. Optimized event handler for all automation-related real-time events
+    const handleEvents = (payload) => {
+      console.log('📡 Real-time automation event received:', payload);
+      
+      // A. Handle Link/Status Updates (link clicks, opened status)
+      if (payload.linkActivity || payload.status) {
+        setAutomations(prev => prev.map(auto => {
+          const payloadId = payload.automationId || payload._id;
+          if (auto._id === payloadId) {
+            return {
+              ...auto,
+              status: payload.status || auto.status,
+              linkActivity: {
+                ...auto.linkActivity,
+                ...payload.linkActivity
+              }
+            };
+          }
+          return auto;
+        }));
+      }
+
+      // B. Handle Creation (from other tabs/users/cron)
+      // Check if it's a "full" automation object and not just an update
+      if (payload.templateName && !payload.automationId && payload.leadId === leadId) {
+        setAutomations(prev => {
+          if (prev.some(a => a._id === (payload._id || payload.automationId))) return prev;
+          return [...prev, payload].sort((a, b) => new Date(a.scheduledAt) - new Date(b.scheduledAt));
+        });
+      }
+
+      // C. Handle Deletion (from other tabs/users)
+      if (payload.automationId && !payload.linkActivity && !payload.status) {
+        setAutomations(prev => prev.filter(a => a._id !== payload.automationId));
+      }
+    };
+
+    const events = ['automation_update', 'link_update', 'automation_created', 'automation_deleted'];
+    events.forEach(event => socket.on(event, handleEvents));
+
+    // 3. Re-join room on reconnection (Socket.IO loses rooms on disconnect)
+    const onConnect = () => {
+      console.log('🔌 Re-joined lead room after reconnection:', leadId);
+      socket.emit('join_lead', leadId);
+    };
+    socket.on('connect', onConnect);
+
+    return () => {
+      events.forEach(event => socket.off(event, handleEvents));
+      socket.off('connect', onConnect);
+    };
+  }, [socket, leadId]);
 
   // Calendar Helpers
   const getDaysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
@@ -246,8 +308,15 @@ const LeadAutomationPage = () => {
 
       
       if (res.data.success) {
-        // Add to local state
-        setAutomations([...automations, res.data.data]);
+        // Add to local state (already handled by socket listener normally, but local update is faster)
+        setAutomations(prev => [...prev, res.data.data].sort((a, b) => new Date(a.scheduledAt) - new Date(b.scheduledAt)));
+        
+        // Success Feedback
+        if (addToast) {
+          addToast('success', 'Automation Scheduled', `Template "${newAutomation.templateName}" scheduled successfully.`);
+          if (playChime) playChime();
+        }
+        
         setIsModalOpen(false);
       } else {
         alert(res.data.error || "Failed to save");
@@ -267,7 +336,10 @@ const LeadAutomationPage = () => {
     try {
       const res = await api.deleteLeadAutomation(autoId);
       if (res.data.success) {
-        setAutomations(automations.filter(a => a._id !== autoId));
+        setAutomations(prev => prev.filter(a => a._id !== autoId));
+        if (addToast) {
+          addToast('info', 'Automation Deleted', 'The scheduled message has been removed.');
+        }
       }
     } catch (err) {
       console.error('Failed to delete', err);

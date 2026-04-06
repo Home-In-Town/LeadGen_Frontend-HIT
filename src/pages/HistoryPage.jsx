@@ -10,6 +10,7 @@ const HistoryPage = () => {
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [activeTab, setActiveTab] = useState('site');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
@@ -38,10 +39,22 @@ const HistoryPage = () => {
   // getStatusClasses and getStatusLabel imported from utils/leadUtils.js
 
   const filteredLeads = leads.filter(lead => {
-    // Exclude leads that were auto-promoted specifically for the automation flow
-    if (lead.statusReason === 'Lead created from automation page (Initial outreach skipped)' || lead.whatsappData?.status === 'skipped') {
+    // 1. Exclude leads that were auto-promoted specifically for the automation flow
+    // We check both the explicit flag (new) and statusReason/skipped status (legacy)
+    if (
+      lead.isAutomationOnly === true ||
+      lead.statusReason === 'Lead created from automation page (Initial outreach skipped)' || 
+      lead.whatsappData?.status === 'skipped'
+    ) {
       return false;
     }
+
+    // 2. Filter by Active Tab
+    const isAdsLead = ['facebook', 'google'].includes(lead.source);
+    if (activeTab === 'ads' && !isAdsLead) return false;
+    if (activeTab === 'site' && isAdsLead) return false;
+
+    // 3. Filter by Search Term
     const term = searchTerm.toLowerCase();
     const name = `${lead.first_name || ''} ${lead.last_name || ''}`.toLowerCase();
     const phone = (lead.phone_number || '').toLowerCase();
@@ -87,6 +100,42 @@ const HistoryPage = () => {
             className="w-full bg-surface-subtle border-2 border-charcoal/5 py-2 pl-10 pr-4 text-[10px] font-black uppercase tracking-widest focus:border-primary focus:outline-none transition-all"
           />
         </div>
+      </div>
+
+      {/* Segmented Tabs */}
+      <div className="flex items-center gap-1 mb-6 bg-surface-subtle p-1 border-2 border-charcoal">
+        <button
+          onClick={() => {
+            setActiveTab('site');
+            setCurrentPage(1);
+          }}
+          className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest transition-all ${
+            activeTab === 'site' 
+              ? 'bg-charcoal text-white shadow-md' 
+              : 'text-charcoal/40 hover:text-charcoal hover:bg-white/50'
+          }`}
+        >
+          <div className="flex items-center justify-center gap-2">
+            <span className="material-symbols-outlined text-[16px]">language</span>
+            Site Leads
+          </div>
+        </button>
+        <button
+          onClick={() => {
+            setActiveTab('ads');
+            setCurrentPage(1);
+          }}
+          className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest transition-all ${
+            activeTab === 'ads' 
+              ? 'bg-primary text-white shadow-md' 
+              : 'text-charcoal/40 hover:text-charcoal hover:bg-white/50'
+          }`}
+        >
+          <div className="flex items-center justify-center gap-2">
+            <span className="material-symbols-outlined text-[16px]">campaign</span>
+            Ads Leads
+          </div>
+        </button>
       </div>
 
       {/* Leads List */}
@@ -188,7 +237,7 @@ const HistoryPage = () => {
       <div className="mt-12 flex flex-col sm:flex-row items-center justify-between gap-6 border-t-2 border-charcoal/5 pt-8">
         <div className="flex flex-col">
           <span className="text-[8px] font-black uppercase tracking-widest text-charcoal/30">Archive Density</span>
-          <span className="text-xl font-black">{leads.length} Records Total</span>
+          <span className="text-xl font-black">{filteredLeads.length} Records Found</span>
         </div>
         <div className="text-right">
           <span className="text-[8px] font-black uppercase tracking-widest text-charcoal/30">Internal Navigation</span>

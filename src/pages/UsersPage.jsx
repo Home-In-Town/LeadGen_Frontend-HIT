@@ -17,6 +17,7 @@ const UsersPage = () => {
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [projects, setProjects] = useState([]);
   const [fetchingProjects, setFetchingProjects] = useState(false);
+  const [processingMessage, setProcessingMessage] = useState('');
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -44,11 +45,13 @@ const UsersPage = () => {
   });
 
   const handleSelectAll = (e) => {
+    const newSelected = new Set(selectedUsers);
     if (e.target.checked) {
-      setSelectedUsers(new Set(filteredUsers.map(u => u.id)));
+      filteredUsers.forEach(u => newSelected.add(u.id));
     } else {
-      setSelectedUsers(new Set());
+      filteredUsers.forEach(u => newSelected.delete(u.id));
     }
+    setSelectedUsers(newSelected);
   };
 
   const handleSelectUser = (userId) => {
@@ -85,6 +88,7 @@ const UsersPage = () => {
   const executeBulkCreate = async (projectSlug, projectName) => {
     setShowProjectModal(false);
     setProcessing(true);
+    setProcessingMessage('PREPARING BATCHES...');
     
     try {
       if (!user) { alert('Please login first.'); return; }
@@ -96,20 +100,46 @@ const UsersPage = () => {
         projectName
       };
 
-      const promises = Array.from(selectedUsers).map(userId => 
-        api.createLeadFromUser(userId, creatorData)
-          .catch(err => ({ error: err, userId })) 
-      );
+      const userIds = Array.from(selectedUsers);
+      const BATCH_SIZE = 1;
+      const INTERVAL = 2000;
+      let successCount = 0;
+      let failCount = 0;
 
-      await Promise.all(promises);
+      for (let i = 0; i < userIds.length; i += BATCH_SIZE) {
+        const batch = userIds.slice(i, i + BATCH_SIZE);
+        const currentBatchNum = Math.floor(i / BATCH_SIZE) + 1;
+        const totalBatches = Math.ceil(userIds.length / BATCH_SIZE);
+        
+        setProcessingMessage(`PROCESSING BATCH ${currentBatchNum}/${totalBatches}...`);
+
+        const results = await Promise.all(
+          batch.map(userId => 
+            api.createLeadFromUser(userId, creatorData)
+              .then(() => ({ success: true }))
+              .catch(err => ({ success: false, error: err }))
+          )
+        );
+
+        results.forEach(res => {
+          if (res.success) successCount++;
+          else failCount++;
+        });
+
+        if (i + BATCH_SIZE < userIds.length) {
+          setProcessingMessage(`WAITING FOR NEXT BATCH (${currentBatchNum}/${totalBatches})...`);
+          await new Promise(resolve => setTimeout(resolve, INTERVAL));
+        }
+      }
       
-      alert(`Process started for ${selectedUsers.size} users.`);
-      setSelectedUsers(new Set()); // Clear selection
+      alert(`PROCESS COMPLETE!\n\nSUCCESS: ${successCount}\nFAILED: ${failCount}`);
+      setSelectedUsers(new Set());
     } catch (err) {
       console.error('Bulk create failed:', err);
-      alert('Failed to process some requests.');
+      alert('FAILED TO PROCESS SOME REQUESTS.');
     } finally {
       setProcessing(false);
+      setProcessingMessage('');
     }
   };
 
@@ -200,29 +230,38 @@ const UsersPage = () => {
         </h2>
 
         {/* Bulk Actions Toolbar */}
-        {selectedUsers.size > 0 && (
-          <div className="flex items-center gap-2 w-full sm:w-auto animate-fade-in">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-charcoal/40 mr-2">
-              {selectedUsers.size} Selected
-            </span>
-            <button 
-              onClick={handleBulkCreateLead}
-              disabled={processing || fetchingProjects}
-              className="bg-primary text-white px-3 py-1.5 font-black uppercase tracking-widest text-[9px] border border-primary hover:bg-charcoal hover:border-charcoal transition-all cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
-            >
-              <span className="material-symbols-outlined text-[14px] font-black">bolt</span>
-              START LEAD
-            </button>
-            <button 
-              onClick={handleBulkDelete}
-              disabled={processing}
-              className="bg-red-600 text-white px-3 py-1.5 font-black uppercase tracking-widest text-[9px] border border-red-600 hover:bg-white hover:text-red-600 transition-all cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
-            >
-              <span className="material-symbols-outlined text-[14px] font-black">delete</span>
-              DELETE
-            </button>
-          </div>
-        )}
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          {processingMessage && (
+            <div className="flex items-center gap-2 bg-charcoal text-white px-3 py-1.5 animate-pulse border-2 border-primary shadow-[2px_2px_0px_0px_rgba(255,215,0,1)]">
+              <span className="material-symbols-outlined text-[14px] text-primary font-black animate-spin">sync</span>
+              <span className="text-[9px] font-black uppercase tracking-widest">{processingMessage}</span>
+            </div>
+          )}
+          
+          {selectedUsers.size > 0 && (
+            <div className={`flex items-center gap-2 w-full sm:w-auto animate-fade-in ${processingMessage ? 'opacity-50 pointer-events-none' : ''}`}>
+              <span className="text-[10px] font-bold uppercase tracking-widest text-charcoal/40 mr-2 hidden md:inline">
+                {selectedUsers.size} Selected
+              </span>
+              <button 
+                onClick={handleBulkCreateLead}
+                disabled={processing || fetchingProjects}
+                className="bg-primary text-white px-3 py-1.5 font-black uppercase tracking-widest text-[9px] border border-primary hover:bg-charcoal hover:border-charcoal transition-all cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
+              >
+                <span className="material-symbols-outlined text-[14px] font-black">bolt</span>
+                START LEAD
+              </button>
+              <button 
+                onClick={handleBulkDelete}
+                disabled={processing}
+                className="bg-red-600 text-white px-3 py-1.5 font-black uppercase tracking-widest text-[9px] border border-red-600 hover:bg-white hover:text-red-600 transition-all cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
+              >
+                <span className="material-symbols-outlined text-[14px] font-black">delete</span>
+                DELETE
+              </button>
+            </div>
+          )}
+        </div>
       </div>
       
       {filteredUsers.length === 0 ? (
@@ -258,10 +297,11 @@ const UsersPage = () => {
             <input 
               type="checkbox" 
               onChange={handleSelectAll}
-              checked={filteredUsers.length > 0 && selectedUsers.size === filteredUsers.length}
+              checked={filteredUsers.length > 0 && filteredUsers.every(u => selectedUsers.has(u.id))}
               className="w-4 h-4 accent-charcoal cursor-pointer"
             />
             <div className="text-[9px] font-black uppercase tracking-widest text-charcoal/40 flex-1">User Details</div>
+            <div className="text-[9px] font-black uppercase tracking-widest text-charcoal/40 w-32 hidden lg:block">Source</div>
             <div className="text-[9px] font-black uppercase tracking-widest text-charcoal/40 w-32 hidden sm:block">Phone</div>
           </div>
 
@@ -284,8 +324,12 @@ const UsersPage = () => {
                     {user.first_name} {user.last_name}
                   </div>
                   <div className="sm:hidden text-[10px] font-mono text-charcoal/50 mt-0.5">
-                    {user.phone_number}
+                    {user.phone_number} {user.createdBy?.name ? `• ${user.createdBy.name}` : ''}
                   </div>
+                </div>
+
+                <div className="hidden lg:block w-32 font-bold text-[10px] text-charcoal/40 uppercase tracking-widest truncate">
+                  {user.createdBy?.name || '—'}
                 </div>
 
                 <div className="hidden sm:block w-32 font-mono text-xs text-charcoal/60 truncate">

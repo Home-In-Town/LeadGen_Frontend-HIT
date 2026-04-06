@@ -52,17 +52,29 @@ export const NotificationProvider = ({ children }) => {
 
         const socket = io(SOCKET_URL, {
             autoConnect: false,
-            reconnectionAttempts: 5,
-            reconnectionDelay: 2000,
+            reconnectionAttempts: 10,
+            reconnectionDelay: 1000,
             withCredentials: true,
-            transports: ['polling', 'websocket'], // polling first — avoids Cloud Run WebSocket rejection on initial connect
+            transports: ['polling', 'websocket']
         });
 
         socketRef.current = socket;
         setSocketInstance(socket);
 
         socket.on('connect', () => {
-            socket.emit('join_user', userId);
+            console.log('🔌 Socket connected:', socket.id);
+            if (userId) {
+                console.log('👤 Joining user room:', userId);
+                socket.emit('join_user', userId);
+            }
+        });
+
+        socket.on('connect_error', (err) => {
+            console.error('❌ Socket connection error:', err.message);
+        });
+
+        socket.on('disconnect', (reason) => {
+            console.warn('🔌 Socket disconnected:', reason);
         });
 
         socket.on('disconnect', (reason) => {
