@@ -20,6 +20,8 @@ const EmailDashboardPage = () => {
     const [loading, setLoading] = useState(false);
     const [composeConfig, setComposeConfig] = useState(null); // { leadId, replyTo }
     const [search, setSearch] = useState('');
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+    const [mobileView, setMobileView] = useState('list'); // 'sidebar', 'list', 'detail'
 
     // Handle OAuth Callback Notifications
     useEffect(() => {
@@ -44,6 +46,28 @@ const EmailDashboardPage = () => {
             navigate(window.location.pathname, { replace: true });
         }
     }, [addToast, navigate]);
+
+    // Handle Resize
+    useEffect(() => {
+        const handleResize = () => {
+            const mobile = window.innerWidth < 1024;
+            setIsMobile(mobile);
+            if (!mobile) setMobileView('list');
+        };
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    // Sync mobile view with email selection
+    useEffect(() => {
+        if (isMobile) {
+            if (selectedEmail) {
+                setMobileView('detail');
+            } else {
+                setMobileView('list');
+            }
+        }
+    }, [selectedEmail, isMobile]);
 
     // Fetch Emails for the active folder
     const fetchEmails = useCallback(async (folder, query = '') => {
@@ -106,44 +130,67 @@ const EmailDashboardPage = () => {
     };
 
     return (
-        <div className="flex h-[calc(100vh-64px)] overflow-hidden bg-white animate-fade-in">
+        <div className="flex h-[calc(100vh-64px)] overflow-hidden bg-white animate-fade-in relative">
             {/* Left Pane: Navigation */}
-            <EmailSidebar 
-                activeFolder={activeFolder} 
-                onFolderChange={(f) => {
-                    setActiveFolder(f);
-                    setSelectedEmail(null); // Clear detail view
-                }} 
-                onCompose={() => setComposeConfig({})} 
-            />
+            <div className={`
+                ${isMobile ? (mobileView === 'sidebar' ? 'fixed inset-0 z-50 bg-white' : 'hidden') : 'block'}
+            `}>
+                <EmailSidebar 
+                    activeFolder={activeFolder} 
+                    onFolderChange={(f) => {
+                        setActiveFolder(f);
+                        setSelectedEmail(null);
+                        if (isMobile) setMobileView('list');
+                    }} 
+                    onCompose={() => setComposeConfig({})} 
+                    onClose={() => setMobileView('list')}
+                    isMobile={isMobile}
+                />
+            </div>
 
             {/* Middle Pane: List View */}
-            <EmailList 
-                folder={activeFolder}
-                emails={emails}
-                activeId={selectedEmail?._id}
-                onEmailSelect={handleEmailSelect}
-                loading={loading}
-                onRefresh={() => fetchEmails(activeFolder, search)}
-                search={search}
-                onSearch={setSearch}
-            />
+            <div className={`
+                flex-grow h-full overflow-hidden
+                ${isMobile && mobileView !== 'list' ? 'hidden' : 'block'}
+            `}>
+                <EmailList 
+                    folder={activeFolder}
+                    emails={emails}
+                    activeId={selectedEmail?._id}
+                    onEmailSelect={handleEmailSelect}
+                    loading={loading}
+                    onRefresh={() => fetchEmails(activeFolder, search)}
+                    search={search}
+                    onSearch={setSearch}
+                    onMenuClick={() => setMobileView('sidebar')}
+                    isMobile={isMobile}
+                />
+            </div>
 
             {/* Right Pane: Detail View */}
-            <EmailDetail 
-                email={selectedEmail} 
-                onClose={() => setSelectedEmail(null)}
-                onDelete={(id) => console.log('Delete logic here')}
-                onReply={(email) => setComposeConfig({ replyTo: email, leadId: email.leadId?._id })}
-            />
+            <div className={`
+                flex-grow h-full overflow-hidden
+                ${isMobile ? (mobileView === 'detail' ? 'fixed inset-0 z-40 bg-white' : 'hidden') : 'block'}
+            `}>
+                <EmailDetail 
+                    email={selectedEmail} 
+                    onClose={() => setSelectedEmail(null)}
+                    onDelete={(id) => console.log('Delete logic here')}
+                    onReply={(email) => setComposeConfig({ replyTo: email, leadId: email.leadId?._id })}
+                    isMobile={isMobile}
+                />
+            </div>
 
             {/* Floating Compose Window */}
             {composeConfig && (
-                <EmailCompose 
-                    {...composeConfig}
-                    onClose={() => setComposeConfig(null)}
-                    onSend={handleSendEmail}
-                />
+                <div className={`${isMobile ? 'fixed inset-0 z-[60] bg-white' : ''}`}>
+                    <EmailCompose 
+                        {...composeConfig}
+                        onClose={() => setComposeConfig(null)}
+                        onSend={handleSendEmail}
+                        isMobile={isMobile}
+                    />
+                </div>
             )}
         </div>
     );

@@ -16,7 +16,7 @@ const folders = [
     { id: 'junk', name: 'Junk', icon: 'report', color: 'text-orange-500' }
 ];
 
-const EmailSidebar = ({ activeFolder, onFolderChange, onCompose }) => {
+const EmailSidebar = ({ activeFolder, onFolderChange, onCompose, onClose, isMobile }) => {
     const { user } = useAuth();
     const [connection, setConnection] = useState(null);
     const [logs, setLogs] = useState([]);
@@ -74,45 +74,82 @@ const EmailSidebar = ({ activeFolder, onFolderChange, onCompose }) => {
     };
 
     return (
-        <div className="w-[280px] bg-white border-r border-charcoal/5 flex flex-col h-full shrink-0">
-            {/* Compose Button */}
-            <div className="p-6">
-                <button
-                    onClick={onCompose}
-                    disabled={!connection || connection.status !== 'connected'}
-                    className={`w-full text-white rounded-2xl py-4 px-6 flex items-center justify-center gap-3 transition-all duration-300 ${
-                        connection?.status === 'connected' 
-                        ? 'bg-charcoal hover:translate-y-[-2px] hover:shadow-xl' 
-                        : 'bg-charcoal/20 cursor-not-allowed'
-                    }`}
-                >
-                    <span className="material-symbols-outlined text-[20px]">edit</span>
-                    <span className="text-[11px] font-black uppercase tracking-[0.2em]">Compose</span>
-                </button>
+        <div className={`${isMobile ? 'w-full' : 'w-[280px]'} bg-white border-r border-charcoal/5 flex flex-col h-full shrink-0`}>
+            {/* Header / Mobile Close */}
+            <div className={`p-6 flex items-center justify-between ${isMobile ? 'border-b border-charcoal/5' : ''}`}>
+                {!isMobile ? (
+                    <div className="w-full">
+                        <button
+                            onClick={onCompose}
+                            disabled={!connection || connection.status !== 'connected'}
+                            className={`w-full text-white rounded-2xl py-4 px-6 flex items-center justify-center gap-3 transition-all duration-300 ${
+                                connection?.status === 'connected' 
+                                ? 'bg-charcoal hover:translate-y-[-2px] hover:shadow-xl' 
+                                : 'bg-charcoal/20 cursor-not-allowed'
+                            }`}
+                        >
+                            <span className="material-symbols-outlined text-[20px]">edit</span>
+                            <span className="text-[11px] font-black uppercase tracking-[0.2em]">Compose</span>
+                        </button>
+                    </div>
+                ) : (
+                    <>
+                        <h2 className="text-[14px] font-black uppercase tracking-[0.3em] text-charcoal">Menu</h2>
+                        <button 
+                            onClick={onClose}
+                            className="w-10 h-10 rounded-2xl flex items-center justify-center hover:bg-charcoal/10 transition-colors"
+                        >
+                            <span className="material-symbols-outlined text-[20px] text-charcoal">close</span>
+                        </button>
+                    </>
+                )}
             </div>
 
+            {/* Mobile Compose Button */}
+            {isMobile && (
+                <div className="p-6">
+                    <button
+                        onClick={onCompose}
+                        disabled={!connection || connection.status !== 'connected'}
+                        className={`w-full text-white rounded-2xl py-4 px-6 flex items-center justify-center gap-3 transition-all duration-300 ${
+                            connection?.status === 'connected' 
+                            ? 'bg-charcoal hover:translate-y-[-2px] hover:shadow-xl' 
+                            : 'bg-charcoal/20 cursor-not-allowed'
+                        }`}
+                    >
+                        <span className="material-symbols-outlined text-[20px]">edit</span>
+                        <span className="text-[11px] font-black uppercase tracking-[0.2em]">Compose</span>
+                    </button>
+                </div>
+            )}
+
             {/* Folder Navigation */}
-            <nav className="flex-grow px-4 pb-6 space-y-1">
+            <nav className="flex-grow px-4 pb-6 space-y-2 overflow-y-auto custom-scrollbar">
                 {folders.map((folder) => (
                     <button
                         key={folder.id}
                         onClick={() => onFolderChange(folder.id)}
-                        className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 group ${
+                        className={`w-full flex items-center justify-between px-4 py-4 rounded-xl transition-all duration-300 group ${
                             activeFolder === folder.id
-                                ? 'bg-charcoal/5 text-charcoal'
-                                : 'text-charcoal/40 hover:bg-charcoal/[0.02] hover:text-charcoal'
+                                ? 'bg-charcoal text-white shadow-xl shadow-charcoal/20 scale-[1.02]'
+                                : 'text-charcoal/40 hover:bg-charcoal/[0.03] hover:text-charcoal hover:translate-x-1'
                         }`}
                     >
                         <div className="flex items-center gap-4">
-                            <span className={`material-symbols-outlined text-[20px] ${
-                                activeFolder === folder.id ? folder.color : 'text-charcoal/20 group-hover:text-charcoal/40'
+                            <span className={`material-symbols-outlined text-[22px] transition-transform duration-300 group-hover:scale-110 ${
+                                activeFolder === folder.id ? 'text-white' : folder.color
                             }`}>
                                 {folder.icon}
                             </span>
-                            <span className="text-[11px] font-black uppercase tracking-[0.1em]">
+                            <span className={`text-[11px] font-black uppercase tracking-[0.15em] ${
+                                activeFolder === folder.id ? 'text-white' : 'text-charcoal'
+                            }`}>
                                 {folder.name}
                             </span>
                         </div>
+                        {activeFolder === folder.id && (
+                            <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                        )}
                     </button>
                 ))}
             </nav>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getEmailConnectionStatus } from '../../api';
 
-const EmailCompose = ({ leadId, replyTo, onClose, onSend }) => {
+const EmailCompose = ({ leadId, replyTo, onClose, onSend, isMobile }) => {
     const [to, setTo] = useState(replyTo?.from || '');
     const [subject, setSubject] = useState(replyTo ? `Re: ${replyTo.subject}` : '');
     const [body, setBody] = useState('');
@@ -37,7 +37,10 @@ const EmailCompose = ({ leadId, replyTo, onClose, onSend }) => {
     };
 
     return (
-        <div className="fixed bottom-0 right-10 w-[550px] bg-white rounded-t-3xl shadow-2xl z-50 overflow-hidden border border-charcoal/10 flex flex-col transform transition-transform duration-500 ease-spring">
+        <div className={`
+            ${isMobile ? 'inset-0 w-full rounded-none' : 'bottom-0 right-10 w-[550px] rounded-t-3xl border border-charcoal/10'}
+            bg-white shadow-2xl z-50 overflow-hidden flex flex-col transform transition-transform duration-500 ease-spring fixed
+        `}>
             {/* Header */}
             <div className={`p-6 flex items-center justify-between text-white transition-colors duration-500 ${!connection ? 'bg-red-500' : 'bg-charcoal'}`}>
                 <div className="flex items-center gap-3">

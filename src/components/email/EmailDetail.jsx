@@ -23,39 +23,47 @@ const EmailDetail = ({ email, onClose, onDelete, onReply, isMobile }) => {
     }
 
     return (
-        <div className={`flex-grow bg-white flex flex-col h-full shadow-2xl z-10 ${isMobile ? 'fixed inset-0 pt-16' : ''}`}>
+        <div className={`flex-grow bg-white flex flex-col h-full shadow-2xl z-10 ${isMobile ? 'fixed inset-0 z-[100]' : ''}`}>
             {/* Toolbar */}
-            <div className="p-6 border-b border-charcoal/5 flex items-center justify-between sticky top-0 bg-white/80 backdrop-blur-md z-20">
-                <div className="flex items-center gap-2">
-                    {onClose && (
+            <div className={`p-4 sm:p-6 border-b border-charcoal/5 flex items-center justify-between sticky top-0 bg-white/90 backdrop-blur-xl z-20 ${isMobile ? 'safe-top' : ''}`}>
+                <div className="flex items-center gap-1 sm:gap-2">
+                    {isMobile && (
                         <button 
                             onClick={onClose}
-                            className="w-10 h-10 rounded-2xl flex items-center justify-center hover:bg-charcoal/10 transition-colors mr-2"
+                            className="w-10 h-10 rounded-2xl flex items-center justify-center hover:bg-charcoal/10 transition-colors mr-1"
                         >
                             <span className="material-symbols-outlined text-[20px] text-charcoal">arrow_back</span>
                         </button>
                     )}
-                    <button className="w-10 h-10 rounded-2xl flex items-center justify-center hover:bg-charcoal/5 transition-colors group">
-                        <span className="material-symbols-outlined text-[20px] text-charcoal/30 group-hover:text-charcoal transition-colors">archive</span>
+                    {!isMobile && onClose && (
+                         <button 
+                             onClick={onClose}
+                             className="w-10 h-10 rounded-2xl flex items-center justify-center hover:bg-charcoal/10 transition-colors mr-2"
+                         >
+                             <span className="material-symbols-outlined text-[20px] text-charcoal">arrow_back</span>
+                         </button>
+                    )}
+                    <button className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl flex items-center justify-center hover:bg-charcoal/5 transition-colors group">
+                        <span className="material-symbols-outlined text-[18px] sm:text-[20px] text-charcoal/30 group-hover:text-charcoal transition-colors">archive</span>
                     </button>
-                    <button className="w-10 h-10 rounded-2xl flex items-center justify-center hover:bg-charcoal/5 transition-colors group">
-                        <span className="material-symbols-outlined text-[20px] text-charcoal/30 group-hover:text-charcoal transition-colors">report</span>
+                    <button className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl flex items-center justify-center hover:bg-charcoal/5 transition-colors group">
+                        <span className="material-symbols-outlined text-[18px] sm:text-[20px] text-charcoal/30 group-hover:text-charcoal transition-colors">report</span>
                     </button>
                     <button 
                         onClick={() => onDelete(email._id)}
-                        className="w-10 h-10 rounded-2xl flex items-center justify-center hover:bg-red-50 transition-colors group"
+                        className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl flex items-center justify-center hover:bg-red-50 transition-colors group"
                     >
-                        <span className="material-symbols-outlined text-[20px] text-charcoal/30 group-hover:text-red-500 transition-colors">delete</span>
+                        <span className="material-symbols-outlined text-[18px] sm:text-[20px] text-charcoal/30 group-hover:text-red-500 transition-colors">delete</span>
                     </button>
                 </div>
                 
                 <div className="flex items-center gap-2">
                     <button 
                         onClick={() => onReply(email)}
-                        className="bg-charcoal text-white rounded-xl px-4 py-2 flex items-center gap-2 hover:shadow-lg transition-all"
+                        className="bg-charcoal text-white rounded-xl px-4 py-2 flex items-center gap-2 hover:shadow-lg hover:shadow-charcoal/20 transition-all active:scale-95"
                     >
                         <span className="material-symbols-outlined text-[16px]">reply</span>
-                        <span className="text-[9px] font-black uppercase tracking-widest">Reply</span>
+                        <span className="text-[9px] font-black uppercase tracking-widest hidden sm:inline">Reply</span>
                     </button>
                 </div>
             </div>
