@@ -14,7 +14,7 @@ const GoogleIntegrationPage = () => {
         formName: ''
     });
 
-    const WEBHOOK_URL = `${import.meta.env.VITE_API_BASE_URL || 'https://lead-filteration-backend-624770114041.asia-south1.run.app'}/api/google/webhook`;
+    const WEBHOOK_URL = `https://lead-filteration-backend-624770114041.asia-south1.run.app/api/google/webhook`;
 
     useEffect(() => {
         fetchData();
