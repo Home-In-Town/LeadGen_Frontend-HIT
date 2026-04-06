@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 const LandingPage = () => {
   const navigate = useNavigate();
@@ -121,8 +121,8 @@ const LandingPage = () => {
                 <li className="text-charcoal/40">Security Protocols</li>
               </ul>
               <ul className="text-[10px] font-black uppercase tracking-widest space-y-2 text-right">
-                <li><button onClick={() => navigate('/privacy-policy')} className="text-charcoal/60 hover:text-charcoal cursor-pointer transition-colors uppercase">Privacy Policy</button></li>
-                <li><button onClick={() => navigate('/terms')} className="text-charcoal/60 hover:text-charcoal cursor-pointer transition-colors uppercase">Terms of Service</button></li>
+                <li><Link to="/privacy-policy" className="text-charcoal/60 hover:text-charcoal cursor-pointer transition-colors uppercase">Privacy Policy</Link></li>
+                <li><Link to="/terms" className="text-charcoal/60 hover:text-charcoal cursor-pointer transition-colors uppercase">Terms of Service</Link></li>
               </ul>
             </div>
             <div className="pt-4 flex justify-between items-center font-mono text-[9px] text-charcoal/30">
