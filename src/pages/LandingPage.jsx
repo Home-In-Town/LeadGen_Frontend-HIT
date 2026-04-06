@@ -122,7 +122,7 @@ const LandingPage = () => {
               </ul>
               <ul className="text-[10px] font-black uppercase tracking-widest space-y-2 text-right">
                 <li><Link to="/privacy-policy" className="text-charcoal/60 hover:text-charcoal cursor-pointer transition-colors uppercase">Privacy Policy</Link></li>
-                <li><Link to="/terms" className="text-charcoal/60 hover:text-charcoal cursor-pointer transition-colors uppercase">Terms of Service</Link></li>
+                <li><Link to="/terms-service" className="text-charcoal/60 hover:text-charcoal cursor-pointer transition-colors uppercase">Terms of Service</Link></li>
               </ul>
             </div>
             <div className="pt-4 flex justify-between items-center font-mono text-[9px] text-charcoal/30">

@@ -63,7 +63,7 @@ function App() {
               <Route path="/" element={<LandingPage />} />
               <Route path="/login" element={<AuthPage />} />
               <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
-              <Route path="/terms" element={<TermsOfServicePage />} />
+              <Route path="/terms-service" element={<TermsOfServicePage />} />
             </Route>
 
             {/* Protected Routes with Dashboard Navbar */}
