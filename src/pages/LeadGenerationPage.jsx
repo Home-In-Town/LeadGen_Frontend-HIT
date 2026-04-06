@@ -10,13 +10,11 @@ import LinkActivitySection from "../components/lead/LinkActivitySection";
 const LeadGenerationPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { socket } = useNotifications();
+  const { socket, addToast } = useNotifications();
   const { user } = useAuth();
   const [leadData, setLeadData] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [showLiveBadge, setShowLiveBadge] = useState(false);
   const [lastUpdateType, setLastUpdateType] = useState(null); // Category (whatsapp/call/analytics)
-  const [toastMessage, setToastMessage] = useState(null);      // Descriptive message
   const [isConnected, setIsConnected] = useState(false);
 
   const refreshData = useCallback(async () => {
@@ -73,7 +71,7 @@ const LeadGenerationPage = () => {
       const handleUpdate = (data, type, silent = false) => {
         console.log(`📡 Received ${type} update:`, data);
         setLeadData(prev => ({ ...prev, ...data }));
-        
+
         // Update section highlight even if silent
         setLastUpdateType(type);
         setTimeout(() => {
@@ -82,7 +80,22 @@ const LeadGenerationPage = () => {
 
         if (silent) return; // For periodic heartbeats like time_update, we update data but skip toast
 
-        // Determine a more specific toast message based on content
+        // Map socket event type → NotificationToast TYPE_CONFIG key
+        const notifTypeMap = {
+          whatsapp: 'WHATSAPP_REPLY',
+          call:     'CALL_COMPLETED',
+          analytics:'LINK_OPENED',
+        };
+        const notifType = notifTypeMap[type] || 'LINK_OPENED';
+
+        const titleMap = {
+          whatsapp: 'WhatsApp Activity',
+          call:     'Voice Call Update',
+          analytics:'Link Activity',
+        };
+        const title = titleMap[type] || 'Live Update';
+
+        // Determine a specific toast message based on content
         let msg = `Real-time ${type} update`;
         if (type === 'whatsapp') {
           if (data.whatsappResult === 'NO') msg = 'User rejected or opted out';
@@ -97,12 +110,7 @@ const LeadGenerationPage = () => {
           else if (data.status === 'started') msg = 'Voice call initiated';
         }
 
-        setToastMessage(msg);
-        setShowLiveBadge(true);
-        setTimeout(() => setShowLiveBadge(false), 4000);
-        setTimeout(() => {
-          setToastMessage(prev => prev === msg ? null : prev);
-        }, 6000);
+        addToast(msg, notifType, title);
       };
 
       const handleWhatsapp = (data) => handleUpdate(data, 'whatsapp');
@@ -194,7 +202,6 @@ const LeadGenerationPage = () => {
               ${leadData.status === 'HOT' ? 'bg-red-50 text-red-600 border-red-200' : 
                 leadData.status === 'WARM' ? 'bg-orange-50 text-orange-600 border-orange-200' : 
                 leadData.status === 'COLD' ? 'bg-blue-50 text-blue-600 border-blue-200' : 
-                leadData.status === 'REJECTED' ? 'bg-slate-50 text-slate-500 border-slate-200' : 
                 'bg-emerald-50 text-emerald-600 border-emerald-200'}`}>
               {leadData.status || 'NEW'}
             </div>
@@ -220,16 +227,6 @@ const LeadGenerationPage = () => {
           </div>
         </div>
       </div>
-
-      {/* Live Update Toast */}
-      {showLiveBadge && (
-        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-50 animate-bounce">
-          <div className="bg-charcoal text-white px-4 py-2 border-2 border-primary shadow-[4px_4px_0px_0px_rgba(255,215,0,1)] flex items-center gap-3">
-            <span className="material-symbols-outlined text-primary text-sm font-black">bolt</span>
-            <p className="text-[10px] font-black uppercase tracking-widest">{toastMessage}</p>
-          </div>
-        </div>
-      )}
 
       {/* Channel Grid — Composed from sub-components */}
       <h2 className="text-xl font-black uppercase tracking-tight mb-6 flex items-center gap-3">

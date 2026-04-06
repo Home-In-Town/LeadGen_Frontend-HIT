@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNotifications } from '../context/NotificationContext';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5002';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://lead-filteration-backend-624770114041.asia-south1.run.app';
 // Cookie-based — no token needed, just withCredentials
 const ownersApi = axios.create({ baseURL: `${API_BASE_URL}/api/owners`, withCredentials: true });
 

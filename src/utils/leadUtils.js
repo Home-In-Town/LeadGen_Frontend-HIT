@@ -4,14 +4,13 @@
  */
 
 export const getStatusClasses = (score, status = null) => {
-    if (status === 'REJECTED') return 'bg-slate-50 text-slate-500 border-slate-200';
     if (status === 'HOT' || (!status && score >= 70)) return 'bg-red-50 text-red-600 border-red-200';
     if (status === 'WARM' || (!status && score >= 30)) return 'bg-orange-50 text-orange-600 border-orange-200';
     return 'bg-emerald-50 text-emerald-600 border-emerald-200'; // COLD or default
 };
 
 export const getStatusLabel = (score, status = null) => {
-    if (status) return status;
+    if (status && status !== 'REJECTED') return status; // Handle regular statuses first
     if (score >= 70) return 'HOT';
     if (score >= 30) return 'WARM';
     return 'COLD';

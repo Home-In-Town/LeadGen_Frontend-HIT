@@ -166,16 +166,23 @@ const NotificationCenter = () => {
                                 >
                                     {/* Icon Container */}
                                     <div className="shrink-0 flex items-start">
-                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-all group-hover:scale-105 ${
-                                            n.type === 'LEAD_CREATED' ? 'bg-blue-500/5 text-blue-500' :
-                                            n.type === 'LINK_OPENED' ? 'bg-primary/5 text-primary' :
-                                            'bg-charcoal/5 text-charcoal/40'
-                                        }`}>
-                                            <span className="material-symbols-outlined text-[16px]">
-                                                {n.type === 'LEAD_CREATED' ? 'person_add' :
-                                                 n.type === 'LINK_OPENED' ? 'bolt' : 'notifications'}
-                                            </span>
-                                        </div>
+                                        {(() => {
+                                            const iconMap = {
+                                                LEAD_CREATED:      { icon: 'person_add',    bg: 'bg-blue-500/5',    text: 'text-blue-500' },
+                                                WHATSAPP_REPLY:    { icon: 'chat',           bg: 'bg-primary/5',     text: 'text-primary' },
+                                                CALL_COMPLETED:    { icon: 'call',           bg: 'bg-emerald-500/5', text: 'text-emerald-500' },
+                                                LINK_OPENED:       { icon: 'bolt',           bg: 'bg-primary/5',     text: 'text-primary' },
+                                                AUTOMATION_STATUS: { icon: 'schedule_send',  bg: 'bg-purple-500/5',  text: 'text-purple-500' },
+                                                LEAD_INTERESTED:   { icon: 'favorite',       bg: 'bg-emerald-500/5', text: 'text-emerald-500' },
+                                                LEAD_REJECTED:     { icon: 'not_interested', bg: 'bg-red-500/5',     text: 'text-red-500' },
+                                            };
+                                            const cfg = iconMap[n.type] || { icon: 'notifications', bg: 'bg-charcoal/5', text: 'text-charcoal/40' };
+                                            return (
+                                                <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-all group-hover:scale-105 ${cfg.bg} ${cfg.text}`}>
+                                                    <span className="material-symbols-outlined text-[16px]">{cfg.icon}</span>
+                                                </div>
+                                            );
+                                        })()}
                                     </div>
 
                                     {/* Content Area */}
