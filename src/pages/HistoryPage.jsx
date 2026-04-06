@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as api from '../api';
 import { useAuth } from '../context/AuthContext';
-import { getStatusClasses, getStatusLabel } from '../utils/leadUtils';
+import { getStatusClasses, getStatusLabel, formatTime } from '../utils/leadUtils';
 
 const HistoryPage = () => {
   const navigate = useNavigate();
@@ -10,7 +10,7 @@ const HistoryPage = () => {
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeTab, setActiveTab] = useState('site');
+  const [activeTab, setActiveTab] = useState('site'); // site, ads, automation
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
@@ -39,26 +39,28 @@ const HistoryPage = () => {
   // getStatusClasses and getStatusLabel imported from utils/leadUtils.js
 
   const filteredLeads = leads.filter(lead => {
-    // 1. Exclude leads that were auto-promoted specifically for the automation flow
-    // We check both the explicit flag (new) and statusReason/skipped status (legacy)
-    if (
-      lead.isAutomationOnly === true ||
-      lead.statusReason === 'Lead created from automation page (Initial outreach skipped)' || 
-      lead.whatsappData?.status === 'skipped'
-    ) {
-      return false;
-    }
-
-    // 2. Filter by Active Tab
-    const isAdsLead = ['facebook', 'google'].includes(lead.source);
-    if (activeTab === 'ads' && !isAdsLead) return false;
-    if (activeTab === 'site' && isAdsLead) return false;
-
-    // 3. Filter by Search Term
+    // 1. Filter by Search Term (Global)
     const term = searchTerm.toLowerCase();
     const name = `${lead.first_name || ''} ${lead.last_name || ''}`.toLowerCase();
     const phone = (lead.phone_number || '').toLowerCase();
-    return name.includes(term) || phone.includes(term);
+    const matchesSearch = name.includes(term) || phone.includes(term);
+    
+    if (!matchesSearch) return false;
+
+    // 2. Determine lead type
+    const isAdsLead = ['facebook', 'google'].includes(lead.source);
+    const isAutomationLead = lead.isAutomationOnly === true || 
+                             lead.statusReason === 'Lead created from automation page (Initial outreach skipped)' || 
+                             lead.whatsappData?.status === 'skipped';
+
+    // 3. Tab-specific segregation
+    if (activeTab === 'automation') return isAutomationLead;
+    if (isAutomationLead) return false; // Hide automation leads from other tabs
+
+    if (activeTab === 'ads') return isAdsLead;
+    if (activeTab === 'site') return !isAdsLead;
+
+    return true;
   });
 
   // Pagination Logic
@@ -136,6 +138,22 @@ const HistoryPage = () => {
             Ads Leads
           </div>
         </button>
+        <button
+          onClick={() => {
+            setActiveTab('automation');
+            setCurrentPage(1);
+          }}
+          className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest transition-all ${
+            activeTab === 'automation' 
+              ? 'bg-emerald-500 text-white shadow-md' 
+              : 'text-charcoal/40 hover:text-charcoal hover:bg-white/50'
+          }`}
+        >
+          <div className="flex items-center justify-center gap-2">
+            <span className="material-symbols-outlined text-[16px]">bolt</span>
+            Automation
+          </div>
+        </button>
       </div>
 
       {/* Leads List */}
@@ -178,19 +196,34 @@ const HistoryPage = () => {
                 </div>
                 
                 <div className="flex flex-row items-center gap-4 w-full sm:w-auto shrink-0 pt-3 sm:pt-0 border-t sm:border-t-0 border-charcoal/5 sm:border-none justify-between sm:justify-end">
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      navigate(`/lead-automation/${lead.id}`);
-                    }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 border-2 border-charcoal text-[9px] font-black uppercase tracking-[0.15em] hover:bg-charcoal hover:text-white transition-colors"
-                  >
-                    <span className="material-symbols-outlined text-[12px]">calendar_month</span>
-                    Set Automation
-                  </button>
-                  <div className={`px-4 py-1.5 border-2 text-[9px] font-black uppercase tracking-[0.15em] ${getStatusClasses(lead.score, lead.status)}`}>
-                    {getStatusLabel(lead.score, lead.status)} ({lead.score}%)
-                  </div>
+                  {activeTab !== 'automation' ? (
+                    <>
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/lead-automation/${lead.id}`);
+                        }}
+                        className="flex items-center gap-1.5 px-3 py-1.5 border-2 border-charcoal text-[9px] font-black uppercase tracking-[0.15em] hover:bg-charcoal hover:text-white transition-colors"
+                      >
+                        <span className="material-symbols-outlined text-[12px]">calendar_month</span>
+                        Set Automation
+                      </button>
+                      <div className={`px-4 py-1.5 border-2 text-[9px] font-black uppercase tracking-[0.15em] ${getStatusClasses(lead.score, lead.status)}`}>
+                        {getStatusLabel(lead.score, lead.status)} ({lead.score}%)
+                      </div>
+                    </>
+                  ) : (
+                    <div className={`px-4 py-1.5 border-2 text-[9px] font-black uppercase tracking-[0.15em] ${lead.linkActivity?.opened ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-surface-subtle text-charcoal/30 border-charcoal/10'}`}>
+                      <div className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-[14px]">
+                          {lead.linkActivity?.opened ? 'visibility' : 'visibility_off'}
+                        </span>
+                        {lead.linkActivity?.opened 
+                          ? `OPENED ${lead.linkActivity.timeSpentSeconds > 0 ? `(${formatTime(lead.linkActivity.timeSpentSeconds)})` : ''}` 
+                          : 'NOT OPENED'}
+                      </div>
+                    </div>
+                  )}
                   <span className="material-symbols-outlined text-charcoal/20 group-hover:text-primary transition-colors group-hover:translate-x-1 duration-300">
                     arrow_forward
                   </span>

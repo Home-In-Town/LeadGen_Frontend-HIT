@@ -121,9 +121,13 @@ export default function AuthPage() {
             const formattedPhone = formatPhone(phone);
             setPhone(formattedPhone);
             await authApi.register({ name, phone: formattedPhone, mpin, email, role });
-            setSuccess("Verification OTP sent to your phone");
-            setIsResetFlow(false);
-            setScreen('otp');
+            
+            // Bypass Transition: login and redirect immediately
+            await checkAuth();
+            playChime();
+            addToast(`Welcome to Lead Filtration, ${name}!`, 'success', 'Registration Successful');
+            navigate('/dashboard');
+            
         } catch (err) {
             setError(err.response?.data?.error || "Registration failed");
         } finally {
@@ -302,7 +306,7 @@ export default function AuthPage() {
 
                         <div className="space-y-4">
                             <button disabled={loading} className={buttonBase}>
-                                {loading ? "Processing Unit..." : "Request Access OTP"}
+                                {loading ? "Initializing System..." : "Complete Registration"}
                             </button>
                             <button type="button" onClick={() => setScreen('login')} className="w-full text-center text-[10px] font-black uppercase tracking-widest text-charcoal/40 hover:text-charcoal transition-colors">Return to <span className="text-primary underline">Main Login</span></button>
                         </div>

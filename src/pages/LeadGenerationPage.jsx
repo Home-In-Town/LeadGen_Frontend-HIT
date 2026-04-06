@@ -213,32 +213,52 @@ const LeadGenerationPage = () => {
           </div>
         </div>
 
-        {/* Confidence Score */}
-        <div className="mt-6 pt-6 border-t border-charcoal/5">
-          <div className="flex justify-between items-end mb-2">
-            <p className="text-[9px] font-black uppercase tracking-widest text-charcoal/30">AI Confidence Score</p>
-            <p className="text-lg font-black text-primary">{leadData.score || 0}<span className="text-[9px] text-charcoal/20">/100</span></p>
+        {/* Confidence Score - Hide for Automation Only */}
+        {!(leadData.isAutomationOnly === true || 
+           leadData.statusReason === 'Lead created from automation page (Initial outreach skipped)' || 
+           leadData.whatsappData?.status === 'skipped') && (
+          <div className="mt-6 pt-6 border-t border-charcoal/5">
+            <div className="flex justify-between items-end mb-2">
+              <p className="text-[9px] font-black uppercase tracking-widest text-charcoal/30">AI Confidence Score</p>
+              <p className="text-lg font-black text-primary">{leadData.score || 0}<span className="text-[9px] text-charcoal/20">/100</span></p>
+            </div>
+            <div className="h-3 bg-surface-subtle border border-charcoal/5 overflow-hidden">
+              <div 
+                className="h-full bg-primary transition-all duration-1000 ease-out"
+                style={{ width: `${leadData.score || 0}%` }}
+              />
+            </div>
           </div>
-          <div className="h-3 bg-surface-subtle border border-charcoal/5 overflow-hidden">
-            <div 
-              className="h-full bg-primary transition-all duration-1000 ease-out"
-              style={{ width: `${leadData.score || 0}%` }}
-            />
-          </div>
-        </div>
+        )}
       </div>
 
       {/* Channel Grid — Composed from sub-components */}
-      <h2 className="text-xl font-black uppercase tracking-tight mb-6 flex items-center gap-3">
-        <span className="material-symbols-outlined font-black">insights</span>
-        Qualification Channels
-      </h2>
-      
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <WhatsAppSection leadData={leadData} isHighlighted={lastUpdateType === 'whatsapp'} />
-        <VoiceCallSection leadData={leadData} isHighlighted={lastUpdateType === 'call'} onRefresh={refreshCallStatus} isRefreshing={isRefreshing} />
-        <LinkActivitySection leadData={leadData} isHighlighted={lastUpdateType === 'analytics'} />
-      </div>
+      {(() => {
+        const isAutomation = leadData.isAutomationOnly === true || 
+                             leadData.statusReason === 'Lead created from automation page (Initial outreach skipped)' || 
+                             leadData.whatsappData?.status === 'skipped';
+        
+        return (
+          <>
+            <h2 className="text-xl font-black uppercase tracking-tight mb-6 flex items-center gap-3">
+              <span className="material-symbols-outlined font-black">
+                {isAutomation ? 'share' : 'insights'}
+              </span>
+              {isAutomation ? 'Engagement Insight' : 'Qualification Channels'}
+            </h2>
+            
+            <div className={`grid gap-6 ${isAutomation ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-3'}`}>
+              {!isAutomation && (
+                <>
+                  <WhatsAppSection leadData={leadData} isHighlighted={lastUpdateType === 'whatsapp'} />
+                  <VoiceCallSection leadData={leadData} isHighlighted={lastUpdateType === 'call'} onRefresh={refreshCallStatus} isRefreshing={isRefreshing} />
+                </>
+              )}
+              <LinkActivitySection leadData={leadData} isHighlighted={lastUpdateType === 'analytics'} />
+            </div>
+          </>
+        );
+      })()}
 
       {/* Footer Branding */}
       <div className="mt-20 pt-10 border-t-2 border-charcoal/5 text-center">

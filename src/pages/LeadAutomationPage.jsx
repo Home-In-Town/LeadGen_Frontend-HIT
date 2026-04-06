@@ -51,57 +51,56 @@ const LeadAutomationPage = () => {
     setLoading(true);
     try {
       if (!user) return;
-      
+
+      // Clear previous lead state to avoid overlap
+      setLead(null);
+      setAutomations([]);
+
       // Fetch Users instead of Leads for the "Recipient" list as requested
       const usersRes = await api.getAllUsers({ userId: user.id, role: user.role });
       if (usersRes.data) {
         setAllLeads(usersRes.data);
       }
 
-      // 2. Fetch all existing automations created by this user
-      // This allows the builder to see their entire schedule as requested
-      const autoRes = await api.getCreatorAutomations(user.id);
-      if (autoRes.data.success) {
-        setAutomations(autoRes.data.data);
-      }
-
-      // If we have a specific leadId, load its context
+      // 2. Resolve the actual Lead for the selected user (find-or-create via backend)
+      let actualLead = null;
       if (leadId) {
-        try {
-          const leadsRes = await api.getAllLeads({ userId: user.id, role: user.role });
-          let currentLead = leadsRes.data.find(l => l.id === leadId);
-          
-          if (!currentLead) {
-            // Maybe leadId is actually a userId? Look in allLeads (Users)
-            const userRef = usersRes.data.find(u => u.id === leadId);
-            if (userRef) {
-              // Auto-promote User to Lead for automation context
-              const creatorData = {
-                creatorId: user.id,
-                creatorName: `${user.first_name} ${user.last_name}`,
-                creatorRole: user.role || 'agent',
-                skipCall: true 
-              };
-              const promoteRes = await api.createLeadFromUser(userRef.id, creatorData);
-              currentLead = promoteRes.data;
-            }
+        const selectedUser = usersRes.data.find(u => u.id === leadId);
+        if (selectedUser) {
+          try {
+            const promoteRes = await api.createLeadFromUser(selectedUser.id, {
+              creatorId: user.id,
+              creatorName: `${user.first_name} ${user.last_name}`,
+              creatorRole: user.role || 'agent',
+              skipCall: true
+            });
+            actualLead = promoteRes.data;
+            setLead(actualLead);
+          } catch (err) {
+            console.error('Failed to resolve lead for user:', err);
           }
-
-          if (currentLead) {
-            setLead(currentLead);
-          }
-        } catch (err) {
-          console.error('Error identifying lead:', err);
         }
       }
 
-      // 3. Fetch templates mapping
+      // 3. Fetch all automations by creator, filter to the resolved lead only
+      const autoRes = await api.getCreatorAutomations(user.id);
+      if (autoRes.data.success) {
+        const allAutomations = autoRes.data.data;
+        const filtered = actualLead
+          ? allAutomations.filter(auto => auto.leadId === actualLead.id)
+          : [];
+        setAutomations(filtered);
+      } else {
+        setAutomations([]);
+      }
+
+      // 4. Fetch templates mapping
       const tplRes = await api.getWhatsappTemplates();
       if (tplRes.data.success) {
         setTemplates(tplRes.data.data);
       }
 
-      // 4. Fetch Projects for dynamic variables
+      // 5. Fetch Projects for dynamic variables
       const projRes = await api.getBuilderProjects();
       if (projRes.data.success) {
         setProjects(projRes.data.data);
@@ -113,7 +112,7 @@ const LeadAutomationPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [leadId]); // Add dependencies as needed
+  }, [leadId, user, socket, addToast, playChime]);
 
   useEffect(() => {
     if (user) fetchData();
@@ -215,11 +214,12 @@ const LeadAutomationPage = () => {
   // Check if a date has automations (using local date comparison to avoid timezone shifts)
   const getAutomationsForDate = (dateObj) => {
     if (!dateObj) return [];
-    
+
     const targetDateStr = dateObj.toDateString(); // "Fri Mar 20 2026"
-    
+
     return automations.filter(auto => {
       const autoDate = new Date(auto.scheduledAt);
+      // Date match only — API endpoint already filters by leadId
       return autoDate.toDateString() === targetDateStr;
     });
   };
