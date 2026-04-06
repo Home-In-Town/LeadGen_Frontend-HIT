@@ -15,7 +15,8 @@ const LeadGenerationPage = () => {
   const [leadData, setLeadData] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showLiveBadge, setShowLiveBadge] = useState(false);
-  const [lastUpdateType, setLastUpdateType] = useState(null);
+  const [lastUpdateType, setLastUpdateType] = useState(null); // Category (whatsapp/call/analytics)
+  const [toastMessage, setToastMessage] = useState(null);      // Descriptive message
   const [isConnected, setIsConnected] = useState(false);
 
   const refreshData = useCallback(async () => {
@@ -69,22 +70,54 @@ const LeadGenerationPage = () => {
       };
       socket.on('disconnect', handleDisconnect);
 
-      const handleUpdate = (data, type) => {
+      const handleUpdate = (data, type, silent = false) => {
         console.log(`📡 Received ${type} update:`, data);
         setLeadData(prev => ({ ...prev, ...data }));
+        
+        // Update section highlight even if silent
         setLastUpdateType(type);
+        setTimeout(() => {
+          setLastUpdateType(prev => prev === type ? null : prev);
+        }, 6000);
+
+        if (silent) return; // For periodic heartbeats like time_update, we update data but skip toast
+
+        // Determine a more specific toast message based on content
+        let msg = `Real-time ${type} update`;
+        if (type === 'whatsapp') {
+          if (data.whatsappResult === 'NO') msg = 'User rejected or opted out';
+          else if (data.whatsappResult === 'YES') msg = 'User expressed interest!';
+          else if (data.whatsappData?.status === 'replied') msg = 'New WhatsApp reply received';
+        } else if (type === 'analytics') {
+          if (data.eventType === 'form_submit') msg = 'Lead submitted property form!';
+          else if (data.eventType === 'cta_click') msg = 'Lead clicked a Call-to-Action';
+          else if (data.eventType === 'page_view') msg = 'Lead is viewing the project';
+        } else if (type === 'call') {
+          if (data.status === 'completed') msg = 'Voice call finished';
+          else if (data.status === 'started') msg = 'Voice call initiated';
+        }
+
+        setToastMessage(msg);
         setShowLiveBadge(true);
-        setTimeout(() => setShowLiveBadge(false), 3000);
-        setTimeout(() => setLastUpdateType(prev => prev === type ? null : prev), 5000);
+        setTimeout(() => setShowLiveBadge(false), 4000);
+        setTimeout(() => {
+          setToastMessage(prev => prev === msg ? null : prev);
+        }, 6000);
       };
 
       const handleWhatsapp = (data) => handleUpdate(data, 'whatsapp');
       const handleAnalytics = (data) => handleUpdate(data, 'analytics');
       const handleCall = (data) => handleUpdate(data, 'call');
+      const handleLink = (data) => {
+        // Silent only for frequent time heartbeats. Other major link events (form, CTA) should show toast.
+        const isSilent = data.eventType === 'time_update';
+        handleUpdate(data, 'analytics', isSilent);
+      };
 
       socket.on('whatsapp_update', handleWhatsapp);
       socket.on('analytics_update', handleAnalytics);
       socket.on('call_update', handleCall);
+      socket.on('link_update', handleLink);
 
       return () => { 
         socket.emit('leave_lead', id);
@@ -93,6 +126,7 @@ const LeadGenerationPage = () => {
         socket.off('whatsapp_update', handleWhatsapp);
         socket.off('analytics_update', handleAnalytics);
         socket.off('call_update', handleCall);
+        socket.off('link_update', handleLink);
       };
     }
   }, [id, refreshData, socket]);
@@ -160,6 +194,7 @@ const LeadGenerationPage = () => {
               ${leadData.status === 'HOT' ? 'bg-red-50 text-red-600 border-red-200' : 
                 leadData.status === 'WARM' ? 'bg-orange-50 text-orange-600 border-orange-200' : 
                 leadData.status === 'COLD' ? 'bg-blue-50 text-blue-600 border-blue-200' : 
+                leadData.status === 'REJECTED' ? 'bg-slate-50 text-slate-500 border-slate-200' : 
                 'bg-emerald-50 text-emerald-600 border-emerald-200'}`}>
               {leadData.status || 'NEW'}
             </div>
@@ -191,7 +226,7 @@ const LeadGenerationPage = () => {
         <div className="fixed top-24 left-1/2 -translate-x-1/2 z-50 animate-bounce">
           <div className="bg-charcoal text-white px-4 py-2 border-2 border-primary shadow-[4px_4px_0px_0px_rgba(255,215,0,1)] flex items-center gap-3">
             <span className="material-symbols-outlined text-primary text-sm font-black">bolt</span>
-            <p className="text-[10px] font-black uppercase tracking-widest">Real-time update received: {lastUpdateType}</p>
+            <p className="text-[10px] font-black uppercase tracking-widest">{toastMessage}</p>
           </div>
         </div>
       )}

@@ -10,6 +10,8 @@ const TYPE_CONFIG = {
     LINK_OPENED:      { icon: 'bolt',               accent: 'text-primary',     bg: 'bg-primary/10' },
     AUTOMATION_STATUS:{ icon: 'schedule_send',      accent: 'text-purple-500',  bg: 'bg-purple-500/10' },
     message:          { icon: 'forum',               accent: 'text-primary',     bg: 'bg-primary/10' },
+    LEAD_REJECTED:    { icon: 'not_interested',     accent: 'text-red-500',     bg: 'bg-red-500/10' },
+    LEAD_INTERESTED:  { icon: 'favorite',           accent: 'text-emerald-500', bg: 'bg-emerald-500/10' },
 };
 
 const TOAST_DURATION_MS = 4500;
