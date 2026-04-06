@@ -93,8 +93,8 @@ const UsersPage = () => {
     try {
       if (!user) { alert('Please login first.'); return; }
       const creatorData = {
-        creatorId: user.id,
-        creatorName: user.name,
+        creatorId: user.id || user._id,
+        creatorName: user.name || (user.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : 'Agent'),
         creatorRole: user.role || 'agent',
         projectSlug,
         projectName
