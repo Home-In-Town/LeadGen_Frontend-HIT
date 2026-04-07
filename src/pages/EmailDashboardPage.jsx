@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import EmailSidebar from '../components/email/EmailSidebar';
 import EmailList from '../components/email/EmailList';
@@ -82,10 +82,20 @@ const EmailDashboardPage = () => {
         }
     }, []);
 
+    // Debounced search — waits 300ms after user stops typing before fetching
+    const [debouncedSearch, setDebouncedSearch] = useState(search);
+    const debounceRef = useRef(null);
+
+    useEffect(() => {
+        clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(() => setDebouncedSearch(search), 300);
+        return () => clearTimeout(debounceRef.current);
+    }, [search]);
+
     // Initial Load & Folder Switch
     useEffect(() => {
-        fetchEmails(activeFolder, search);
-    }, [activeFolder, search, fetchEmails]);
+        fetchEmails(activeFolder, debouncedSearch);
+    }, [activeFolder, debouncedSearch, fetchEmails]);
 
     // Real-time Updates
     useEffect(() => {

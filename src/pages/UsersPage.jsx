@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import * as api from '../api';
@@ -39,10 +39,10 @@ const UsersPage = () => {
     setCurrentPage(1);
   }, [searchQuery]);
 
-  const filteredUsers = users.filter(user => {
-    const fullName = `${user.first_name} ${user.last_name}`.toLowerCase();
+  const filteredUsers = useMemo(() => users.filter(u => {
+    const fullName = `${u.first_name} ${u.last_name}`.toLowerCase();
     return fullName.includes(searchQuery.toLowerCase());
-  });
+  }), [users, searchQuery]);
 
   const handleSelectAll = (e) => {
     const newSelected = new Set(selectedUsers);
@@ -301,7 +301,7 @@ const UsersPage = () => {
               className="w-4 h-4 accent-charcoal cursor-pointer"
             />
             <div className="text-[9px] font-black uppercase tracking-widest text-charcoal/40 flex-1">User Details</div>
-            <div className="text-[9px] font-black uppercase tracking-widest text-charcoal/40 w-32 hidden lg:block">Source</div>
+            {user?.role === 'admin' && <div className="text-[9px] font-black uppercase tracking-widest text-charcoal/40 w-32 hidden lg:block">Source</div>}
             <div className="text-[9px] font-black uppercase tracking-widest text-charcoal/40 w-32 hidden sm:block">Phone</div>
           </div>
 
@@ -324,13 +324,15 @@ const UsersPage = () => {
                     {user.first_name} {user.last_name}
                   </div>
                   <div className="sm:hidden text-[10px] font-mono text-charcoal/50 mt-0.5">
-                    {user.phone_number} {user.createdBy?.name ? `• ${user.createdBy.name}` : ''}
+                    {user.phone_number} {user?.role === 'admin' && user.createdBy?.name ? `• ${user.createdBy.name}` : ''}
                   </div>
                 </div>
 
-                <div className="hidden lg:block w-32 font-bold text-[10px] text-charcoal/40 uppercase tracking-widest truncate">
-                  {user.createdBy?.name || '—'}
-                </div>
+                {user?.role === 'admin' && (
+                  <div className="hidden lg:block w-32 font-bold text-[10px] text-charcoal/40 uppercase tracking-widest truncate">
+                    {user.createdBy?.name || '—'}
+                  </div>
+                )}
 
                 <div className="hidden sm:block w-32 font-mono text-xs text-charcoal/60 truncate">
                   {user.phone_number}
@@ -352,16 +354,42 @@ const UsersPage = () => {
             PREV
           </button>
           
-          {[...Array(totalPages)].map((_, i) => (
-            <button
-              key={i + 1}
-              onClick={() => setCurrentPage(i + 1)}
-              className={`w-10 h-10 border-2 font-black text-[10px] transition-all cursor-pointer flex items-center justify-center
-                ${currentPage === i + 1 ? 'bg-primary border-primary text-white' : 'border-charcoal hover:bg-surface-subtle text-charcoal'}`}
-            >
-              {i + 1}
-            </button>
-          ))}
+          {(() => {
+            const range = [];
+            const totalVisible = 5;
+
+            if (totalPages <= totalVisible + 2) {
+              for (let i = 1; i <= totalPages; i++) range.push(i);
+            } else {
+              range.push(1);
+              if (currentPage <= 3) {
+                range.push(2, 3, '...', totalPages);
+              } else if (currentPage >= totalPages - 2) {
+                range.push('...', totalPages - 2, totalPages - 1, totalPages);
+              } else {
+                range.push('...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages);
+              }
+            }
+
+            return range.map((page, i) => (
+              page === '...' ? (
+                <span key={`dots-${i}`} className="w-10 h-10 flex items-center justify-center font-black text-charcoal/20 select-none">
+                  ...
+                </span>
+              ) : (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  className={`w-10 h-10 border-2 font-black text-[10px] transition-all cursor-pointer flex items-center justify-center
+                    ${currentPage === page 
+                      ? 'bg-primary border-primary text-white' 
+                      : 'border-charcoal hover:bg-surface-subtle text-charcoal'}`}
+                >
+                  {page}
+                </button>
+              )
+            ));
+          })()}
 
           <button
             onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}

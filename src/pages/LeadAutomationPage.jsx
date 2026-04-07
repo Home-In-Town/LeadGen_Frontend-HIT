@@ -62,22 +62,38 @@ const LeadAutomationPage = () => {
         setAllLeads(usersRes.data);
       }
 
-      // 2. Resolve the actual Lead for the selected user (find-or-create via backend)
+      // 2. Resolve the actual Lead
       let actualLead = null;
       if (leadId) {
-        const selectedUser = usersRes.data.find(u => u.id === leadId);
-        if (selectedUser) {
-          try {
-            const promoteRes = await api.createLeadFromUser(selectedUser.id, {
-              creatorId: user.id,
-              creatorName: `${user.first_name} ${user.last_name}`,
-              creatorRole: user.role || 'agent',
-              skipCall: true
-            });
-            actualLead = promoteRes.data;
+        // A. First, try to fetch as an existing lead (most common when coming from History)
+        try {
+          const summaryRes = await api.getSummary(leadId);
+          if (summaryRes.data && summaryRes.data.id) {
+            actualLead = summaryRes.data;
             setLead(actualLead);
-          } catch (err) {
-            console.error('Failed to resolve lead for user:', err);
+            console.log('✅ Lead resolved directly from ID:', actualLead.id);
+          }
+        } catch (err) {
+          console.log('ℹ️ ID not found in leads, checking users...');
+        }
+
+        // B. If not found as lead, check if it's a User ID to promote (coming from User Manager)
+        if (!actualLead && allLeads.length > 0) {
+          const selectedUser = allLeads.find(u => u.id === leadId || u._id === leadId);
+          if (selectedUser) {
+            try {
+              const promoteRes = await api.createLeadFromUser(selectedUser.id, {
+                creatorId: user.id,
+                creatorName: `${user.first_name} ${user.last_name}`,
+                creatorRole: user.role || 'agent',
+                skipCall: true
+              });
+              actualLead = promoteRes.data;
+              setLead(actualLead);
+              console.log('✅ Lead created/resolved from user:', actualLead.id);
+            } catch (err) {
+              console.error('Failed to resolve lead for user:', err);
+            }
           }
         }
       }
@@ -366,23 +382,23 @@ const LeadAutomationPage = () => {
     <>
       <div className="animate-fade-in font-display pb-5 max-w-5xl mx-auto px-4">
       {/* Top Header Section - Re-styled to be more compact */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center py-4 mb-2 border-b-4 border-[#232121]">
-        <div className="flex flex-col gap-1">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center py-3 sm:py-4 mb-1 sm:mb-2 border-b-4 border-[#232121]">
+        <div className="flex flex-col gap-0.5">
           <button 
             onClick={() => navigate(-1)}
-            className="group text-[9px] font-black uppercase tracking-widest text-[#232121]/40 hover:text-primary transition-colors flex items-center gap-1 mb-1"
+            className="group text-[8px] font-black uppercase tracking-widest text-[#232121]/40 hover:text-primary transition-colors flex items-center gap-1 mb-0.5"
           >
-            <span className="material-symbols-outlined text-[12px] transition-transform group-hover:-translate-x-1">arrow_back</span>
-            Back to Dashboard
+            <span className="material-symbols-outlined text-[10px] transition-transform group-hover:-translate-x-1">arrow_back</span>
+            Dashboard
           </button>
           
-          <div className="flex items-baseline gap-3">
-            <h1 className="text-2xl md:text-3xl font-black uppercase tracking-tighter text-[#232121] leading-none">
+          <div className="flex items-center gap-2">
+            <h1 className="text-base sm:text-xl font-black uppercase tracking-tighter text-[#232121] leading-none">
               {currentDate.toLocaleDateString('default', { month: 'long', year: 'numeric' })}
             </h1>
             {lead && (
-              <span className="text-[10px] font-mono font-bold uppercase tracking-tight text-[#232121]/60 px-1.5 py-0.5 border-2 border-[#232121]/10 rounded-sm">
-                LEAD: {lead.first_name} {lead.last_name}
+              <span className="text-[9px] font-mono font-black uppercase tracking-tight text-[#232121] bg-[#13ec13] px-1.5 py-0.5 border border-[#232121] shadow-[1px_1px_0px_#232121]">
+                {lead.first_name} {lead.last_name}
               </span>
             )}
           </div>
@@ -433,7 +449,7 @@ const LeadAutomationPage = () => {
         {/* Days of Week Header */}
         <div className="grid grid-cols-7 border-b-[1px] border-[#E5E7EB] bg-[#F9FAFB]">
           {weekDays.map(day => (
-            <div key={day} className="py-3 text-center text-[11px] font-medium uppercase tracking-wider text-gray-500 border-r-[1px] border-[#E5E7EB] last:border-r-0">
+            <div key={day} className="py-2 text-center text-[10px] font-bold uppercase tracking-widest text-gray-400 border-r-[1px] border-[#E5E7EB] last:border-r-0">
               {day.substring(0, 3)}
             </div>
           ))}
@@ -466,11 +482,11 @@ const LeadAutomationPage = () => {
               >
                 {/* Date Content - Perfectly Centered */}
                 <div className="relative flex flex-col items-center justify-center">
-                  <div className={`relative w-8 h-8 flex items-center justify-center rounded-full transition-all duration-300
-                    ${isToday ? 'bg-[#FF6B6B] text-white' : (isCurrentMonth ? 'text-gray-700' : 'text-gray-300')}
-                    ${isToday ? 'font-semibold' : 'font-medium'}
+                  <div className={`relative w-7 h-7 flex items-center justify-center rounded-none transition-all duration-300
+                    ${isToday ? 'bg-[#FF6B6B] text-white' : (isCurrentMonth ? 'text-charcoal' : 'text-gray-300')}
+                    ${isToday ? 'font-black' : 'font-bold'}
                   `}>
-                    <span className="text-[14px] relative z-10">{dateObj.getDate()}</span>
+                    <span className="text-[12px] relative z-10">{dateObj.getDate()}</span>
                   </div>
 
                   {/* Automation Count Indicator (Badge) as requested */}
@@ -506,39 +522,39 @@ const LeadAutomationPage = () => {
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#232121]/80 backdrop-blur-md animate-fade-in">
           <div className="bg-white border-4 border-[#232121] shadow-[8px_8px_0px_#232121] max-w-md w-full flex flex-col overflow-hidden animate-slide-up">
             
-            <div className="flex justify-between items-center p-4 border-b-4 border-[#232121] bg-surface-subtle">
+            <div className="flex justify-between items-center p-3 border-b-2 border-[#232121] bg-surface-subtle">
               <div>
-                <h3 className="text-lg font-black uppercase tracking-tighter text-[#232121]">
-                  New Automation
+                <h3 className="text-sm font-black uppercase tracking-tighter text-[#232121]">
+                  Schedule Automation
                 </h3>
-                <p className="text-[10px] font-mono font-bold text-[#232121]/60 uppercase flex items-center gap-2 mt-0.5">
-                  <span className="material-symbols-outlined text-xs">calendar_today</span>
+                <p className="text-[9px] font-mono font-bold text-[#232121]/60 uppercase flex items-center gap-1.5 mt-0.5">
+                  <span className="material-symbols-outlined text-[10px]">calendar_today</span>
                   {selectedDateStamp && selectedDateStamp.toLocaleDateString('default', { day: 'numeric', month: 'long', year: 'numeric' })}
                 </p>
               </div>
               <button 
                 onClick={() => setIsModalOpen(false)}
-                className="w-8 h-8 flex items-center justify-center border-2 border-[#232121] hover:bg-[#232121] hover:text-white transition-colors"
+                className="w-7 h-7 flex items-center justify-center border-2 border-[#232121] hover:bg-[#232121] hover:text-white transition-colors"
               >
-                <span className="material-symbols-outlined font-black text-sm">close</span>
+                <span className="material-symbols-outlined font-black text-xs">close</span>
               </button>
             </div>
             
-            <div className="p-6 space-y-6">
-              {/* Recipient Card / Selector */}
-              <div className="bg-[#13ec13]/5 border-2 border-[#232121] p-4 flex flex-col gap-4">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-[#232121] text-[#13ec13] flex items-center justify-center">
-                    <span className="material-symbols-outlined text-2xl font-black">person</span>
+            <div className="p-4 space-y-4">
+              {/* Recipient Card */}
+              <div className="bg-[#13ec13]/5 border-2 border-[#232121] p-3 flex flex-col gap-2">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-[#232121] text-[#13ec13] flex items-center justify-center">
+                    <span className="material-symbols-outlined text-xl font-black">person</span>
                   </div>
                   <div className="flex-1">
-                    <div className="text-[10px] font-black uppercase text-[#232121]/40 tracking-widest">Recipient</div>
+                    <div className="text-[9px] font-black uppercase text-[#232121]/40 tracking-widest">Recipient</div>
                     {lead && (
                       <>
-                        <div className="text-sm font-mono font-bold text-[#232121]">
+                        <div className="text-[13px] font-mono font-black text-[#232121] leading-tight">
                           {lead.first_name} {lead.last_name}
                         </div>
-                        <div className="text-[10px] font-mono text-[#232121]/60">{lead.phone_number}</div>
+                        <div className="text-[9px] font-mono text-[#232121]/60">{lead.phone_number}</div>
                       </>
                     )}
                   </div>
@@ -626,36 +642,36 @@ const LeadAutomationPage = () => {
 
       {/* Day History Modal — NEW */}
       {isHistoryModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#232121]/80 backdrop-blur-md animate-fade-in text-left">
-          <div className="bg-white border-4 border-[#232121] shadow-[8px_8px_0px_#232121] max-w-xl w-full flex flex-col overflow-hidden animate-slide-up">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 bg-[#232121]/80 backdrop-blur-md animate-fade-in text-left">
+          <div className="bg-white border-4 border-[#232121] shadow-[6px_6px_0px_#232121] max-w-md w-full flex flex-col overflow-hidden animate-slide-up">
             
-            <div className="flex justify-between items-center p-4 border-b-4 border-[#232121] bg-[#13ec13]/10">
+            <div className="flex justify-between items-center p-2 sm:p-2.5 border-b-4 border-[#232121] bg-[#13ec13]/10">
               <div>
-                <h3 className="text-lg font-black uppercase tracking-tighter text-[#232121]">
+                <h3 className="text-sm font-black uppercase tracking-tighter text-[#232121]">
                   Automation History
                 </h3>
-                <p className="text-[10px] font-mono font-bold text-[#232121]/60 uppercase flex items-center gap-2 mt-0.5">
-                  <span className="material-symbols-outlined text-xs">event</span>
+                <p className="text-[8px] font-mono font-bold text-[#232121]/60 uppercase flex items-center gap-1 mt-0.5">
+                  <span className="material-symbols-outlined text-[9px]">event</span>
                   {selectedHistoryDate && selectedHistoryDate.toLocaleDateString('default', { day: 'numeric', month: 'long', year: 'numeric' })}
                 </p>
               </div>
               <button 
                 onClick={() => setIsHistoryModalOpen(false)}
-                className="w-8 h-8 flex items-center justify-center border-2 border-[#232121] hover:bg-[#232121] hover:text-white transition-colors"
+                className="w-6 h-6 flex items-center justify-center border-2 border-[#232121] hover:bg-[#232121] hover:text-white transition-colors"
                 title="ESC to Close"
               >
-                <span className="material-symbols-outlined font-black text-sm">close</span>
+                <span className="material-symbols-outlined font-black text-[10px]">close</span>
               </button>
             </div>
 
-            <div className="p-4 max-h-[50vh] overflow-y-auto">
+            <div className="p-2 sm:p-2.5 max-h-[60vh] overflow-y-auto">
               {getAutomationsForDate(selectedHistoryDate).length === 0 ? (
-                <div className="text-center py-6 border-2 border-dashed border-gray-100">
-                  <span className="material-symbols-outlined text-2xl text-gray-300">history_off</span>
-                  <p className="mt-2 text-[9px] font-black uppercase text-gray-400 tracking-widest">No automations scheduled</p>
+                <div className="text-center py-4 border-2 border-dashed border-gray-100">
+                  <span className="material-symbols-outlined text-lg text-gray-300">history_off</span>
+                  <p className="mt-1 text-[8px] font-black uppercase text-gray-400 tracking-widest">No history</p>
                 </div>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                     {getAutomationsForDate(selectedHistoryDate).map((auto, i) => {
                       // Extract project name from button_0 (it stores the slug)
                       const projectSlug = auto.button_0?.split('#')[0];
@@ -667,57 +683,57 @@ const LeadAutomationPage = () => {
                       const recipientName = auto.leadName || (recipientLead ? `${recipientLead.first_name} ${recipientLead.last_name}` : 'Unknown');
 
                       return (
-                        <div key={auto._id || i} className="border-2 border-[#232121] p-3 flex items-center justify-between gap-4 hover:translate-x-1 hover:-translate-y-1 transition-transform bg-white shadow-[3px_3px_0px_#232121]">
-                          <div className="flex gap-4 items-center">
-                            <div className="w-12 h-12 bg-[#232121] text-[#13ec13] flex items-center justify-center shrink-0">
-                              <span className="material-symbols-outlined font-black">
+                        <div key={auto._id || i} className="border-2 border-[#232121] p-1.5 flex items-center justify-between gap-2 hover:translate-x-0.5 hover:-translate-y-0.5 transition-transform bg-white shadow-[2px_2px_0px_#232121]">
+                          <div className="flex gap-2 items-center min-w-0">
+                            <div className="w-9 h-9 bg-[#232121] text-[#13ec13] flex items-center justify-center shrink-0">
+                              <span className="material-symbols-outlined font-black text-lg">
                                 {auto.status === 'sent' ? 'done_all' : (auto.status === 'failed' ? 'error' : 'schedule')}
                               </span>
                             </div>
-                            <div className="text-left py-1">
-                              <div className="text-[9px] font-black uppercase tracking-widest text-[#232121]/40 mb-0.5">
+                            <div className="text-left py-0 min-w-0">
+                              <div className="text-[7.5px] font-black uppercase tracking-widest text-[#232121]/40 mb-0 truncate">
                                 {recipientName} &bull; {auto.status}
                               </div>
-                              <div className="text-xs font-black text-[#232121]">
-                                {getTemplateLabel(auto.templateName)}
+                              <div className="text-[10.5px] font-black text-[#232121] leading-tight flex flex-wrap items-center gap-1">
+                                <span className="truncate max-w-[130px]">{getTemplateLabel(auto.templateName)}</span>
                                 {auto.templateName === 'lead_street_view' && (
-                                  <span className="ml-2 text-[8px] font-mono font-bold text-[#13ec13] bg-[#232121] px-1 py-0.5 uppercase">
+                                  <span className="text-[6.5px] font-mono font-bold text-[#13ec13] bg-[#232121] px-1 py-0.5 uppercase shrink-0">
                                     {projectName}
                                   </span>
                                 )}
                               </div>
-                              <div className="flex gap-2 text-[9px] items-center mt-1 text-left">
-                                <span className="font-mono bg-[#232121] text-white px-1.5 py-0.5">{formatTime(auto.scheduledAt)}</span>
-                                <span className={`px-1 py-0.5 font-bold uppercase ${auto.status === 'sent' ? 'bg-[#13ec13]/20 text-[#13ec13]' : 'bg-gray-100 text-gray-600'}`}>
+                              <div className="flex gap-1 text-[7.5px] items-center mt-0.5 text-left">
+                                <span className="font-mono bg-[#232121] text-white px-1 py-0.5 shrink-0">{formatTime(auto.scheduledAt)}</span>
+                                <span className={`px-1 py-0.5 font-bold uppercase shrink-0 ${auto.status === 'sent' ? 'bg-[#13ec13]/20 text-[#13ec13]' : 'bg-gray-100 text-gray-600'}`}>
                                   {auto.status}
                                 </span>
                               </div>
                             </div>
                           </div>
 
-                          <div className="flex gap-4 border-l-2 border-[#232121]/10 pl-6 animate-fade-in">
+                          <div className="flex gap-2 border-l border-[#232121]/10 pl-2 animate-fade-in shrink-0">
                             {auto.status === 'pending' ? (
                               <button 
                                 onClick={(e) => handleDelete(auto._id, e)}
-                                className="w-10 h-10 flex items-center justify-center border-2 border-[#232121]/10 text-danger hover:border-danger hover:bg-danger/5 transition-all group/del"
-                                title="Delete Scheduled Message"
+                                className="w-7 h-7 flex items-center justify-center border-2 border-[#232121]/10 text-danger hover:border-danger hover:bg-danger/5 transition-all group/del"
+                                title="Delete"
                               >
-                                <span className="material-symbols-outlined text-xl group-hover/del:scale-110 transition-transform">delete_forever</span>
+                                <span className="material-symbols-outlined text-base group-hover/del:scale-110 transition-transform">delete_forever</span>
                               </button>
                             ) : (
                               <>
-                                <div className="text-center">
-                                  <div className="text-[9px] font-black text-[#232121]/40 uppercase tracking-tighter mb-1">Opened</div>
-                                  <div className={`text-lg font-black ${auto.linkActivity?.opened ? 'text-[#13ec13]' : 'text-gray-300'}`}>
+                                <div className="text-center min-w-[30px]">
+                                  <div className="text-[6.5px] font-black text-[#232121]/40 uppercase tracking-tighter mb-0">Opened</div>
+                                  <div className={`text-[14px] font-black leading-none ${auto.linkActivity?.opened ? 'text-[#13ec13]' : 'text-gray-200'}`}>
                                     {auto.linkActivity?.opened ? 'YES' : 'NO'}
                                   </div>
                                 </div>
-                                <div className="text-center">
-                                  <div className="text-[9px] font-black text-[#232121]/40 uppercase tracking-tighter mb-1">Time Spent</div>
-                                  <div className="text-lg font-black text-[#232121]">
+                                <div className="hidden sm:block text-center min-w-[30px]">
+                                  <div className="text-[6.5px] font-black text-[#232121]/40 uppercase tracking-tighter mb-0">Time</div>
+                                  <div className="text-[14px] font-black text-[#232121] leading-none">
                                     {auto.linkActivity?.timeSpentSeconds 
                                       ? (auto.linkActivity.timeSpentSeconds >= 60 
-                                          ? `${(auto.linkActivity.timeSpentSeconds / 60).toFixed(2)}min` 
+                                          ? `${Math.floor(auto.linkActivity.timeSpentSeconds / 60)}m` 
                                           : `${auto.linkActivity.timeSpentSeconds}s`) 
                                       : '0s'}
                                   </div>
@@ -732,10 +748,10 @@ const LeadAutomationPage = () => {
               )}
             </div>
 
-            <div className="p-4 bg-surface-subtle border-t-2 border-[#232121] flex justify-end">
+            <div className="p-1.5 sm:p-2 bg-surface-subtle border-t-2 border-[#232121] flex justify-end">
               <button
                 onClick={() => setIsHistoryModalOpen(false)}
-                className="px-6 py-2 bg-[#232121] text-white text-[9px] font-black uppercase tracking-widest hover:bg-[#13ec13] hover:text-[#232121] transition-all"
+                className="px-3 py-1 bg-[#232121] text-white text-[8px] font-black uppercase tracking-widest hover:bg-[#13ec13] hover:text-[#232121] transition-all"
               >
                 Done
               </button>
@@ -747,55 +763,55 @@ const LeadAutomationPage = () => {
       {/* User Selection Modal — MANDATORY if no leadId */}
       {isUserPickerOpen && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-[#232121]/95 backdrop-blur-xl animate-fade-in">
-          <div className="bg-white border-4 border-[#232121] shadow-[8px_8px_0px_#232121] max-w-xl w-full flex flex-col overflow-hidden animate-slide-up">
+          <div className="bg-white border-2 border-[#232121] shadow-[4px_4px_0px_#232121] max-w-xl w-full flex flex-col overflow-hidden animate-slide-up">
             
-            <div className="p-6 border-b-4 border-[#232121] bg-[#13ec13]/10">
-              <h3 className="text-2xl font-black uppercase tracking-tighter text-[#232121]">
+            <div className="p-3 sm:p-4 border-b-2 border-[#232121] bg-[#13ec13]/10">
+              <h3 className="text-xl font-black uppercase tracking-tighter text-[#232121]">
                 Select User
               </h3>
-              <p className="text-[10px] font-mono font-bold text-[#232121]/60 uppercase mt-1">
+              <p className="text-[9px] font-mono font-bold text-[#232121]/60 uppercase mt-0.5 leading-tight">
                 Choose a user to set or view automation history
               </p>
             </div>
 
-            <div className="p-6 max-h-[50vh] overflow-y-auto bg-surface-subtle">
+            <div className="p-3 sm:p-4 max-h-[50vh] overflow-y-auto bg-surface-subtle">
               {allLeads.length === 0 ? (
-                <div className="text-center py-12 border-4 border-dashed border-[#232121]/10 rounded-xl">
-                  <span className="material-symbols-outlined text-5xl text-[#232121]/20">person_off</span>
-                  <p className="mt-4 text-sm font-black uppercase text-[#232121]/40 tracking-widest">No users found in your records</p>
+                <div className="text-center py-10 border-2 border-dashed border-[#232121]/10 rounded-xl">
+                  <span className="material-symbols-outlined text-4xl text-[#232121]/20">person_off</span>
+                  <p className="mt-3 text-sm font-black uppercase text-[#232121]/40 tracking-widest">No users found in your records</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {allLeads.map(u => (
                     <button
                       key={u.id}
                       onClick={() => navigate(`/lead-automation/${u.id}`)}
-                      className="group border-4 border-[#232121] p-4 flex items-center gap-4 bg-white hover:bg-[#13ec13] hover:translate-x-1 hover:-translate-y-1 transition-all text-left shadow-[6px_6px_0px_#232121] active:shadow-none active:translate-x-0 active:translate-y-0"
+                      className="group border-2 border-[#232121] p-2.5 flex items-center gap-3 bg-white hover:bg-[#13ec13] hover:translate-x-0.5 hover:-translate-y-0.5 transition-all text-left shadow-[3px_3px_0px_#232121] active:shadow-none active:translate-x-0 active:translate-y-0"
                     >
-                      <div className="w-12 h-12 bg-[#232121] text-[#13ec13] group-hover:bg-white group-hover:text-[#232121] transition-colors flex items-center justify-center text-xl font-black rounded-sm">
+                      <div className="w-10 h-10 bg-[#232121] text-[#13ec13] group-hover:bg-white group-hover:text-[#232121] transition-colors flex items-center justify-center text-lg font-black rounded-sm shrink-0">
                         {u.first_name[0]}{u.last_name[0]}
                       </div>
                       <div className="flex-1 overflow-hidden">
-                        <div className="font-black uppercase text-sm truncate text-[#232121]">
+                        <div className="font-black uppercase text-[13px] truncate text-[#232121] leading-tight mb-0.5">
                           {u.first_name} {u.last_name}
                         </div>
-                        <div className="font-mono text-[10px] text-[#232121]/60 group-hover:text-[#232121] transition-colors">
+                        <div className="font-mono text-[9px] text-[#232121]/60 group-hover:text-[#232121] transition-colors">
                           {u.phone_number}
                         </div>
                       </div>
-                      <span className="material-symbols-outlined text-lg opacity-0 group-hover:opacity-100 transition-opacity">arrow_forward</span>
+                      <span className="material-symbols-outlined text-base opacity-0 group-hover:opacity-100 transition-opacity">arrow_forward</span>
                     </button>
                   ))}
                 </div>
               )}
             </div>
 
-            <div className="p-4 border-t-4 border-[#232121] flex justify-between items-center bg-white">
+            <div className="p-3 border-t-2 border-[#232121] flex justify-between items-center bg-white">
                <button 
                  onClick={() => navigate('/dashboard')}
-                 className="text-[9px] font-black uppercase tracking-widest text-[#232121]/40 hover:text-primary transition-colors flex items-center gap-1"
+                 className="text-[8px] font-black uppercase tracking-widest text-[#232121]/40 hover:text-primary transition-colors flex items-center gap-1"
                >
-                 <span className="material-symbols-outlined text-[12px]">arrow_back</span>
+                 <span className="material-symbols-outlined text-[10px]">arrow_back</span>
                  Cancel & Go Back
                </button>
                <div className="text-[9px] font-mono font-bold text-[#232121]/60 uppercase">

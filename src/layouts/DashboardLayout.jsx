@@ -40,9 +40,9 @@ const DashboardLayout = () => {
         onToggleCollapse={toggleCollapse}
       />
 
-      <div className={`flex-1 flex flex-col min-h-screen transition-all duration-300 ${isCollapsed ? 'lg:ml-20' : 'lg:ml-60'}`}>
+      <div className={`flex-1 flex flex-col min-h-screen min-w-0 overflow-hidden transition-all duration-300 ${isCollapsed ? 'lg:ml-20' : 'lg:ml-60'}`}>
         <Header onMenuClick={toggleSidebar} />
-        <main className="flex-1 p-6 sm:p-10 overflow-auto">
+        <main className="flex-1 p-1.5 sm:p-4 md:p-6 overflow-auto">
           <div className="max-w-7xl mx-auto">
             <Outlet />
           </div>

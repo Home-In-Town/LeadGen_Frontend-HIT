@@ -14,28 +14,29 @@ const EmailList = ({ folder, emails, activeId, onEmailSelect, loading, onRefresh
     };
 
     return (
-        <div className={`${isMobile ? 'w-full' : 'w-[450px]'} border-r border-charcoal/5 flex flex-col h-full bg-white grow shrink-0`}>
+        <div className={`${isMobile ? 'w-full' : 'w-[280px] lg:w-[320px]'} border-r border-charcoal/5 flex flex-col h-full bg-white grow shrink-0 min-w-0 overflow-hidden`}>
             {/* Header / Search */}
-            <div className="p-6 border-b border-charcoal/5">
-                <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-3">
+            {/* Header / Search */}
+            <div className="p-2 sm:p-3 border-b border-charcoal/5">
+                <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
                         {isMobile && (
                             <button 
                                 onClick={onMenuClick}
-                                className="w-10 h-10 rounded-2xl flex items-center justify-center hover:bg-charcoal/10 transition-colors -ml-2"
+                                className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-charcoal/10 transition-colors -ml-1"
                             >
-                                <span className="material-symbols-outlined text-[20px] text-charcoal">menu</span>
+                                <span className="material-symbols-outlined text-[18px] text-charcoal">menu</span>
                             </button>
                         )}
-                        <h2 className="text-[14px] font-black uppercase tracking-[0.3em] text-charcoal">
+                        <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-charcoal opacity-60">
                             {folder || 'Inbox'}
                         </h2>
                     </div>
                     <button 
                         onClick={onRefresh}
-                        className="w-8 h-8 rounded-xl flex items-center justify-center hover:bg-charcoal/10 transition-colors"
+                        className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-charcoal/10 transition-colors"
                     >
-                        <span className={`material-symbols-outlined text-[18px] text-charcoal/40 ${loading ? 'animate-spin' : ''}`}>
+                        <span className={`material-symbols-outlined text-[16px] text-charcoal/30 ${loading ? 'animate-spin' : ''}`}>
                             refresh
                         </span>
                     </button>
@@ -43,7 +44,7 @@ const EmailList = ({ folder, emails, activeId, onEmailSelect, loading, onRefresh
 
                 {/* Search Bar */}
                 <div className="relative group">
-                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[18px] text-charcoal/20 group-focus-within:text-charcoal transition-colors">
+                    <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-[16px] text-charcoal/20 group-focus-within:text-charcoal transition-colors">
                         search
                     </span>
                     <input
@@ -51,7 +52,7 @@ const EmailList = ({ folder, emails, activeId, onEmailSelect, loading, onRefresh
                         placeholder="Search emails..."
                         value={search}
                         onChange={(e) => onSearch(e.target.value)}
-                        className="w-full bg-charcoal/[0.03] border-none rounded-xl py-3 pl-10 pr-4 text-[11px] font-black text-charcoal placeholder:text-charcoal/20 focus:ring-1 focus:ring-charcoal transition-all outline-none"
+                        className="w-full bg-charcoal/[0.03] border border-charcoal/5 rounded-lg py-1.5 pl-8 pr-3 text-[9px] font-black text-charcoal placeholder:text-charcoal/20 focus:ring-1 focus:ring-charcoal/10 transition-all outline-none"
                     />
                 </div>
             </div>
@@ -78,39 +79,39 @@ const EmailList = ({ folder, emails, activeId, onEmailSelect, loading, onRefresh
                                 <button
                                     key={email._id}
                                     onClick={() => onEmailSelect(email._id)}
-                                    className={`w-full text-left p-6 flex flex-col gap-1.5 transition-all group relative overflow-hidden ${
-                                        isSelected ? 'bg-charcoal/[0.04] shadow-inner' : 'bg-white hover:bg-charcoal/[0.01]'
+                                    className={`w-full text-left p-2.5 sm:p-3 flex flex-col gap-0.5 transition-all group relative overflow-hidden ${
+                                        isSelected ? 'bg-charcoal/[0.04]' : 'bg-white hover:bg-charcoal/[0.01]'
                                     }`}
                                 >
                                     {/* Unread indicator */}
                                     {isUnread && (
-                                        <div className="absolute left-2 top-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-blue-500 rounded-full shadow-[0_0_10px_rgba(59,130,246,0.8)] animate-pulse" />
+                                        <div className="absolute left-1.5 top-1/2 -translate-y-1/2 w-1.2 h-1.2 bg-blue-500 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.5)] animate-pulse" />
                                     )}
 
-                                    <div className="flex items-center justify-between gap-4">
-                                        <p className={`text-[10px] uppercase tracking-[0.1em] truncate shrink-0 ${
+                                    <div className="flex items-center justify-between gap-2 min-w-0">
+                                        <p className={`text-[9px] uppercase tracking-[0.05em] truncate ${
                                             isUnread ? 'font-black text-charcoal' : 'font-bold text-charcoal/40'
                                         }`}>
                                             {leadName}
                                         </p>
-                                        <p className="text-[9px] font-black uppercase tracking-tighter text-charcoal/20 tabular-nums">
+                                        <p className="text-[8px] font-black uppercase tracking-tighter text-charcoal/20 tabular-nums shrink-0">
                                             {formatTime(email.createdAt)}
                                         </p>
                                     </div>
 
-                                    <h3 className={`text-[13px] truncate transition-colors duration-300 ${
+                                    <h3 className={`text-[11px] truncate transition-colors duration-300 leading-tight ${
                                         isUnread ? 'font-black text-charcoal' : 'font-bold text-charcoal/70'
                                     }`}>
                                         {email.subject}
                                     </h3>
                                     
-                                    <p className="text-[11px] font-medium text-charcoal/40 truncate leading-relaxed group-hover:text-charcoal/60 transition-colors">
+                                    <p className="text-[9px] font-medium text-charcoal/30 truncate leading-relaxed group-hover:text-charcoal/60 transition-colors">
                                         {email.snippet || "No preview available..."}
                                     </p>
 
                                     {/* Selection Overlay Decor */}
                                     {isSelected && (
-                                        <div className="absolute left-0 top-0 w-1 h-full bg-charcoal animate-in slide-in-from-left duration-300" />
+                                        <div className="absolute left-0 top-0 w-0.5 h-full bg-charcoal animate-in slide-in-from-left duration-300" />
                                     )}
                                 </button>
                             );

@@ -70,7 +70,21 @@ const LeadGenerationPage = () => {
 
       const handleUpdate = (data, type, silent = false) => {
         console.log(`📡 Received ${type} update:`, data);
-        setLeadData(prev => ({ ...prev, ...data }));
+        setLeadData(prev => {
+          if (!prev) return prev;
+          // Deep-merge nested objects (linkActivity, whatsappData, voiceCallData)
+          // instead of shallow-spreading which wipes sibling fields
+          const merged = { ...prev };
+          for (const key of Object.keys(data)) {
+            if (key === 'leadId' || key === 'eventType') continue; // metadata, not lead fields
+            if (data[key] && typeof data[key] === 'object' && !Array.isArray(data[key]) && prev[key] && typeof prev[key] === 'object') {
+              merged[key] = { ...prev[key], ...data[key] };
+            } else {
+              merged[key] = data[key];
+            }
+          }
+          return merged;
+        });
 
         // Update section highlight even if silent
         setLastUpdateType(type);
@@ -117,7 +131,13 @@ const LeadGenerationPage = () => {
       const handleAnalytics = (data) => handleUpdate(data, 'analytics');
       const handleCall = (data) => handleUpdate(data, 'call');
       const handleLink = (data) => {
-        // Silent only for frequent time heartbeats. Other major link events (form, CTA) should show toast.
+        // Automation link updates — don't touch the primary lead's linkActivity
+        if (data.automationId) {
+          setLastUpdateType('analytics');
+          setTimeout(() => setLastUpdateType(prev => prev === 'analytics' ? null : prev), 6000);
+          return; // automation data lives in its own tab, not in leadData
+        }
+        // Primary lead link update — deep merge
         const isSilent = data.eventType === 'time_update';
         handleUpdate(data, 'analytics', isSilent);
       };
@@ -156,9 +176,9 @@ const LeadGenerationPage = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <button 
           onClick={() => navigate('/history')}
-          className="flex items-center gap-2 px-3 py-1.5 bg-white border-2 border-charcoal text-[10px] font-black uppercase tracking-widest hover:bg-charcoal hover:text-white transition-all cursor-pointer"
+          className="flex items-center gap-2 px-3 py-1 sm:py-1.5 bg-white border-2 border-charcoal text-[9px] sm:text-[10px] font-black uppercase tracking-widest hover:bg-charcoal hover:text-white transition-all cursor-pointer"
         >
-          <span className="material-symbols-outlined text-sm font-black">arrow_back</span>
+          <span className="material-symbols-outlined text-xs sm:text-sm font-black">arrow_back</span>
           History
         </button>
         <div className="text-left sm:text-right">
@@ -168,7 +188,7 @@ const LeadGenerationPage = () => {
       </div>
 
       {/* Main Status Header */}
-      <div className="bg-white border-2 border-charcoal p-4 sm:p-6 mb-8 sm:mb-10 shadow-sm">
+      <div className="bg-white border-2 border-charcoal p-3 sm:p-6 mb-6 sm:mb-10 shadow-sm">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div className="flex-1">
             <div className="flex items-center gap-4">
@@ -180,7 +200,7 @@ const LeadGenerationPage = () => {
                 </div>
               )}
             </div>
-            <h1 className="text-2xl sm:text-3xl font-black uppercase tracking-tighter leading-none mb-1">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-black uppercase tracking-tighter leading-none mb-1">
               {leadData.first_name} {leadData.last_name}
             </h1>
             <div className="flex flex-wrap items-center gap-4 font-mono font-bold text-charcoal/40 text-xs sm:text-sm">
@@ -247,7 +267,7 @@ const LeadGenerationPage = () => {
               {isAutomation ? 'Engagement Insight' : 'Qualification Channels'}
             </h2>
             
-            <div className={`grid gap-6 ${isAutomation ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-3'}`}>
+            <div className={`grid gap-4 sm:gap-6 ${isAutomation ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-3'}`}>
               {!isAutomation && (
                 <>
                   <WhatsAppSection leadData={leadData} isHighlighted={lastUpdateType === 'whatsapp'} />

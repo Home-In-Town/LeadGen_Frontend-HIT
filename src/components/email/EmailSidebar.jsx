@@ -74,32 +74,32 @@ const EmailSidebar = ({ activeFolder, onFolderChange, onCompose, onClose, isMobi
     };
 
     return (
-        <div className={`${isMobile ? 'w-full' : 'w-[280px]'} bg-white border-r border-charcoal/5 flex flex-col h-full shrink-0`}>
+        <div className={`${isMobile ? 'w-full' : 'w-[240px]'} bg-white border-r border-charcoal/5 flex flex-col h-full shrink-0`}>
             {/* Header / Mobile Close */}
-            <div className={`p-6 flex items-center justify-between ${isMobile ? 'border-b border-charcoal/5' : ''}`}>
+            <div className={`p-2.5 sm:p-3 flex items-center justify-between ${isMobile ? 'border-b border-charcoal/5' : ''}`}>
                 {!isMobile ? (
                     <div className="w-full">
                         <button
                             onClick={onCompose}
                             disabled={!connection || connection.status !== 'connected'}
-                            className={`w-full text-white rounded-2xl py-4 px-6 flex items-center justify-center gap-3 transition-all duration-300 ${
+                            className={`w-full text-white rounded-lg py-1.5 px-3 flex items-center justify-center gap-2 transition-all duration-300 ${
                                 connection?.status === 'connected' 
-                                ? 'bg-charcoal hover:translate-y-[-2px] hover:shadow-xl' 
+                                ? 'bg-charcoal hover:translate-y-[-1px] hover:shadow-lg' 
                                 : 'bg-charcoal/20 cursor-not-allowed'
                             }`}
                         >
-                            <span className="material-symbols-outlined text-[20px]">edit</span>
-                            <span className="text-[11px] font-black uppercase tracking-[0.2em]">Compose</span>
+                            <span className="material-symbols-outlined text-[16px]">edit</span>
+                            <span className="text-[9px] font-black uppercase tracking-[0.2em]">Compose</span>
                         </button>
                     </div>
                 ) : (
                     <>
-                        <h2 className="text-[14px] font-black uppercase tracking-[0.3em] text-charcoal">Menu</h2>
+                        <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-charcoal m-0 opacity-60">Menu</h2>
                         <button 
                             onClick={onClose}
-                            className="w-10 h-10 rounded-2xl flex items-center justify-center hover:bg-charcoal/10 transition-colors"
+                            className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-charcoal/10 transition-colors"
                         >
-                            <span className="material-symbols-outlined text-[20px] text-charcoal">close</span>
+                            <span className="material-symbols-outlined text-[16px] text-charcoal">close</span>
                         </button>
                     </>
                 )}
@@ -107,114 +107,114 @@ const EmailSidebar = ({ activeFolder, onFolderChange, onCompose, onClose, isMobi
 
             {/* Mobile Compose Button */}
             {isMobile && (
-                <div className="p-6">
+                <div className="p-2.5">
                     <button
                         onClick={onCompose}
                         disabled={!connection || connection.status !== 'connected'}
-                        className={`w-full text-white rounded-2xl py-4 px-6 flex items-center justify-center gap-3 transition-all duration-300 ${
+                        className={`w-full text-white rounded-lg py-2 px-4 flex items-center justify-center gap-2 transition-all duration-300 ${
                             connection?.status === 'connected' 
-                            ? 'bg-charcoal hover:translate-y-[-2px] hover:shadow-xl' 
+                            ? 'bg-charcoal hover:translate-y-[-1px] hover:shadow-lg' 
                             : 'bg-charcoal/20 cursor-not-allowed'
                         }`}
                     >
-                        <span className="material-symbols-outlined text-[20px]">edit</span>
-                        <span className="text-[11px] font-black uppercase tracking-[0.2em]">Compose</span>
+                        <span className="material-symbols-outlined text-[16px]">edit</span>
+                        <span className="text-[9px] font-black uppercase tracking-[0.2em]">Compose</span>
                     </button>
                 </div>
             )}
 
             {/* Folder Navigation */}
-            <nav className="flex-grow px-4 pb-6 space-y-2 overflow-y-auto custom-scrollbar">
+            <nav className="flex-grow px-2.5 pb-4 space-y-1 overflow-y-auto custom-scrollbar">
                 {folders.map((folder) => (
                     <button
                         key={folder.id}
                         onClick={() => onFolderChange(folder.id)}
-                        className={`w-full flex items-center justify-between px-4 py-4 rounded-xl transition-all duration-300 group ${
+                        className={`w-full flex items-center justify-between px-3 py-1.5 rounded-md transition-all duration-300 group ${
                             activeFolder === folder.id
-                                ? 'bg-charcoal text-white shadow-xl shadow-charcoal/20 scale-[1.02]'
-                                : 'text-charcoal/40 hover:bg-charcoal/[0.03] hover:text-charcoal hover:translate-x-1'
+                                ? 'bg-charcoal text-white shadow-md shadow-charcoal/10'
+                                : 'text-charcoal/40 hover:bg-charcoal/[0.03] hover:text-charcoal'
                         }`}
                     >
-                        <div className="flex items-center gap-4">
-                            <span className={`material-symbols-outlined text-[22px] transition-transform duration-300 group-hover:scale-110 ${
+                        <div className="flex items-center gap-2">
+                            <span className={`material-symbols-outlined text-[16px] transition-transform duration-300 group-hover:scale-110 ${
                                 activeFolder === folder.id ? 'text-white' : folder.color
                             }`}>
                                 {folder.icon}
                             </span>
-                            <span className={`text-[11px] font-black uppercase tracking-[0.15em] ${
+                            <span className={`text-[9px] font-black uppercase tracking-[0.1em] ${
                                 activeFolder === folder.id ? 'text-white' : 'text-charcoal'
                             }`}>
                                 {folder.name}
                             </span>
                         </div>
                         {activeFolder === folder.id && (
-                            <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                            <div className="w-1 h-1 rounded-full bg-white opacity-40" />
                         )}
                     </button>
                 ))}
             </nav>
 
             {/* Footer / Connection State */}
-            <div className="p-6 border-t border-charcoal/5 bg-charcoal/[0.01]">
+            <div className="p-2.5 sm:p-3 border-t border-charcoal/5 bg-charcoal/[0.01]">
                 {loading ? (
-                    <div className="h-10 animate-pulse bg-charcoal/5 rounded-xl"></div>
+                    <div className="h-6 animate-pulse bg-charcoal/5 rounded-lg"></div>
                 ) : connection ? (
-                    <div className="space-y-4">
-                        <div className={`p-4 rounded-2xl border transition-all ${
+                    <div className="space-y-2">
+                        <div className={`p-2 rounded-lg border transition-all ${
                             connection.status === 'error' ? 'bg-red-50 border-red-100' : 'bg-white border-charcoal/5 shadow-sm'
                         }`}>
-                            <div className="flex items-start gap-3">
-                                <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
+                            <div className="flex items-start gap-2">
+                                <div className={`w-6 h-6 rounded-md flex items-center justify-center shrink-0 ${
                                     connection.provider === 'google' ? 'bg-red-50 text-red-500' : 'bg-blue-50 text-blue-500'
                                 }`}>
-                                    <span className="material-symbols-outlined text-[18px]">
+                                    <span className="material-symbols-outlined text-[16px]">
                                         {connection.provider === 'google' ? 'alternate_email' : 'mail'}
                                     </span>
                                 </div>
                                 <div className="flex-grow overflow-hidden">
-                                    <div className="flex items-center justify-between mb-0.5">
-                                        <p className="text-[9px] font-black uppercase tracking-wider text-charcoal/40">
+                                    <div className="flex items-center justify-between mb-0">
+                                        <p className="text-[8px] font-black uppercase tracking-wider text-charcoal/40">
                                             {connection.provider === 'google' ? 'Google' : 'Outlook'}
                                         </p>
-                                        <div className={`w-2 h-2 rounded-full ${connection.status === 'connected' ? 'bg-green-500' : 'bg-red-500 animate-pulse'}`}></div>
+                                        <div className={`w-1.5 h-1.5 rounded-full ${connection.status === 'connected' ? 'bg-green-500' : 'bg-red-500 animate-pulse'}`}></div>
                                     </div>
-                                    <p className="text-[10px] font-black text-charcoal truncate">
+                                    <p className="text-[9px] font-black text-charcoal truncate">
                                         {connection.email}
                                     </p>
                                 </div>
                             </div>
                             
                             {connection.status === 'error' && (
-                                <p className="mt-2 text-[9px] font-black text-red-400 uppercase leading-relaxed">
+                                <p className="mt-1 text-[8px] font-black text-red-400 uppercase leading-relaxed">
                                     {connection.errorMessage || "Authentication Failed"}
                                 </p>
                             )}
 
-                            <div className="mt-4 grid grid-cols-2 gap-2">
+                            <div className="mt-2.5 grid grid-cols-2 gap-1.5">
                                 <button 
                                     onClick={handleTest}
                                     disabled={actionLoading}
-                                    className="py-2 text-[9px] font-black uppercase tracking-widest text-charcoal/60 bg-charcoal/5 hover:bg-charcoal/10 rounded-lg transition-colors border border-charcoal/5"
+                                    className="py-1 text-[8px] font-black uppercase tracking-widest text-charcoal/60 bg-charcoal/5 hover:bg-charcoal/10 rounded-md transition-colors border border-charcoal/5"
                                 >
                                     {actionLoading ? '...' : 'Test'}
                                 </button>
                                 <button 
                                     onClick={handleDisconnect}
-                                    className="py-2 text-[9px] font-black uppercase tracking-widest text-red-400 bg-red-50 hover:bg-red-100 rounded-lg transition-colors border border-red-100"
+                                    className="py-1 text-[8px] font-black uppercase tracking-widest text-red-400 bg-red-50 hover:bg-red-100 rounded-md transition-colors border border-red-100"
                                 >
                                     Remove
                                 </button>
                             </div>
                         </div>
 
-                        {/* Recent History (Optional Mini List) */}
-                        <div className="px-2">
-                            <p className="text-[8px] font-black text-charcoal/20 uppercase tracking-[0.2em] mb-3">Recent Activity</p>
-                            <div className="space-y-3">
-                                {logs.slice(0, 3).map((log, i) => (
-                                    <div key={i} className="flex items-center gap-2 opacity-60">
-                                        <div className={`w-1 h-1 rounded-full ${log.status === 'success' ? 'bg-green-400' : 'bg-red-400'}`}></div>
-                                        <span className="text-[9px] font-bold text-charcoal/60 lowercase italic truncate">
+                        {/* Recent History */}
+                        <div className="px-1">
+                            <p className="text-[7.5px] font-black text-charcoal/20 uppercase tracking-[0.2em] mb-2">History</p>
+                            <div className="space-y-2">
+                                {logs.slice(0, 2).map((log, i) => (
+                                    <div key={i} className="flex items-center gap-1.5 opacity-50">
+                                        <div className={`w-1 h-1 rounded-full shrink-0 ${log.status === 'success' ? 'bg-green-400' : 'bg-red-400'}`}></div>
+                                        <span className="text-[8px] font-bold text-charcoal/60 lowercase italic truncate leading-none">
                                             {log.message}
                                         </span>
                                     </div>
@@ -223,24 +223,23 @@ const EmailSidebar = ({ activeFolder, onFolderChange, onCompose, onClose, isMobi
                         </div>
                     </div>
                 ) : (
-                    <div className="space-y-3">
-                        <p className="text-[10px] font-black text-charcoal/40 uppercase tracking-widest text-center mb-2">Connect Email</p>
+                    <div className="space-y-2">
+                        <p className="text-[9px] font-black text-charcoal/40 uppercase tracking-widest text-center mb-1.5 opacity-60">Connect Email</p>
                         <button 
                             onClick={() => handleConnect('google')}
-                            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-charcoal/10 hover:bg-charcoal/5 transition-all group"
+                            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg border border-charcoal/10 hover:bg-charcoal/5 transition-all group"
                         >
-                            <span className="material-symbols-outlined text-red-500 text-[18px]">alternate_email</span>
-                            <span className="text-[10px] font-black text-charcoal">GMAIL</span>
+                            <span className="material-symbols-outlined text-red-500 text-[16px]">alternate_email</span>
+                            <span className="text-[9px] font-black text-charcoal">GMAIL</span>
                         </button>
-                        {/* Outlook disabled for now */}
                         <button 
                             disabled
-                            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-charcoal/10 bg-charcoal/[0.02] cursor-not-allowed opacity-50 transition-all group"
+                            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg border border-charcoal/10 bg-charcoal/[0.02] cursor-not-allowed opacity-50 transition-all group"
                         >
-                            <span className="material-symbols-outlined text-blue-500/50 text-[18px]">mail</span>
-                            <div className="flex flex-col items-start translate-y-[-1px]">
-                                <span className="text-[10px] font-black text-charcoal/40 uppercase tracking-widest leading-none">OUTLOOK</span>
-                                <span className="text-[7px] font-black text-blue-500 uppercase tracking-tighter mt-1">Coming Soon</span>
+                            <span className="material-symbols-outlined text-blue-500/50 text-[16px]">mail</span>
+                            <div className="flex flex-col items-start">
+                                <span className="text-[9px] font-black text-charcoal/40 uppercase tracking-widest leading-none">OUTLOOK</span>
+                                <span className="text-[6.5px] font-black text-blue-500 uppercase tracking-tighter mt-0.5">Soon</span>
                             </div>
                         </button>
                     </div>

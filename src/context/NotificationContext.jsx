@@ -77,9 +77,6 @@ export const NotificationProvider = ({ children }) => {
             console.warn('🔌 Socket disconnected:', reason);
         });
 
-        socket.on('disconnect', (reason) => {
-        });
-
         socket.on('new_notification', (notification) => {
 
             // Prepend to persistent list
@@ -121,6 +118,7 @@ export const NotificationProvider = ({ children }) => {
 
         return () => {
             socket.off('connect');
+            socket.off('connect_error');
             socket.off('disconnect');
             socket.off('new_notification');
             socket.off('new_chat_message');

@@ -96,21 +96,21 @@ const NotificationCenter = () => {
             {/* Main Sidebar Drawer */}
             <aside
                 ref={sidebarRef}
-                className={`fixed top-0 right-0 h-screen w-[400px] max-w-[90vw] bg-white border-l border-charcoal/5 shadow-[-30px_0_60px_rgba(0,0,0,0.12)] z-[1001] flex flex-col transform transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+                className={`fixed top-0 right-0 h-screen w-[320px] sm:w-[400px] max-w-[90vw] bg-white border-l border-charcoal/5 shadow-[-30px_0_60px_rgba(0,0,0,0.12)] z-[1001] flex flex-col transform transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
                     isOpen ? 'translate-x-0' : 'translate-x-full'
                 }`}
                 inert={!isOpen ? true : undefined}
                 aria-label="Activity center"
             >
                 {/* Header: Activity & Actions */}
-                <div className="shrink-0 p-5 pt-8 pb-4 bg-white/80 backdrop-blur-xl flex flex-col gap-4 sticky top-0 z-20 border-b border-charcoal/5">
+                <div className="shrink-0 p-4 sm:p-5 pt-6 sm:pt-8 pb-3 sm:pb-4 bg-white/80 backdrop-blur-xl flex flex-col gap-2.5 sm:gap-4 sticky top-0 z-20 border-b border-charcoal/5">
                     <div className="flex items-center justify-between">
                         <div className="flex flex-col gap-1">
-                            <h3 className="text-[12px] font-black uppercase tracking-[0.2em] text-charcoal">
+                            <h3 className="text-[11px] sm:text-[12px] font-black uppercase tracking-[0.15em] sm:tracking-[0.2em] text-charcoal">
                                 Activity
                             </h3>
                             <div className="flex items-center gap-1.5">
-                                <span className="text-[8px] font-bold uppercase tracking-widest text-charcoal/30">Live Status</span>
+                                <span className="text-[7.5px] sm:text-[8px] font-bold uppercase tracking-widest text-charcoal/30">Live Status</span>
                                 <div className="w-1 h-1 rounded-full bg-green-500 animate-pulse"></div>
                             </div>
                         </div>
@@ -119,7 +119,7 @@ const NotificationCenter = () => {
                                 <button
                                     type="button"
                                     onClick={markAllRead}
-                                    className="text-[9px] font-black uppercase tracking-widest text-primary hover:text-charcoal transition-colors cursor-pointer"
+                                    className="text-[8.5px] sm:text-[9px] font-black uppercase tracking-widest text-primary hover:text-charcoal transition-colors cursor-pointer"
                                 >
                                     Clear All
                                 </button>
@@ -127,10 +127,10 @@ const NotificationCenter = () => {
                             <button
                                 type="button"
                                 onClick={() => setIsOpen(false)}
-                                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-charcoal/5 border-none text-charcoal/20 hover:text-charcoal transition-all cursor-pointer group"
+                                className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-full hover:bg-charcoal/5 border-none text-charcoal/20 hover:text-charcoal transition-all cursor-pointer group"
                                 aria-label="Close activity center"
                             >
-                                <span className="material-symbols-outlined text-[18px] group-hover:rotate-90 transition-transform duration-300">close</span>
+                                <span className="material-symbols-outlined text-[16px] sm:text-[18px] group-hover:rotate-90 transition-transform duration-300">close</span>
                             </button>
                         </div>
                     </div>
@@ -159,7 +159,7 @@ const NotificationCenter = () => {
                                         e.stopPropagation();
                                         handleNotificationClick(n);
                                     }}
-                                    className={`relative px-6 py-4 border-b border-charcoal/[0.03] transition-all cursor-pointer group flex gap-4
+                                    className={`relative px-4 sm:px-6 py-3 sm:py-4 border-b border-charcoal/[0.03] transition-all cursor-pointer group flex gap-3 sm:gap-4
                                         ${!n.read ? 'bg-white' : 'bg-charcoal/[0.01] opacity-70'}
                                         hover:bg-charcoal/[0.02]`}
                                     title={n.read ? 'View' : 'Mark as read'}
@@ -178,24 +178,24 @@ const NotificationCenter = () => {
                                             };
                                             const cfg = iconMap[n.type] || { icon: 'notifications', bg: 'bg-charcoal/5', text: 'text-charcoal/40' };
                                             return (
-                                                <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-all group-hover:scale-105 ${cfg.bg} ${cfg.text}`}>
-                                                    <span className="material-symbols-outlined text-[16px]">{cfg.icon}</span>
+                                                <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center transition-all group-hover:scale-105 ${cfg.bg} ${cfg.text}`}>
+                                                    <span className="material-symbols-outlined text-[14px] sm:text-[16px]">{cfg.icon}</span>
                                                 </div>
                                             );
                                         })()}
                                     </div>
 
                                     {/* Content Area */}
-                                    <div className="flex-1 min-w-0 flex flex-col justify-center">
+                                    <div className="flex-1 min-w-0 flex flex-col justify-center text-left">
                                         <div className="flex items-center justify-between gap-2 mb-0.5">
-                                            <h4 className="text-[11px] font-black text-charcoal uppercase tracking-wide truncate group-hover:text-primary transition-colors">
+                                            <h4 className="text-[10px] sm:text-[11px] font-black text-charcoal uppercase tracking-wide truncate group-hover:text-primary transition-colors">
                                                 {n.title}
                                             </h4>
-                                            <span className="text-[8px] font-black text-charcoal/20 uppercase tracking-tighter shrink-0">
+                                            <span className="text-[7.5px] sm:text-[8px] font-black text-charcoal/20 uppercase tracking-tighter shrink-0">
                                                 {formatTime(n.createdAt)}
                                             </span>
                                         </div>
-                                        <p className="text-[10px] font-medium text-charcoal/40 leading-tight truncate">
+                                        <p className="text-[9.5px] sm:text-[10px] font-medium text-charcoal/40 leading-tight truncate">
                                             {n.message}
                                         </p>
                                     </div>
@@ -211,10 +211,10 @@ const NotificationCenter = () => {
                 </div>
 
                 {/* Footer */}
-                <div className="mt-auto shrink-0 p-4 bg-white border-t border-charcoal/5 flex items-center justify-center z-20">
-                    <div className="flex items-center gap-2">
-                        <div className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse"></div>
-                        <span className="text-[8px] font-black uppercase tracking-[0.2em] text-charcoal/20">System Encrypted & Active</span>
+                <div className="mt-auto shrink-0 p-3 sm:p-4 bg-white border-t border-charcoal/5 flex items-center justify-center z-20">
+                    <div className="flex items-center gap-1.5 sm:gap-2">
+                        <div className="h-1 w-1 sm:h-1.5 sm:w-1.5 rounded-full bg-green-500 animate-pulse"></div>
+                        <span className="text-[7.5px] sm:text-[8px] font-black uppercase tracking-[0.15em] sm:tracking-[0.2em] text-charcoal/20">System Encrypted & Active</span>
                     </div>
                 </div>
             </aside>

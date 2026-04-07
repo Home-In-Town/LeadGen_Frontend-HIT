@@ -1,28 +1,40 @@
-import { useState, useEffect } from 'react';
-import EmailDashboardPage from './pages/EmailDashboardPage';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { NotificationProvider } from './context/NotificationContext';
 import { AuthProvider } from './context/AuthContext';
 import { useNotifications } from './context/NotificationContext';
 import NotificationToastContainer from './components/NotificationToast';
-import AuthPage from './pages/AuthPage';
+
+// Eagerly loaded (above the fold / always needed)
 import LandingPage from './pages/LandingPage';
-import AddUserPage from './pages/AddUserPage';
-import DashboardPage from './pages/DashboardPage';
-import LeadGenerationPage from './pages/LeadGenerationPage';
-import HistoryPage from './pages/HistoryPage';
-import UsersPage from './pages/UsersPage';
-import LeadAutomationPage from './pages/LeadAutomationPage';
-import FacebookIntegrationPage from './pages/FacebookIntegrationPage';
-import GoogleIntegrationPage from './pages/GoogleIntegrationPage';
-import IntegrationsPage from './pages/IntegrationsPage';
-import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
-import TermsOfServicePage from './pages/TermsOfServicePage';
-import ChatDashboard from './pages/ChatDashboard';
-import ChatSelectionPage from './pages/ChatSelectionPage';
+import AuthPage from './pages/AuthPage';
 import DashboardLayout from './layouts/DashboardLayout';
 import PublicLayout from './layouts/PublicLayout';
 import LeadChatSidebar from './components/lead/LeadChatSidebar';
+
+// Lazy-loaded pages — only downloaded when the route is visited
+const DashboardPage = lazy(() => import('./pages/DashboardPage'));
+const AddUserPage = lazy(() => import('./pages/AddUserPage'));
+const LeadGenerationPage = lazy(() => import('./pages/LeadGenerationPage'));
+const HistoryPage = lazy(() => import('./pages/HistoryPage'));
+const UsersPage = lazy(() => import('./pages/UsersPage'));
+const LeadAutomationPage = lazy(() => import('./pages/LeadAutomationPage'));
+const ChatSelectionPage = lazy(() => import('./pages/ChatSelectionPage'));
+const ChatDashboard = lazy(() => import('./pages/ChatDashboard'));
+const EmailDashboardPage = lazy(() => import('./pages/EmailDashboardPage'));
+const IntegrationsPage = lazy(() => import('./pages/IntegrationsPage'));
+const FacebookIntegrationPage = lazy(() => import('./pages/FacebookIntegrationPage'));
+const GoogleIntegrationPage = lazy(() => import('./pages/GoogleIntegrationPage'));
+const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage'));
+const TermsOfServicePage = lazy(() => import('./pages/TermsOfServicePage'));
+
+function PageLoader() {
+    return (
+        <div className="flex items-center justify-center min-h-[60vh]">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+        </div>
+    );
+}
 
 function ToastRenderer() {
     const { toasts, dismissToast } = useNotifications();
@@ -57,43 +69,45 @@ function App() {
         <Router>
           <ToastRenderer />
           <ChatSidebarController />
-          <Routes>
-            {/* Public Routes */}
-            <Route element={<PublicLayout />}>
-              <Route path="/" element={<LandingPage />} />
-              <Route path="/login" element={<AuthPage />} />
-              <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
-              <Route path="/terms-service" element={<TermsOfServicePage />} />
-            </Route>
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              {/* Public Routes */}
+              <Route element={<PublicLayout />}>
+                <Route path="/" element={<LandingPage />} />
+                <Route path="/login" element={<AuthPage />} />
+                <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+                <Route path="/terms-service" element={<TermsOfServicePage />} />
+              </Route>
 
-            {/* Protected Routes with Dashboard Navbar */}
-            <Route element={<DashboardLayout />}>
-              <Route path="/dashboard" element={<DashboardPage />} />
-              <Route path="/add-user" element={<AddUserPage />} />
-              <Route path="/history" element={<HistoryPage />} />
-              <Route path="/lead/:id" element={<LeadGenerationPage />} />
-              <Route path="/users" element={<UsersPage />} />
-              <Route path="/lead-automation" element={<LeadAutomationPage />} />
-              <Route path="/lead-automation/:leadId" element={<LeadAutomationPage />} />
-              <Route path="/chat" element={<ChatSelectionPage />} />
-              <Route path="/chat/whatsapp" element={<ChatDashboard />} />
-              <Route path="/chat/whatsapp/:leadId" element={<ChatDashboard />} />
-              <Route path="/chat/email" element={<EmailDashboardPage />} />
-              <Route path="/chat/email/:leadId" element={<EmailDashboardPage />} />
-              <Route path="/integrations" element={<IntegrationsPage />} />
-              <Route path="/integrations/facebook" element={<FacebookIntegrationPage />} />
-              <Route path="/integrations/google" element={<GoogleIntegrationPage />} />
-            </Route>
+              {/* Protected Routes with Dashboard Navbar */}
+              <Route element={<DashboardLayout />}>
+                <Route path="/dashboard" element={<DashboardPage />} />
+                <Route path="/add-user" element={<AddUserPage />} />
+                <Route path="/history" element={<HistoryPage />} />
+                <Route path="/lead/:id" element={<LeadGenerationPage />} />
+                <Route path="/users" element={<UsersPage />} />
+                <Route path="/lead-automation" element={<LeadAutomationPage />} />
+                <Route path="/lead-automation/:leadId" element={<LeadAutomationPage />} />
+                <Route path="/chat" element={<ChatSelectionPage />} />
+                <Route path="/chat/whatsapp" element={<ChatDashboard />} />
+                <Route path="/chat/whatsapp/:leadId" element={<ChatDashboard />} />
+                <Route path="/chat/email" element={<EmailDashboardPage />} />
+                <Route path="/chat/email/:leadId" element={<EmailDashboardPage />} />
+                <Route path="/integrations" element={<IntegrationsPage />} />
+                <Route path="/integrations/facebook" element={<FacebookIntegrationPage />} />
+                <Route path="/integrations/google" element={<GoogleIntegrationPage />} />
+              </Route>
 
-            {/* Legacy redirects */}
-            <Route path="/select-role" element={<Navigate to="/login" replace />} />
-            <Route path="/builder-login" element={<Navigate to="/login" replace />} />
-            <Route path="/agent-login" element={<Navigate to="/login" replace />} />
-            <Route path="/admin-login" element={<Navigate to="/login" replace />} />
+              {/* Legacy redirects */}
+              <Route path="/select-role" element={<Navigate to="/login" replace />} />
+              <Route path="/builder-login" element={<Navigate to="/login" replace />} />
+              <Route path="/agent-login" element={<Navigate to="/login" replace />} />
+              <Route path="/admin-login" element={<Navigate to="/login" replace />} />
 
-            {/* Fallback */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+              {/* Fallback */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Suspense>
         </Router>
       </NotificationProvider>
     </AuthProvider>

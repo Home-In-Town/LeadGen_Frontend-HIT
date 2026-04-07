@@ -28,9 +28,9 @@ const DashboardPage = () => {
   return (
     <div className="animate-fade-in font-display text-charcoal pb-10">
       {/* Top Action Bar */}
-      <div className="flex flex-col sm:flex-row justify-between items-center bg-white border-2 border-charcoal p-4 sm:p-5 mb-6 sm:mb-8 shadow-sm gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-center bg-white border-2 border-charcoal p-3 sm:p-5 mb-5 sm:mb-8 shadow-sm gap-4">
         <div className="text-center sm:text-left">
-          <h1 className="text-xl md:text-2xl font-black uppercase tracking-tighter leading-tight">
+          <h1 className="text-lg sm:text-xl md:text-2xl font-black uppercase tracking-tighter leading-tight">
             System Dashboard
           </h1>
           <p className="text-charcoal/40 text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.2em]">
@@ -39,7 +39,7 @@ const DashboardPage = () => {
         </div>
         <button 
           onClick={() => navigate('/add-user')}
-          className="w-full sm:w-auto bg-primary text-white py-2.5 sm:py-3 px-5 sm:px-6 font-black uppercase tracking-widest text-[10px] sm:text-xs border-2 border-primary hover:bg-charcoal hover:border-charcoal transition-all cursor-pointer flex items-center justify-center gap-2"
+          className="w-full sm:w-auto bg-primary text-white py-2 sm:py-3 px-4 sm:px-6 font-black uppercase tracking-widest text-[10px] sm:text-xs border-2 border-primary hover:bg-charcoal hover:border-charcoal transition-all cursor-pointer flex items-center justify-center gap-2"
         >
           <span className="material-symbols-outlined text-base sm:text-lg font-black">person_add</span>
           ADD NEW
@@ -47,20 +47,20 @@ const DashboardPage = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-6 mb-8 sm:mb-10">
-        <div className="bg-white border-2 border-charcoal/10 p-4 sm:p-6 flex items-center justify-between hover:bg-surface-subtle transition-colors cursor-pointer" onClick={() => navigate('/users')}>
+      <div className="grid grid-cols-2 sm:grid-cols-2 gap-2 sm:gap-6 mb-6 sm:mb-10">
+        <div className="bg-white border-2 border-charcoal/10 p-3 sm:p-6 flex items-center justify-between hover:bg-surface-subtle transition-colors cursor-pointer" onClick={() => navigate('/users')}>
           <div>
             <h3 className="text-[8px] sm:text-[9px] font-black uppercase tracking-[0.3em] text-charcoal/30 mb-0.5">Total Users</h3>
             <div className="text-2xl sm:text-4xl font-black text-charcoal">{users.length}</div>
           </div>
-          <span className="material-symbols-outlined text-3xl sm:text-4xl text-charcoal/10">groups</span>
+          <span className="material-symbols-outlined text-2xl sm:text-4xl text-charcoal/10">groups</span>
         </div>
-        <div className="bg-white border-2 border-primary/20 p-4 sm:p-6 flex items-center justify-between">
+        <div className="bg-white border-2 border-primary/20 p-3 sm:p-6 flex items-center justify-between">
           <div>
             <h3 className="text-[8px] sm:text-[9px] font-black uppercase tracking-[0.3em] text-primary mb-0.5">System Status</h3>
             <div className="text-2xl sm:text-4xl font-black text-primary">Active</div>
           </div>
-          <span className="material-symbols-outlined text-3xl sm:text-4xl text-primary/20">check_circle</span>
+          <span className="material-symbols-outlined text-2xl sm:text-4xl text-primary/20">check_circle</span>
         </div>
       </div>
       
@@ -77,7 +77,7 @@ const DashboardPage = () => {
           {/* Integrations Card */}
           <div 
             onClick={() => setIsIntegrationModalOpen(true)}
-            className="group bg-white border-2 border-charcoal p-5 sm:p-6 hover:bg-charcoal transition-all cursor-pointer relative overflow-hidden flex flex-col justify-between min-h-[160px]"
+            className="group bg-white border-2 border-charcoal p-4 sm:p-6 hover:bg-charcoal transition-all cursor-pointer relative overflow-hidden flex flex-col justify-between min-h-[140px] sm:min-h-[160px]"
           >
             <div className="relative z-10">
               <div className="flex justify-between items-start mb-4">

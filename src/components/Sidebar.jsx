@@ -54,11 +54,11 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
     <aside className={`fixed left-0 top-0 h-screen bg-white border-r border-charcoal/5 flex flex-col z-50 transition-all duration-300 ease-in-out lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'} ${isCollapsed ? 'w-20' : 'w-60'}`}>
       
       {/* Brand */}
-      <div className={`border-b border-charcoal/5 flex items-center transition-all duration-300 ${isCollapsed ? 'p-0 justify-center h-20' : 'p-6 justify-between'}`}>
+      <div className={`border-b border-charcoal/5 flex items-center transition-all duration-300 ${isCollapsed ? 'p-0 justify-center h-16 sm:h-20' : 'p-4 sm:p-6 justify-between'}`}>
         {!isCollapsed ? (
           <>
-            <Link to="/dashboard" className="no-underline flex items-center gap-3 overflow-hidden">
-              <span className="text-lg font-black tracking-tighter uppercase text-charcoal whitespace-nowrap">
+            <Link to="/dashboard" className="no-underline flex items-center gap-2 overflow-hidden">
+              <span className="text-base sm:text-lg font-black tracking-tighter uppercase text-charcoal whitespace-nowrap">
                 One Employee
               </span>
             </Link>
@@ -70,8 +70,8 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
               >
                 <span className="material-symbols-outlined text-xl">menu_open</span>
               </button>
-              <button onClick={onClose} className="lg:hidden p-2 hover:bg-charcoal/5">
-                <span className="material-symbols-outlined text-charcoal text-xl">close</span>
+              <button onClick={onClose} className="lg:hidden p-1.5 hover:bg-charcoal/5">
+                <span className="material-symbols-outlined text-charcoal text-lg">close</span>
               </button>
             </div>
           </>
@@ -87,19 +87,19 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 py-8 overflow-y-auto custom-scrollbar overflow-x-hidden">
-        <ul className="list-none p-0 m-0 space-y-1">
+      <nav className="flex-1 py-4 sm:py-8 overflow-y-auto custom-scrollbar overflow-x-hidden">
+        <ul className="list-none p-0 m-0 space-y-0.5 sm:space-y-1">
           {menuItems.map((item) => (
             <li key={item.path} onClick={onClose}>
               <Link
                 to={item.path}
-                className={`flex items-center transition-all duration-300 no-underline whitespace-nowrap group ${isCollapsed ? 'justify-center px-4 py-4' : 'gap-3.5 px-6 py-3.5 uppercase tracking-[0.2em] text-[10px] font-black'} ${
+                className={`flex items-center transition-all duration-300 no-underline whitespace-nowrap group ${isCollapsed ? 'justify-center px-4 py-3 sm:py-4' : 'gap-3 px-5 sm:px-6 py-2.5 sm:py-3.5 uppercase tracking-[0.15em] sm:tracking-[0.2em] text-[9px] sm:text-[10px] font-black'} ${
                   isActive(item.path)
                     ? 'bg-primary text-white shadow-md shadow-primary/20'
                     : 'text-charcoal/40 hover:text-charcoal/80 hover:bg-charcoal/5'
                 }`}
               >
-                <span className={`material-symbols-outlined transition-all duration-300 ${isCollapsed ? 'text-xl' : 'text-lg'}`}>
+                <span className={`material-symbols-outlined transition-all duration-300 ${isCollapsed ? 'text-lg sm:text-xl' : 'text-base sm:text-lg'}`}>
                   {item.icon}
                 </span>
                 {!isCollapsed && (
@@ -119,13 +119,13 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
       </nav>
 
       {/* Footer */}
-      <div className={`border-t border-charcoal/5 transition-all duration-300 ${isCollapsed ? 'p-2 space-y-1' : 'p-4 space-y-2'}`}>
+      <div className={`border-t border-charcoal/5 transition-all duration-300 ${isCollapsed ? 'p-1.5 sm:p-2 space-y-1' : 'p-3 sm:p-4 space-y-2'}`}>
 
         <button
           onClick={() => openConfirmation('logout')}
-          className={`w-full flex items-center justify-center transition-all border cursor-pointer hover:bg-red-50 group relative ${isCollapsed ? 'p-3 border-transparent' : 'gap-3 px-4 py-3 uppercase tracking-[0.2em] text-[10px] font-black text-red-500 border-red-50'}`}
+          className={`w-full flex items-center justify-center transition-all border cursor-pointer hover:bg-red-50 group relative ${isCollapsed ? 'p-2.5 sm:p-3 border-transparent' : 'gap-2.5 px-3 sm:px-4 py-2 sm:py-3 uppercase tracking-[0.15em] sm:tracking-[0.2em] text-[9px] sm:text-[10px] font-black text-red-500 border-red-50'}`}
         >
-          <span className="material-symbols-outlined text-lg">logout</span>
+          <span className="material-symbols-outlined text-base sm:text-lg">logout</span>
           {!isCollapsed && <span>Logout</span>}
           {isCollapsed && (
             <div className="absolute left-20 px-3 py-1 bg-red-500 text-white text-[10px] font-bold uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">

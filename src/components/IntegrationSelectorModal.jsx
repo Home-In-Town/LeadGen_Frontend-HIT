@@ -45,14 +45,14 @@ const IntegrationSelectorModal = ({ isOpen, onClose }) => {
         onClick={onClose}
       />
       
-      <div className="relative w-full max-w-2xl bg-white border-2 border-charcoal shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-6 sm:p-8 animate-in zoom-in-95 duration-200">
+      <div className="relative w-full max-w-lg bg-white border-2 border-charcoal shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] p-3 sm:p-5 animate-in zoom-in-95 duration-200">
         {/* Header */}
-        <div className="flex justify-between items-start mb-8">
+        <div className="flex justify-between items-start mb-4 sm:mb-5">
           <div>
-            <h2 className="text-xl sm:text-2xl font-black uppercase tracking-tighter leading-tight">
+            <h2 className="text-base sm:text-lg font-black uppercase tracking-tighter leading-tight">
               Select Integration
             </h2>
-            <p className="text-charcoal/40 text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.2em] mt-1">
+            <p className="text-charcoal/40 text-[7px] sm:text-[8px] font-bold uppercase tracking-[0.2em] mt-0.5">
               Choose a platform to connect
             </p>
           </div>
@@ -65,7 +65,7 @@ const IntegrationSelectorModal = ({ isOpen, onClose }) => {
         </div>
 
         {/* Integration Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+        <div className="grid grid-cols-2 gap-2.5 sm:gap-4">
           {integrations.map((item) => (
             <div 
               key={item.id}
@@ -73,29 +73,24 @@ const IntegrationSelectorModal = ({ isOpen, onClose }) => {
                 navigate(item.path);
                 onClose();
               }}
-              className="group bg-white border-2 p-5 sm:p-6 transition-all cursor-pointer relative overflow-hidden flex flex-col justify-between min-h-[140px] hover:-translate-y-1 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+              className="group bg-white border-2 p-3 sm:p-4 transition-all cursor-pointer relative overflow-hidden flex flex-col items-center text-center justify-center min-h-[90px] sm:min-h-[110px] hover:-translate-y-0.5 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
               style={{ borderColor: item.color }}
             >
               <div className="relative z-10">
-                <div className="flex justify-between items-start mb-3">
+                <div className="flex justify-center mb-2">
                   <div 
-                    className="w-10 h-10 border-2 rounded-sm p-2 flex items-center justify-center transition-colors group-hover:bg-charcoal group-hover:text-white"
+                    className="w-7 h-7 border-[1.5px] rounded-sm p-1.5 flex items-center justify-center transition-colors group-hover:bg-charcoal group-hover:text-white"
                     style={{ borderColor: item.color, color: item.color }}
                   >
                     {item.icon}
                   </div>
                 </div>
-                <h3 className="text-sm font-black uppercase tracking-tight text-charcoal mb-0.5">
+                <h3 className="text-[10px] sm:text-xs font-black uppercase tracking-tight text-charcoal mb-0.5">
                   {item.name}
                 </h3>
-                <p className="text-[10px] font-bold text-charcoal/40 uppercase tracking-wider">
+                <p className="text-[8px] font-bold text-charcoal/40 uppercase tracking-tight">
                   {item.description}
                 </p>
-              </div>
-              <div className="relative z-10 flex justify-end mt-4">
-                <span className="material-symbols-outlined text-charcoal/20 group-hover:text-charcoal transition-colors">
-                  arrow_forward
-                </span>
               </div>
 
               {/* Hover background effect */}
@@ -108,8 +103,8 @@ const IntegrationSelectorModal = ({ isOpen, onClose }) => {
         </div>
 
         {/* Footer info */}
-        <div className="mt-8 pt-6 border-t border-charcoal/5 flex justify-center">
-          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-charcoal/30">
+        <div className="mt-4 pt-4 border-t border-charcoal/5 flex justify-center">
+          <p className="text-[7px] font-black uppercase tracking-[0.2em] text-charcoal/30">
             More platforms coming soon
           </p>
         </div>
