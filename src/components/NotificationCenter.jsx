@@ -64,7 +64,7 @@ const NotificationCenter = () => {
         // LEAD_CREATED, LINK_OPENED → lead detail page
         if (leadId) return `/lead/${leadId}`;
 
-        return '/history'; // fallback
+        return '/crm'; // fallback
     };
 
     const handleNotificationClick = useCallback((n) => {

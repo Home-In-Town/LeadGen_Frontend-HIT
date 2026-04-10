@@ -39,7 +39,7 @@ const DashboardPage = () => {
         </div>
         <button 
           onClick={() => navigate('/add-user')}
-          className="w-full sm:w-auto bg-primary text-white py-2 sm:py-3 px-4 sm:px-6 font-black uppercase tracking-widest text-[10px] sm:text-xs border-2 border-primary hover:bg-charcoal hover:border-charcoal transition-all cursor-pointer flex items-center justify-center gap-2"
+          className="w-full sm:w-auto bg-primary text-white py-2 sm:py-3 px-4 sm:px-6 font-black uppercase tracking-widest text-[10px] sm:text-xs border-2 border-primary hover:bg-charcoal hover:border-charcoal transition-all cursor-pointer flex items-center justify-center gap-2 animate-bounce-continuous shadow-lg"
         >
           <span className="material-symbols-outlined text-base sm:text-lg font-black">person_add</span>
           ADD NEW

@@ -4,7 +4,7 @@ import * as api from '../api';
 import { useAuth } from '../context/AuthContext';
 import { getStatusClasses, getStatusLabel, formatTime } from '../utils/leadUtils';
 
-const HistoryPage = () => {
+const CRMPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [leads, setLeads] = useState([]);
@@ -124,7 +124,7 @@ const HistoryPage = () => {
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
           <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="font-black uppercase tracking-widest text-charcoal/40 text-[10px]">Verifying history...</p>
+          <p className="font-black uppercase tracking-widest text-charcoal/40 text-[10px]">Verifying CRM records...</p>
         </div>
       </div>
     );
@@ -137,7 +137,7 @@ const HistoryPage = () => {
       <div className="flex flex-col sm:flex-row justify-between items-center bg-white border-2 border-charcoal p-1.5 sm:p-2 mb-3 sm:mb-4 shadow-sm gap-2">
         <div className="text-center sm:text-left">
           <h1 className="text-sm sm:text-base font-black uppercase tracking-tighter leading-tight">
-            Qualification History
+            Lead Management (CRM)
           </h1>
           <p className="text-charcoal/40 text-[7px] sm:text-[8px] font-bold uppercase tracking-[0.2em] mt-0.5">
             Archive of processed leads
@@ -211,8 +211,8 @@ const HistoryPage = () => {
       <div className="space-y-3">
         {paginatedItems.length === 0 ? (
           <div className="bg-white border-2 border-dashed border-charcoal/10 p-12 text-center">
-            <span className="material-symbols-outlined text-4xl text-charcoal/10 mb-3">history</span>
-            <p className="text-charcoal/40 text-[10px] font-black uppercase tracking-widest">No history found.</p>
+            <span className="material-symbols-outlined text-4xl text-charcoal/10 mb-3">inventory_2</span>
+            <p className="text-charcoal/40 text-[10px] font-black uppercase tracking-widest">No records found in CRM.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-3 sm:gap-4">
@@ -245,7 +245,7 @@ const HistoryPage = () => {
                           <div className="font-mono text-charcoal/40 text-[9px] sm:text-[10px] font-bold flex flex-wrap items-center gap-1 uppercase tracking-tight">
                             <span>{group.phone_number}</span>
                             <span className="text-[8px] opacity-30">|</span>
-                            <span>History Below</span>
+                            <span>Records Below</span>
                           </div>
                         </div>
                       </div>
@@ -261,7 +261,7 @@ const HistoryPage = () => {
                           onClick={() => setSelectedAutomationGroup(group)}
                           className="px-2 py-1 border border-charcoal text-[8px] font-black uppercase tracking-widest hover:bg-charcoal hover:text-white transition-colors"
                         >
-                          History
+                          CRM
                         </button>
                       </div>
                     </div>
@@ -523,4 +523,4 @@ const HistoryPage = () => {
 );
 };
 
-export default HistoryPage;
+export default CRMPage;

@@ -99,16 +99,26 @@ const IntegrationsPage = () => {
         }
         setTesting(true);
         try {
-            // Use existing project api if available or create a test one
-            const res = await axios.get(`${API_BASE_URL}/api/projects/list`, { withCredentials: true });
-            if (res.data.success && res.data.source === 'external') {
-                addToast(`Successfully connected! Found ${res.data.data.length} projects.`, 'success');
+            // Use POST to test the current UI input (allows testing before saving)
+            const res = await axios.post(`${API_BASE_URL}/api/projects/test-connection`, {
+                sourceUrl: externalSource.sourceUrl,
+                webhookSecret: externalSource.webhookSecret === '********' ? null : externalSource.webhookSecret
+            }, { withCredentials: true });
+
+            if (res.data.success) {
+                addToast(res.data.message || `Successfully connected! Found ${res.data.data.length} projects.`, 'success');
             } else {
-                addToast('Connected, but using legacy bridge. Ensure webhook is active.', 'warning');
+                addToast('Connected, but verification failed.', 'warning');
             }
         } catch (error) {
             console.error('Test connection error:', error);
-            addToast(error.response?.data?.error || 'Connection failed', 'error');
+            // Handle both response data and generic error messages
+            const errorMsg = error.response?.data?.error || error.response?.data?.message || 'Connection failed';
+            addToast(errorMsg, 'error');
+            
+            if (error.response?.status === 403) {
+                console.log('TIP: Ensure your secret matches the one in Sales Website.');
+            }
         } finally {
             setTesting(false);
         }

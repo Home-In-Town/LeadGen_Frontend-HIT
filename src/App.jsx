@@ -16,7 +16,7 @@ import LeadChatSidebar from './components/lead/LeadChatSidebar';
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const AddUserPage = lazy(() => import('./pages/AddUserPage'));
 const LeadGenerationPage = lazy(() => import('./pages/LeadGenerationPage'));
-const HistoryPage = lazy(() => import('./pages/HistoryPage'));
+const CRMPage = lazy(() => import('./pages/CRMPage'));
 const UsersPage = lazy(() => import('./pages/UsersPage'));
 const LeadAutomationPage = lazy(() => import('./pages/LeadAutomationPage'));
 const ChatSelectionPage = lazy(() => import('./pages/ChatSelectionPage'));
@@ -83,7 +83,7 @@ function App() {
               <Route element={<DashboardLayout />}>
                 <Route path="/dashboard" element={<DashboardPage />} />
                 <Route path="/add-user" element={<AddUserPage />} />
-                <Route path="/history" element={<HistoryPage />} />
+                <Route path="/crm" element={<CRMPage />} />
                 <Route path="/lead/:id" element={<LeadGenerationPage />} />
                 <Route path="/users" element={<UsersPage />} />
                 <Route path="/lead-automation" element={<LeadAutomationPage />} />
@@ -99,6 +99,7 @@ function App() {
               </Route>
 
               {/* Legacy redirects */}
+              <Route path="/history" element={<Navigate to="/crm" replace />} />
               <Route path="/select-role" element={<Navigate to="/login" replace />} />
               <Route path="/builder-login" element={<Navigate to="/login" replace />} />
               <Route path="/agent-login" element={<Navigate to="/login" replace />} />

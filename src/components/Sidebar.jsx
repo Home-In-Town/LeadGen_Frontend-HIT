@@ -21,7 +21,7 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
 
   const menuItems = [
     { name: 'Dashboard', path: '/dashboard', icon: 'grid_view' },
-    { name: 'History', path: '/history', icon: 'history' },
+    { name: 'CRM', path: '/crm', icon: 'assignment' },
     { name: 'Chat', path: '/chat', icon: 'chat' },
     { name: 'Users', path: '/users', icon: 'person' },
     { name: 'Automation', path: '/lead-automation', icon: 'settings_suggest' },

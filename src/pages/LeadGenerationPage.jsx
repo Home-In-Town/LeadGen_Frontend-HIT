@@ -175,11 +175,11 @@ const LeadGenerationPage = () => {
       {/* Navigation & Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <button 
-          onClick={() => navigate('/history')}
+          onClick={() => navigate('/crm')}
           className="flex items-center gap-2 px-3 py-1 sm:py-1.5 bg-white border-2 border-charcoal text-[9px] sm:text-[10px] font-black uppercase tracking-widest hover:bg-charcoal hover:text-white transition-all cursor-pointer"
         >
           <span className="material-symbols-outlined text-xs sm:text-sm font-black">arrow_back</span>
-          History
+          CRM
         </button>
         <div className="text-left sm:text-right">
           <p className="text-[9px] font-black uppercase tracking-[0.2em] text-charcoal/30">Lead Reference ID</p>

@@ -23,6 +23,7 @@
   --animate-slide-up: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   --animate-fade-in: fadeIn 0.4s ease-out forwards;
   --animate-toast-in: toastIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  --animate-bounce-continuous: bounceContinuous 2s infinite ease-in-out;
 
   @keyframes fadeIn {
     from { opacity: 0; transform: translateY(10px); }
@@ -37,6 +38,11 @@
   @keyframes toastIn {
     from { opacity: 0; transform: translateX(24px); }
     to   { opacity: 1; transform: translateX(0); }
+  }
+
+  @keyframes bounceContinuous {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-4px); }
   }
 }
 

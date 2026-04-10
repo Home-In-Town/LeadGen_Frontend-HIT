@@ -49,7 +49,7 @@ const ToastCard = ({ notification, onDismiss }) => {
             return notification.leadId ? `/lead-automation/${notification.leadId}` : '/lead-automation';
         }
         if (notification.leadId) return `/lead/${notification.leadId}`;
-        return '/history';
+        return '/crm';
     };
 
     const handleClick = () => {
