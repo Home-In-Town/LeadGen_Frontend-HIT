@@ -63,6 +63,7 @@ export const deleteLead = (id) => leadsApi.delete(`/${id}`);
 
 // ====== VOICE CALL ENDPOINTS ======
 export const getCallStatus = (leadId) => voiceApi.get(`/status/${leadId}`);
+export const getCallLogs = (params) => voiceApi.get('/call-logs', { params });
 
 // ====== LEAD AUTOMATION ENDPOINTS ======
 export const getWhatsappTemplates = () => automationApi.get(`/templates`);

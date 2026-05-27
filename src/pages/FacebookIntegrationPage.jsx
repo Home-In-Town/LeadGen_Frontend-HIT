@@ -1,75 +1,202 @@
-import React, { useState, useEffect } from 'react';
-// axios removed as it was unused
+import React, { useState } from 'react';
 
 const FacebookIntegrationPage = () => {
     const [isConnected, setIsConnected] = useState(false);
-    const [projects, setProjects] = useState([]);
     const [loading, setLoading] = useState(false);
 
     const handleConnect = () => {
         const appId = import.meta.env.VITE_FB_APP_ID;
         const redirectUri = import.meta.env.VITE_FB_REDIRECT_URI;
-        const scope = 'pages_show_list,pages_read_engagement,pages_manage_ads,leads_retrieval';
-        
-        console.log("Connecting FB with:", { appId, redirectUri });
+
+        const scope =
+            'pages_show_list,pages_read_engagement,pages_manage_ads,leads_retrieval';
 
         if (!appId || appId === 'undefined') {
-            alert("Error: Facebook App ID is missing from environment variables.");
+            alert('Facebook App ID missing in environment variables.');
             return;
         }
 
-        const authUrl = `https://www.facebook.com/v20.0/dialog/oauth?client_id=${appId}&redirect_uri=${redirectUri}&scope=${scope}&response_type=code`;
-        
+        const authUrl =
+            `https://www.facebook.com/v20.0/dialog/oauth` +
+            `?client_id=${appId}` +
+            `&redirect_uri=${redirectUri}` +
+            `&scope=${scope}` +
+            `&response_type=code`;
+
         window.location.href = authUrl;
     };
 
-    return (
-        <div className="max-w-7xl mx-auto px-4 py-8">
-            <h1 className="text-3xl font-black uppercase mb-8">Facebook Ads Configuration</h1>
-            
-            <div className="border-2 border-black p-6 mb-8">
-                <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-xl font-bold uppercase underline">Connection Status</h2>
-                    {isConnected ? (
-                        <span className="bg-green-100 text-green-800 text-xs font-bold px-3 py-1 border border-green-800 uppercase">Connected</span>
-                    ) : (
-                        <span className="bg-red-100 text-red-800 text-xs font-bold px-3 py-1 border border-red-800 uppercase">Disconnected</span>
-                    )}
-                </div>
-                
-                {!isConnected ? (
-                    <div>
-                        <p className="mb-4 text-gray-700">Connect your Facebook Page to start receiving leads directly from your Lead Ads forms.</p>
-                        <button 
-                            onClick={handleConnect}
-                            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 uppercase text-sm flex items-center gap-2 transition-colors border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px]"
-                        >
-                            <span className="font-bold">f</span> Connect Facebook Page
-                        </button>
-                    </div>
-                ) : (
-                    <div className="flex gap-4">
-                        <button className="border-2 border-black font-bold py-2 px-6 uppercase text-sm hover:bg-gray-100">Refresh Pages</button>
-                        <button className="text-red-600 font-bold py-2 px-6 uppercase text-sm hover:underline">Disconnect</button>
-                    </div>
-                )}
-            </div>
+    const cardClass =
+    'bg-white/75 dark:bg-white/[0.04] backdrop-blur-xl border border-slate-200/80 dark:border-white/10 rounded-[24px] shadow-sm';
 
-            <div className={`border-2 border-black p-6 ${!isConnected ? 'opacity-50 grayscale' : ''}`}>
-                <h2 className="text-xl font-bold mb-4 uppercase underline">Form Mapping</h2>
-                {!isConnected ? (
-                    <p className="text-gray-500 italic">Please connect your Facebook account to manage form mappings.</p>
-                ) : (
-                    <div>
-                        <p className="mb-4">Map your Facebook Lead forms to specific projects in your Sales Website.</p>
-                        <div className="text-center py-12 bg-gray-50 border border-dashed border-gray-400">
-                            <p className="text-gray-500">No forms found. Make sure you have Lead Ads forms created on your Facebook Page.</p>
+    return (
+        <div className="min-h-screen px-4 py-6 md:px-8 md:py-10">
+            <div className="mx-auto max-w-7xl">
+
+                {/* Header */}
+                <div className={`${cardClass} mb-8 p-6 md:p-8`}>
+                    <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+                        <div>
+                            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/10 px-4 py-2">
+                                <span className="h-2 w-2 animate-pulse rounded-full bg-blue-500" />
+
+                                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-600 dark:text-blue-400">
+                                    Meta Lead Ads
+                                </span>
+                            </div>
+
+                            <h1 className="text-3xl font-black tracking-tight text-slate-900 dark:text-white md:text-4xl">
+                                Facebook Integration
+                            </h1>
+
+                            <p className="mt-2 text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400">
+                                Connect Facebook pages & receive lead ads instantly
+                            </p>
+                        </div>
+
+                        <div
+                            className={`inline-flex items-center gap-3 rounded-2xl px-5 py-3 font-black uppercase tracking-[0.25em]
+                            ${
+                                isConnected
+                                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                                    : 'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20'
+                            }`}
+                        >
+                            <span
+                                className={`h-3 w-3 rounded-full ${
+                                    isConnected
+                                        ? 'bg-emerald-500 animate-pulse'
+                                        : 'bg-red-500'
+                                }`}
+                            />
+
+                            {isConnected ? 'Connected' : 'Disconnected'}
                         </div>
                     </div>
-                )}
+                </div>
+
+                <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+
+                    {/* Left Column */}
+                    <div className="lg:col-span-1">
+                        <div className={`${cardClass} p-6 md:p-8`}>
+
+                            <div className="mb-6 flex items-center gap-4">
+                                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-lg">
+                                    <span className="text-2xl font-black">f</span>
+                                </div>
+
+                                <div>
+                                    <h2 className="text-xl font-black tracking-tight text-slate-900 dark:text-white">
+                                        Facebook OAuth
+                                    </h2>
+
+                                    <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400">
+                                        Secure Meta authentication
+                                    </p>
+                                </div>
+                            </div>
+
+                            {!isConnected ? (
+                                <div>
+                                    <div className="mb-6 rounded-2xl border border-blue-500/20 bg-blue-500/5 p-4">
+                                        <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+                                            Connect your Facebook account to sync Lead Ads
+                                            forms directly into your CRM pipeline.
+                                        </p>
+                                    </div>
+
+                                    <button
+                                        onClick={handleConnect}
+                                        disabled={loading}
+                                        className="group flex w-full items-center justify-center gap-3 rounded-2xl bg-blue-600 px-6 py-4 text-sm font-black uppercase tracking-[0.2em] text-white shadow-lg transition-all hover:scale-[1.02] hover:bg-blue-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+                                    >
+                                        <span className="text-xl font-black">f</span>
+
+                                        {loading
+                                            ? 'Connecting...'
+                                            : 'Connect Facebook'}
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    <button
+                                        className="w-full rounded-2xl border border-slate-300 dark:border-white/10 bg-white dark:bg-slate-900 px-6 py-4 text-sm font-black uppercase tracking-[0.2em] text-slate-700 dark:text-white transition-all hover:bg-slate-100 dark:hover:bg-slate-800"
+                                    >
+                                        Refresh Pages
+                                    </button>
+
+                                    <button
+                                        className="w-full rounded-2xl border border-red-500/20 bg-red-500/10 px-6 py-4 text-sm font-black uppercase tracking-[0.2em] text-red-600 transition-all hover:bg-red-500/20 dark:text-red-400"
+                                    >
+                                        Disconnect
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Right Column */}
+                    <div className="lg:col-span-2">
+                        <div className={`${cardClass} p-6 md:p-8`}>
+
+                            <div className="mb-6 flex items-center justify-between">
+                                <div>
+                                    <h2 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white">
+                                        Lead Form Mapping
+                                    </h2>
+
+                                    <p className="mt-1 text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400">
+                                        Map Meta forms to projects
+                                    </p>
+                                </div>
+                            </div>
+
+                            {!isConnected ? (
+                                <div className="rounded-3xl border border-dashed border-slate-300 dark:border-white/10 bg-slate-50/80 dark:bg-slate-900/40 p-12 text-center">
+
+                                    <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-slate-200 dark:bg-slate-800">
+                                        <span className="material-symbols-outlined text-4xl text-slate-500 dark:text-slate-400">
+                                            lock
+                                        </span>
+                                    </div>
+
+                                    <h3 className="mb-2 text-xl font-black text-slate-900 dark:text-white">
+                                        Facebook Not Connected
+                                    </h3>
+
+                                    <p className="mx-auto max-w-md text-sm leading-relaxed text-slate-500 dark:text-slate-400">
+                                        Connect your Facebook account first to access
+                                        lead forms and configure automatic lead routing.
+                                    </p>
+                                </div>
+                            ) : (
+                                <div className="rounded-3xl border border-dashed border-slate-300 dark:border-white/10 bg-slate-50/80 dark:bg-slate-900/40 p-12 text-center">
+
+                                    <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-blue-500/10">
+                                        <span className="material-symbols-outlined text-4xl text-blue-600 dark:text-blue-400">
+                                            description
+                                        </span>
+                                    </div>
+
+                                    <h3 className="mb-2 text-xl font-black text-slate-900 dark:text-white">
+                                        No Lead Forms Found
+                                    </h3>
+
+                                    <p className="mx-auto max-w-md text-sm leading-relaxed text-slate-500 dark:text-slate-400">
+                                        Create Facebook Lead Ads forms in Meta Ads Manager
+                                        to begin syncing leads automatically.
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                </div>
             </div>
         </div>
     );
 };
 
 export default FacebookIntegrationPage;
+

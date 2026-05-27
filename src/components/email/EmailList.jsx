@@ -1,117 +1,433 @@
+
 import React from 'react';
 
-const EmailList = ({ folder, emails, activeId, onEmailSelect, loading, onRefresh, search, onSearch, onMenuClick, isMobile }) => {
-
+const EmailList = ({
+    folder,
+    emails,
+    activeId,
+    onEmailSelect,
+    loading,
+    onRefresh,
+    search,
+    onSearch,
+    onMenuClick,
+    isMobile,
+}) => {
     const formatTime = (dateStr) => {
         const date = new Date(dateStr);
         const now = new Date();
         const diff = now - date;
 
-        if (diff < 86400000) { // Less than 24h
-            return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        if (diff < 86400000) {
+            return date.toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+            });
         }
-        return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+
+        return date.toLocaleDateString([], {
+            month: 'short',
+            day: 'numeric',
+        });
     };
 
     return (
-        <div className={`${isMobile ? 'w-full' : 'w-[280px] lg:w-[320px]'} border-r border-charcoal/5 flex flex-col h-full bg-white grow shrink-0 min-w-0 overflow-hidden`}>
-            {/* Header / Search */}
-            {/* Header / Search */}
-            <div className="p-2 sm:p-3 border-b border-charcoal/5">
-                <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
+        <section
+            className={`
+                ${
+                    isMobile
+                        ? 'w-full'
+                        : 'w-[340px] xl:w-[380px]'
+                }
+
+                h-full
+                flex
+                flex-col
+                shrink-0
+                overflow-hidden
+
+                bg-white/80
+                dark:bg-slate-950/70
+
+                backdrop-blur-2xl
+
+                border-r
+                border-slate-200/60
+                dark:border-white/10
+
+                text-slate-900
+                dark:text-white
+
+                transition-all
+                duration-300
+            `}
+        >
+            {/* Header */}
+            <div
+                className="
+                    px-5
+                    py-4
+                    border-b
+                    border-slate-200/60
+                    dark:border-white/10
+                    backdrop-blur-xl
+                "
+            >
+                <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
                         {isMobile && (
-                            <button 
+                            <button
                                 onClick={onMenuClick}
-                                className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-charcoal/10 transition-colors -ml-1"
+                                className="
+                                    w-10
+                                    h-10
+                                    rounded-2xl
+                                    flex
+                                    items-center
+                                    justify-center
+
+                                    bg-slate-100
+                                    dark:bg-white/[0.05]
+
+                                    hover:bg-slate-200
+                                    dark:hover:bg-white/[0.08]
+
+                                    transition-all
+                                "
                             >
-                                <span className="material-symbols-outlined text-[18px] text-charcoal">menu</span>
+                                <span className="material-symbols-outlined text-[20px]">
+                                    menu
+                                </span>
                             </button>
                         )}
-                        <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-charcoal opacity-60">
-                            {folder || 'Inbox'}
-                        </h2>
+
+                        <div>
+                            <p
+                                className="
+                                    text-[11px]
+                                    uppercase
+                                    tracking-[0.25em]
+                                    font-black
+                                    text-slate-500
+                                    dark:text-white/40
+                                "
+                            >
+                                Mailbox
+                            </p>
+
+                            <h2 className="text-xl font-semibold capitalize mt-1">
+                                {folder}
+                            </h2>
+                        </div>
                     </div>
-                    <button 
+
+                    <button
                         onClick={onRefresh}
-                        className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-charcoal/10 transition-colors"
+                        className="
+                            w-11
+                            h-11
+                            rounded-2xl
+                            flex
+                            items-center
+                            justify-center
+
+                            bg-slate-100
+                            dark:bg-white/[0.05]
+
+                            hover:bg-slate-200
+                            dark:hover:bg-white/[0.08]
+
+                            transition-all
+                        "
                     >
-                        <span className={`material-symbols-outlined text-[16px] text-charcoal/30 ${loading ? 'animate-spin' : ''}`}>
+                        <span
+                            className={`
+                                material-symbols-outlined
+                                text-[20px]
+                                ${
+                                    loading
+                                        ? 'animate-spin'
+                                        : ''
+                                }
+                            `}
+                        >
                             refresh
                         </span>
                     </button>
                 </div>
 
-                {/* Search Bar */}
+                {/* Search */}
                 <div className="relative group">
-                    <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-[16px] text-charcoal/20 group-focus-within:text-charcoal transition-colors">
+                    <span
+                        className="
+                            material-symbols-outlined
+                            absolute
+                            left-4
+                            top-1/2
+                            -translate-y-1/2
+                            text-[20px]
+
+                            text-slate-400
+                            dark:text-white/30
+
+                            group-focus-within:text-cyan-500
+                            transition-colors
+                        "
+                    >
                         search
                     </span>
+
                     <input
                         type="text"
                         placeholder="Search emails..."
                         value={search}
-                        onChange={(e) => onSearch(e.target.value)}
-                        className="w-full bg-charcoal/[0.03] border border-charcoal/5 rounded-lg py-1.5 pl-8 pr-3 text-[9px] font-black text-charcoal placeholder:text-charcoal/20 focus:ring-1 focus:ring-charcoal/10 transition-all outline-none"
+                        onChange={(e) =>
+                            onSearch(e.target.value)
+                        }
+                        className="
+                            w-full
+                            h-14
+                            rounded-2xl
+
+                            pl-12
+                            pr-4
+
+                            text-sm
+
+                            bg-slate-100
+                            dark:bg-white/[0.04]
+
+                            border
+                            border-slate-200
+                            dark:border-white/10
+
+                            text-slate-900
+                            dark:text-white
+
+                            placeholder:text-slate-400
+                            dark:placeholder:text-white/30
+
+                            focus:outline-none
+                            focus:ring-2
+                            focus:ring-cyan-500/40
+                            focus:border-cyan-500/40
+
+                            transition-all
+                        "
                     />
                 </div>
             </div>
 
-            {/* List Body */}
-            <div className="flex-grow overflow-y-auto overflow-x-hidden custom-scrollbar">
+            {/* List */}
+            <div className="flex-1 overflow-y-auto custom-scrollbar">
                 {loading ? (
-                    <div className="p-10 text-center animate-pulse">
-                        <p className="text-[9px] font-black uppercase tracking-widest text-charcoal/20">Loading...</p>
+                    <div className="p-10 space-y-4">
+                        {[1, 2, 3, 4, 5].map((item) => (
+                            <div
+                                key={item}
+                                className="
+                                    h-24
+                                    rounded-3xl
+                                    bg-slate-100
+                                    dark:bg-white/[0.04]
+                                    animate-pulse
+                                "
+                            />
+                        ))}
                     </div>
                 ) : emails.length === 0 ? (
-                    <div className="p-20 text-center">
-                        <span className="material-symbols-outlined text-4xl text-charcoal/5 mb-4 italic">mail_lock</span>
-                        <p className="text-[11px] font-black uppercase tracking-[0.3em] text-charcoal/20">No emails found</p>
+                    <div
+                        className="
+                            h-full
+                            flex
+                            flex-col
+                            items-center
+                            justify-center
+                            text-center
+                            px-8
+                        "
+                    >
+                        <div
+                            className="
+                                w-24
+                                h-24
+                                rounded-3xl
+
+                                bg-cyan-500/10
+
+                                flex
+                                items-center
+                                justify-center
+
+                                mb-6
+                            "
+                        >
+                            <span className="material-symbols-outlined text-[42px] text-cyan-400">
+                                mail_lock
+                            </span>
+                        </div>
+
+                        <h3 className="text-xl font-semibold mb-2">
+                            No Emails Found
+                        </h3>
+
+                        <p className="text-sm text-slate-500 dark:text-white/40 max-w-[240px] leading-relaxed">
+                            Your mailbox is empty or no
+                            messages match the current
+                            search.
+                        </p>
                     </div>
                 ) : (
-                    <div className="divide-y divide-charcoal/5">
+                    <div className="p-3 space-y-2">
                         {emails.map((email) => {
-                            const leadName = email.leadId ? `${email.leadId.first_name} ${email.leadId.last_name || ''}` : email.to;
-                            const isSelected = activeId === email._id;
-                            const isUnread = email.status === 'inbox' && !email.isRead;
+                            const leadName = email.leadId
+                                ? `${email.leadId.first_name} ${
+                                      email.leadId.last_name ||
+                                      ''
+                                  }`
+                                : email.to;
+
+                            const isSelected =
+                                activeId === email._id;
+
+                            const isUnread =
+                                email.status === 'inbox' &&
+                                !email.isRead;
 
                             return (
                                 <button
                                     key={email._id}
-                                    onClick={() => onEmailSelect(email._id)}
-                                    className={`w-full text-left p-2.5 sm:p-3 flex flex-col gap-0.5 transition-all group relative overflow-hidden ${
-                                        isSelected ? 'bg-charcoal/[0.04]' : 'bg-white hover:bg-charcoal/[0.01]'
-                                    }`}
+                                    onClick={() =>
+                                        onEmailSelect(email._id)
+                                    }
+                                    className={`
+                                        w-full
+                                        text-left
+                                        relative
+                                        overflow-hidden
+
+                                        rounded-3xl
+                                        p-4
+
+                                        border
+
+                                        transition-all
+                                        duration-300
+
+                                        ${
+                                            isSelected
+                                                ? `
+                                                    bg-cyan-500/10
+                                                    border-cyan-500/20
+                                                    shadow-xl
+                                                    shadow-cyan-500/10
+                                                `
+                                                : `
+                                                    bg-slate-50
+                                                    dark:bg-white/[0.03]
+
+                                                    border-slate-200
+                                                    dark:border-white/5
+
+                                                    hover:bg-slate-100
+                                                    dark:hover:bg-white/[0.06]
+
+                                                    hover:border-cyan-500/10
+                                                `
+                                        }
+                                    `}
                                 >
-                                    {/* Unread indicator */}
+                                    {/* unread indicator */}
                                     {isUnread && (
-                                        <div className="absolute left-1.5 top-1/2 -translate-y-1/2 w-1.2 h-1.2 bg-blue-500 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.5)] animate-pulse" />
+                                        <div
+                                            className="
+                                                absolute
+                                                left-0
+                                                top-0
+                                                h-full
+                                                w-1.5
+                                                bg-cyan-400
+                                                shadow-lg
+                                                shadow-cyan-400/50
+                                            "
+                                        />
                                     )}
 
-                                    <div className="flex items-center justify-between gap-2 min-w-0">
-                                        <p className={`text-[9px] uppercase tracking-[0.05em] truncate ${
-                                            isUnread ? 'font-black text-charcoal' : 'font-bold text-charcoal/40'
-                                        }`}>
-                                            {leadName}
-                                        </p>
-                                        <p className="text-[8px] font-black uppercase tracking-tighter text-charcoal/20 tabular-nums shrink-0">
-                                            {formatTime(email.createdAt)}
-                                        </p>
+                                    {/* top row */}
+                                    <div className="flex items-start justify-between gap-3 mb-2">
+                                        <div className="min-w-0">
+                                            <h3
+                                                className={`
+                                                    text-sm
+                                                    truncate
+
+                                                    ${
+                                                        isUnread
+                                                            ? 'font-semibold'
+                                                            : 'font-medium opacity-80'
+                                                    }
+                                                `}
+                                            >
+                                                {leadName}
+                                            </h3>
+
+                                            <p
+                                                className="
+                                                    text-xs
+                                                    uppercase
+                                                    tracking-[0.15em]
+                                                    mt-1
+
+                                                    text-slate-500
+                                                    dark:text-white/30
+                                                "
+                                            >
+                                                {email.subject}
+                                            </p>
+                                        </div>
+
+                                        <span
+                                            className="
+                                                text-xs
+                                                shrink-0
+
+                                                text-slate-400
+                                                dark:text-white/30
+                                            "
+                                        >
+                                            {formatTime(
+                                                email.createdAt
+                                            )}
+                                        </span>
                                     </div>
 
-                                    <h3 className={`text-[11px] truncate transition-colors duration-300 leading-tight ${
-                                        isUnread ? 'font-black text-charcoal' : 'font-bold text-charcoal/70'
-                                    }`}>
-                                        {email.subject}
-                                    </h3>
-                                    
-                                    <p className="text-[9px] font-medium text-charcoal/30 truncate leading-relaxed group-hover:text-charcoal/60 transition-colors">
-                                        {email.snippet || "No preview available..."}
+                                    {/* snippet */}
+                                    <p
+                                        className="
+                                            text-sm
+                                            leading-relaxed
+                                            line-clamp-2
+
+                                            text-slate-600
+                                            dark:text-white/50
+                                        "
+                                    >
+                                        {email.snippet ||
+                                            'No preview available...'}
                                     </p>
 
-                                    {/* Selection Overlay Decor */}
+                                    {/* selected glow */}
                                     {isSelected && (
-                                        <div className="absolute left-0 top-0 w-0.5 h-full bg-charcoal animate-in slide-in-from-left duration-300" />
+                                        <div
+                                            className="
+                                                absolute
+                                                inset-0
+                                                rounded-3xl
+                                                ring-1
+                                                ring-cyan-400/30
+                                                pointer-events-none
+                                            "
+                                        />
                                     )}
                                 </button>
                             );
@@ -119,8 +435,9 @@ const EmailList = ({ folder, emails, activeId, onEmailSelect, loading, onRefresh
                     </div>
                 )}
             </div>
-        </div>
+        </section>
     );
 };
 
 export default EmailList;
+

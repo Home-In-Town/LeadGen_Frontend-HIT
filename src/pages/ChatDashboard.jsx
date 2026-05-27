@@ -1,139 +1,589 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
-import { getChatConversations, getChatMessages, sendChatMessage, markChatAsRead } from '../api';
+import {
+    useState,
+    useEffect,
+    useRef,
+    useCallback,
+    memo,
+} from 'react';
+
+import {
+    Link,
+    useNavigate,
+    useParams,
+} from 'react-router-dom';
+
+import {
+    getChatConversations,
+    getChatMessages,
+    sendChatMessage,
+    markChatAsRead,
+} from '../api';
+
 import { useNotifications } from '../context/NotificationContext';
 import { useAuth } from '../context/AuthContext';
 
-const EmptyChatPlaceholder = () => (
-   <div className="flex-1 flex flex-col items-center justify-center text-charcoal/40 bg-surface-subtle">
-       <span className="material-symbols-outlined text-[64px] mb-4 opacity-20">forum</span>
-       <h3 className="text-xl font-black uppercase tracking-widest m-0 mb-2 text-charcoal/60">Select a Conversation</h3>
-       <p className="text-sm font-medium m-0">Click on a lead to the left to start chatting</p>
-   </div>
-);
+const SYSTEM_SENDERS = [
+    'system',
+    'agent',
+    'builder',
+    'service_user',
+];
 
-const ChatSidebar = ({ conversations, activeLeadId, onSelect, loading }) => (
-    <div className="flex flex-col h-full bg-white font-display border-r border-charcoal/10 min-w-0 overflow-hidden">
-        <div className="p-2 border-b border-charcoal/10 bg-surface-subtle shrink-0">
-            <div className="flex items-center justify-between mb-1 opacity-60">
-                <Link to="/chat" className="text-[7.5px] font-black uppercase tracking-widest text-charcoal/40 hover:text-primary transition-all flex items-center gap-1 group/back">
-                    <span className="material-symbols-outlined text-[9px] group-hover/back:-translate-x-0.5 transition-transform">arrow_back</span>
-                    Switch Platform
-                </Link>
-                <div className="flex items-center gap-1 grayscale opacity-50">
-                    <span className="material-symbols-outlined text-[10px]">forum</span>
-                    <span className="text-[7.5px] font-black uppercase tracking-widest">WhatsApp</span>
+const formatTime = (date) => {
+    try {
+        return new Date(date).toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit',
+        });
+    } catch {
+        return '--:--';
+    }
+};
+
+const EmptyChatPlaceholder = memo(() => (
+    <div
+        className="
+            flex-1
+            flex
+            flex-col
+            items-center
+            justify-center
+            bg-slate-50
+            dark:bg-[#0B1120]
+            text-slate-400
+            transition-colors
+        "
+    >
+        <div
+            className="
+                w-24
+                h-24
+                rounded-full
+                bg-white
+                dark:bg-white/5
+                border
+                border-slate-200
+                dark:border-white/10
+                flex
+                items-center
+                justify-center
+                mb-6
+                shadow-sm
+            "
+        >
+            <span className="material-symbols-outlined text-[48px] opacity-30">
+                forum
+            </span>
+        </div>
+
+        <h3
+            className="
+                text-lg
+                font-black
+                uppercase
+                tracking-[0.2em]
+                text-slate-700
+                dark:text-slate-200
+                mb-2
+            "
+        >
+            Select a Conversation
+        </h3>
+
+        <p
+            className="
+                text-sm
+                text-slate-500
+                dark:text-slate-400
+            "
+        >
+            Click on a lead to start chatting
+        </p>
+    </div>
+));
+
+const ChatMessage = memo(({ msg }) => {
+    const isSystem = SYSTEM_SENDERS.includes(msg.sender);
+
+    return (
+        <div
+            className={`flex w-full ${
+                isSystem
+                    ? 'justify-end'
+                    : 'justify-start'
+            }`}
+        >
+            <div
+                className={`flex max-w-[92%] sm:max-w-[80%] gap-2 items-end ${
+                    isSystem
+                        ? 'flex-row-reverse'
+                        : 'flex-row'
+                }`}
+            >
+                {!isSystem && (
+                    <div
+                        className="
+                            hidden
+                            sm:flex
+                            w-8
+                            h-8
+                            rounded-full
+                            bg-slate-200
+                            dark:bg-white/10
+                            items-center
+                            justify-center
+                            text-slate-500
+                            dark:text-slate-300
+                            shrink-0
+                        "
+                    >
+                        <span className="material-symbols-outlined text-[16px]">
+                            person
+                        </span>
+                    </div>
+                )}
+
+                <div
+                    className={`
+                        px-4
+                        py-3
+                        rounded-2xl
+                        shadow-sm
+                        border
+                        ${
+                            isSystem
+                                ? `
+                                    bg-primary/10
+                                    border-primary/10
+                                    text-slate-800
+                                    dark:text-white
+                                    rounded-br-md
+                                `
+                                : `
+                                    bg-white
+                                    dark:bg-[#1E293B]
+                                    border-slate-200
+                                    dark:border-white/10
+                                    text-slate-800
+                                    dark:text-slate-100
+                                    rounded-bl-md
+                                `
+                        }
+                    `}
+                >
+                    {msg.messageType === 'template' && (
+                        <div
+                            className="
+                                flex
+                                items-center
+                                gap-1
+                                mb-1
+                                opacity-60
+                            "
+                        >
+                            <span className="material-symbols-outlined text-[12px]">
+                                smart_toy
+                            </span>
+
+                            <span
+                                className="
+                                    text-[9px]
+                                    uppercase
+                                    tracking-widest
+                                    font-black
+                                "
+                            >
+                                Template
+                            </span>
+                        </div>
+                    )}
+
+                    <p
+                        className="
+                            text-[13px]
+                            leading-relaxed
+                            whitespace-pre-wrap
+                            break-words
+                        "
+                    >
+                        {msg.content}
+                    </p>
+
+                    <div
+                        className="
+                            flex
+                            items-center
+                            justify-end
+                            gap-1
+                            mt-2
+                            opacity-60
+                        "
+                    >
+                        <span
+                            className="
+                                text-[10px]
+                                font-bold
+                            "
+                        >
+                            {formatTime(msg.createdAt)}
+                        </span>
+
+                        {isSystem &&
+                            msg.deliveryStatus ===
+                                'read' && (
+                                <span
+                                    className="
+                                        material-symbols-outlined
+                                        text-[14px]
+                                        text-blue-500
+                                    "
+                                >
+                                    done_all
+                                </span>
+                            )}
+                    </div>
                 </div>
             </div>
-            <h2 className="text-[9px] font-black uppercase tracking-widest text-charcoal m-0 flex items-center gap-2">
-                Conversations
-            </h2>
         </div>
-        <div className="flex-1 overflow-y-auto">
-            {loading ? (
-                <div className="p-8 flex flex-col items-center justify-center gap-3">
-                    <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-                    <span className="text-[10px] uppercase font-black tracking-widest text-charcoal/30">Loading...</span>
+    );
+});
+
+const ChatSidebar = memo(
+    ({
+        conversations,
+        activeLeadId,
+        onSelect,
+        loading,
+    }) => (
+        <div
+            className="
+                flex
+                flex-col
+                h-full
+                bg-white
+                dark:bg-[#0F172A]
+                border-r
+                border-slate-200
+                dark:border-white/10
+            "
+        >
+            {/* Header */}
+            <div
+                className="
+                    p-4
+                    border-b
+                    border-slate-200
+                    dark:border-white/10
+                    bg-slate-50
+                    dark:bg-white/[0.03]
+                    shrink-0
+                "
+            >
+                <div
+                    className="
+                        flex
+                        items-center
+                        justify-between
+                        mb-3
+                    "
+                >
+                    <Link
+                        to="/chat"
+                        className="
+                            flex
+                            items-center
+                            gap-1
+                            text-[10px]
+                            font-black
+                            uppercase
+                            tracking-[0.15em]
+                            text-slate-400
+                            hover:text-primary
+                            transition-colors
+                        "
+                    >
+                        <span className="material-symbols-outlined text-[14px]">
+                            arrow_back
+                        </span>
+
+                        Switch Platform
+                    </Link>
+
+                    <div
+                        className="
+                            flex
+                            items-center
+                            gap-1
+                            text-green-500
+                        "
+                    >
+                        <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+
+                        <span
+                            className="
+                                text-[9px]
+                                uppercase
+                                font-black
+                                tracking-widest
+                            "
+                        >
+                            Live
+                        </span>
+                    </div>
                 </div>
-            ) : conversations.length === 0 ? (
-                <div className="p-8 text-center text-charcoal/40 text-xs font-bold uppercase tracking-wider">
-                    No active conversations
-                </div>
-            ) : (
-                <ul className="m-0 p-0 list-none divide-y divide-charcoal/5">
-                    {conversations.map(conv => {
-                        const displayName = (conv.lead.first_name || conv.lead.last_name) 
-                            ? `${conv.lead.first_name || ''} ${conv.lead.last_name || ''}`.trim()
-                            : conv.lead.phone_number;
-                            
-                        return (
-                            <li 
-                                key={conv.lead.id} 
-                                onClick={() => onSelect(conv.lead.id)}
-                                className={`p-2 sm:p-2.5 cursor-pointer transition-colors hover:bg-surface-subtle ${activeLeadId === conv.lead.id ? 'bg-primary/5 border-l-2 border-primary' : 'border-l-2 border-transparent'}`}
-                            >
-                                <div className="flex justify-between items-baseline mb-0">
-                                    <h4 className="m-0 text-[12px] font-bold text-charcoal truncate pr-2 tracking-tight">
-                                        {displayName}
-                                    </h4>
-                                    <div className="flex flex-col items-end gap-0.5">
-                                        <span className="text-[8.5px] uppercase font-bold text-charcoal/30 whitespace-nowrap shrink-0">
-                                            {new Date(conv.latestMessage.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                        </span>
-                                        {conv.unreadCount > 0 && activeLeadId !== conv.lead.id && (
-                                            <div className="flex items-center gap-1 h-3">
-                                                <div className="w-1.2 h-1.2 bg-green-500 rounded-full shadow-[0_0_8px_rgba(34,197,94,0.6)] animate-pulse"></div>
-                                                <span className="text-[6.5px] font-black tracking-widest text-green-600 uppercase">New</span>
-                                            </div>
-                                        )}
+
+                <h2
+                    className="
+                        text-sm
+                        font-black
+                        uppercase
+                        tracking-[0.2em]
+                        text-slate-800
+                        dark:text-white
+                    "
+                >
+                    Conversations
+                </h2>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto">
+                {loading ? (
+                    <div
+                        className="
+                            flex
+                            flex-col
+                            items-center
+                            justify-center
+                            h-full
+                            gap-4
+                        "
+                    >
+                        <div
+                            className="
+                                w-10
+                                h-10
+                                rounded-full
+                                border-4
+                                border-primary
+                                border-t-transparent
+                                animate-spin
+                            "
+                        />
+
+                        <span
+                            className="
+                                text-[10px]
+                                uppercase
+                                tracking-[0.2em]
+                                font-black
+                                text-slate-400
+                            "
+                        >
+                            Loading
+                        </span>
+                    </div>
+                ) : conversations.length === 0 ? (
+                    <div
+                        className="
+                            flex
+                            items-center
+                            justify-center
+                            h-full
+                            text-sm
+                            text-slate-400
+                            dark:text-slate-500
+                        "
+                    >
+                        No conversations
+                    </div>
+                ) : (
+                    <ul className="divide-y divide-slate-100 dark:divide-white/5">
+                        {conversations.map((conv) => {
+                            const displayName =
+                                conv.lead.first_name ||
+                                conv.lead.last_name
+                                    ? `${conv.lead.first_name || ''} ${
+                                          conv.lead.last_name ||
+                                          ''
+                                      }`.trim()
+                                    : conv.lead
+                                          .phone_number;
+
+                            const active =
+                                activeLeadId ===
+                                conv.lead.id;
+
+                            return (
+                                <li
+                                    key={conv.lead.id}
+                                    onClick={() =>
+                                        onSelect(
+                                            conv.lead.id
+                                        )
+                                    }
+                                    className={`
+                                        cursor-pointer
+                                        transition-all
+                                        border-l-4
+                                        p-4
+                                        hover:bg-slate-50
+                                        dark:hover:bg-white/[0.03]
+                                        ${
+                                            active
+                                                ? `
+                                                    border-primary
+                                                    bg-primary/5
+                                                    dark:bg-primary/10
+                                                `
+                                                : `
+                                                    border-transparent
+                                                `
+                                        }
+                                    `}
+                                >
+                                    <div
+                                        className="
+                                            flex
+                                            items-start
+                                            justify-between
+                                            gap-3
+                                            mb-1
+                                        "
+                                    >
+                                        <h4
+                                            className="
+                                                text-sm
+                                                font-bold
+                                                text-slate-800
+                                                dark:text-slate-100
+                                                truncate
+                                            "
+                                        >
+                                            {displayName}
+                                        </h4>
+
+                                        <div
+                                            className="
+                                                flex
+                                                flex-col
+                                                items-end
+                                                gap-1
+                                                shrink-0
+                                            "
+                                        >
+                                            <span
+                                                className="
+                                                    text-[10px]
+                                                    text-slate-400
+                                                "
+                                            >
+                                                {formatTime(
+                                                    conv
+                                                        .latestMessage
+                                                        .createdAt
+                                                )}
+                                            </span>
+
+                                            {conv.unreadCount >
+                                                0 &&
+                                                !active && (
+                                                    <div
+                                                        className="
+                                                            px-2
+                                                            py-0.5
+                                                            rounded-full
+                                                            bg-primary
+                                                            text-white
+                                                            text-[9px]
+                                                            font-black
+                                                        "
+                                                    >
+                                                        {
+                                                            conv.unreadCount
+                                                        }
+                                                    </div>
+                                                )}
+                                        </div>
                                     </div>
-                                </div>
-                                <p className="m-0 text-[10px] font-medium text-charcoal/50 truncate leading-relaxed">
-                                    {conv.latestMessage.sender === 'system' && <span className="material-symbols-outlined text-[10px] inline-block align-text-bottom mr-1 opacity-50">smart_toy</span>}
-                                    {conv.latestMessage.content}
-                                </p>
-                            </li>
-                        );
-                    })}
-                </ul>
-            )}
+
+                                    <p
+                                        className="
+                                            text-[12px]
+                                            text-slate-500
+                                            dark:text-slate-400
+                                            truncate
+                                        "
+                                    >
+                                        {
+                                            conv.latestMessage
+                                                .content
+                                        }
+                                    </p>
+                                </li>
+                            );
+                        })}
+                    </ul>
+                )}
+            </div>
         </div>
-    </div>
+    )
 );
 
-const ChatWindow = ({ leadId, leadName, onMessageReceived }) => {
+const ChatWindow = ({
+    leadId,
+    leadName,
+    onMessageReceived,
+}) => {
     const [messages, setMessages] = useState([]);
-    const [inputText, setInputText] = useState("");
+    const [inputText, setInputText] =
+        useState('');
+
     const messagesEndRef = useRef(null);
-    const containerRef = useRef(null);
-    const { socket } = useNotifications(); 
-    const [isAtBottom, setIsAtBottom] = useState(true);
 
-    const scrollToBottom = (behavior = "smooth", force = false) => {
-        // Sticky logic: if not using 'force' and not at bottom, skip scroll
-        if (!force && !isAtBottom) return;
-        messagesEndRef.current?.scrollIntoView({ behavior });
+    const { socket } = useNotifications();
+
+    const scrollToBottom = (
+        behavior = 'smooth'
+    ) => {
+        messagesEndRef.current?.scrollIntoView({
+            behavior,
+        });
     };
 
-    const handleScroll = (e) => {
-        const { scrollTop, scrollHeight, clientHeight } = e.target;
-        const atBottom = scrollHeight - scrollTop - clientHeight < 100;
-        setIsAtBottom(atBottom);
-    };
-
-    const handleMarkAsRead = useCallback(async () => {
-        if (!leadId || leadId === 'null') return;
-        try {
-            await markChatAsRead(leadId);
-            if (onMessageReceived) onMessageReceived();
-        } catch (err) {
-        }
-    }, [leadId, onMessageReceived]);
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => {
         const fetchMessages = async () => {
-            if (!leadId || leadId === 'null') return;
+            if (!leadId) return;
+
             try {
-                const res = await getChatMessages(leadId);
-                setMessages(res.data?.data || res.data || []);
-                // Force scroll on initial load (force = true)
-                setTimeout(() => scrollToBottom("auto", true), 100);
-            } catch (error) {
-            }
+                const res =
+                    await getChatMessages(
+                        leadId
+                    );
+
+                setMessages(
+                    res.data?.data ||
+                        res.data ||
+                        []
+                );
+
+                setTimeout(() => {
+                    scrollToBottom('auto');
+                }, 100);
+            } catch {}
         };
+
         fetchMessages();
 
-        // Mark as read (one-time side effect on leadId change)
-        if (leadId && leadId !== 'null') {
-            markChatAsRead(leadId).catch(console.error);
+        if (leadId) {
+            markChatAsRead(leadId).catch(
+                console.error
+            );
         }
-        
-    }, [leadId]); // Stabilized: only runs when leadId changes
+    }, [leadId]);
 
     useEffect(() => {
-        // Sticky auto-scroll: Only fires when messages array changes
-        scrollToBottom("smooth");
+        scrollToBottom();
     }, [messages]);
 
     useEffect(() => {
@@ -141,182 +591,325 @@ const ChatWindow = ({ leadId, leadName, onMessageReceived }) => {
 
         socket.emit('join_lead', leadId);
 
-        const handleNewMessage = (payload) => {
-            if (payload && payload.leadId === leadId) {
-                setMessages(prev => {
-                    // Avoid duplicates by real _id
-                    if (payload._id && prev.some(m => m._id === payload._id)) return prev;
-                    
-                    // Check if this is a duplicate of an optimistic message
-                    // (optimistic messages have numeric string _ids like Date.now())
-                    const isOutbound = payload.sender === 'system' || payload.sender === 'agent' || payload.sender === 'builder' || payload.sender === 'service_user';
-                    if (isOutbound) {
-                        // Find and replace matching optimistic message
-                        const optimisticIdx = prev.findIndex(m => 
-                            m.content === payload.content && 
-                            /^\d+$/.test(m._id) // Optimistic IDs are pure digits
-                        );
-                        if (optimisticIdx !== -1) {
-                            // Replace optimistic with real message
-                            const updated = [...prev];
-                            updated[optimisticIdx] = payload;
-                            return updated;
-                        }
+        const handleNewMessage = (
+            payload
+        ) => {
+            if (
+                payload &&
+                payload.leadId === leadId
+            ) {
+                setMessages((prev) => {
+                    if (
+                        payload._id &&
+                        prev.some(
+                            (m) =>
+                                m._id ===
+                                payload._id
+                        )
+                    ) {
+                        return prev;
                     }
-                    
-                    return [...prev, payload];
+
+                    return [
+                        ...prev,
+                        payload,
+                    ];
                 });
-                
-                // Track reading on inbound
-                markChatAsRead(leadId).catch(console.error);
-                
-                // Trigger parent update (if exists) without looping
-                if (onMessageReceived) onMessageReceived();
+
+                markChatAsRead(
+                    leadId
+                ).catch(console.error);
+
+                onMessageReceived?.();
             }
         };
 
-        const handleChatListUpdate = (payload) => {
-            if (payload && payload.leadId === leadId) {
-                getChatMessages(leadId).then(res => {
-                    setMessages(res.data?.data || res.data || []);
-                }).catch(() => {});
-                
-                if (onMessageReceived) onMessageReceived();
-            }
-        };
-
-        socket.on('new_chat_message', handleNewMessage);
-        socket.on('chat_list_update', handleChatListUpdate);
+        socket.on(
+            'new_chat_message',
+            handleNewMessage
+        );
 
         return () => {
-            socket.off('new_chat_message', handleNewMessage);
-            socket.off('chat_list_update', handleChatListUpdate);
+            socket.off(
+                'new_chat_message',
+                handleNewMessage
+            );
         };
-    }, [leadId, socket]); // Removed onMessageReceived and handleMarkAsRead to stop loops and handleMarkAsRead
+    }, [
+        socket,
+        leadId,
+        onMessageReceived,
+    ]);
 
     const handleSend = async (e) => {
         e.preventDefault();
+
         if (!inputText.trim()) return;
 
         const originalText = inputText;
+
         const optimisticMsg = {
             _id: Date.now().toString(),
-            leadId: leadId,
+            leadId,
             content: originalText,
-            sender: 'agent', 
-            createdAt: new Date().toISOString(),
-            status: 'sent'
+            sender: 'agent',
+            createdAt:
+                new Date().toISOString(),
         };
-        setMessages(prev => [...prev, optimisticMsg]);
-        setInputText("");
+
+        setMessages((prev) => [
+            ...prev,
+            optimisticMsg,
+        ]);
+
+        setInputText('');
 
         try {
-            const res = await sendChatMessage(leadId, { message: originalText });
-            // Replace optimistic message with real saved message from backend
-            const savedMsg = res.data?.data;
+            const res =
+                await sendChatMessage(
+                    leadId,
+                    {
+                        message:
+                            originalText,
+                    }
+                );
+
+            const savedMsg =
+                res.data?.data;
+
             if (savedMsg) {
-                setMessages(prev => prev.map(m => 
-                    m._id === optimisticMsg._id ? savedMsg : m
-                ));
+                setMessages((prev) =>
+                    prev.map((m) =>
+                        m._id ===
+                        optimisticMsg._id
+                            ? savedMsg
+                            : m
+                    )
+                );
             }
-            if (onMessageReceived) onMessageReceived();
-        } catch (error) {
-            setMessages(prev => prev.filter(m => m._id !== optimisticMsg._id));
+
+            onMessageReceived?.();
+        } catch {
+            setMessages((prev) =>
+                prev.filter(
+                    (m) =>
+                        m._id !==
+                        optimisticMsg._id
+                )
+            );
+
             setInputText(originalText);
         }
     };
 
     return (
-        <div className="flex flex-col h-full font-display bg-[#efeae2] relative min-h-0">
+        <div
+            className="
+                flex
+                flex-col
+                h-full
+                bg-[#efeae2]
+                dark:bg-[#0B1120]
+            "
+        >
             {/* Header */}
-            <div className="px-3 py-2 bg-white border-b border-charcoal/10 shrink-0 flex items-center justify-between z-10">
-                <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 bg-primary/10 rounded-full flex items-center justify-center text-primary">
-                        <span className="material-symbols-outlined text-[16px]">person</span>
+            <div
+                className="
+                    px-4
+                    py-3
+                    border-b
+                    border-slate-200
+                    dark:border-white/10
+                    bg-white
+                    dark:bg-[#0F172A]
+                    flex
+                    items-center
+                    justify-between
+                    shrink-0
+                "
+            >
+                <div className="flex items-center gap-3">
+                    <div
+                        className="
+                            w-10
+                            h-10
+                            rounded-full
+                            bg-primary/10
+                            flex
+                            items-center
+                            justify-center
+                            text-primary
+                        "
+                    >
+                        <span className="material-symbols-outlined">
+                            person
+                        </span>
                     </div>
+
                     <div>
-                        <h3 className="m-0 text-[11px] font-black uppercase tracking-widest text-charcoal">
-                            {leadName || `Lead #${leadId ? leadId.substring(0, 6) : '...'}`}
+                        <h3
+                            className="
+                                text-sm
+                                font-black
+                                uppercase
+                                tracking-[0.15em]
+                                text-slate-800
+                                dark:text-white
+                            "
+                        >
+                            {leadName ||
+                                'Unknown Lead'}
                         </h3>
-                        <div className="flex items-center gap-1 mt-0.5 opacity-60">
-                            <span className="relative flex h-1.2 w-1.2">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-1.2 w-1.2 bg-green-500"></span>
+
+                        <div
+                            className="
+                                flex
+                                items-center
+                                gap-2
+                                mt-1
+                            "
+                        >
+                            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+
+                            <span
+                                className="
+                                    text-[10px]
+                                    uppercase
+                                    font-bold
+                                    tracking-widest
+                                    text-slate-400
+                                "
+                            >
+                                Active Chat
                             </span>
-                            <span className="text-[7.5px] uppercase font-bold text-charcoal/40 tracking-widest">Active Chat</span>
                         </div>
                     </div>
                 </div>
             </div>
-            
-            {/* Messages Area */}
-            <div 
-                className="flex-1 overflow-y-auto p-3 sm:p-4 z-10 flex flex-col space-y-3"
-                onScroll={handleScroll}
+
+            {/* Messages */}
+            <div
+                className="
+                    flex-1
+                    overflow-y-auto
+                    p-4
+                    flex
+                    flex-col
+                    gap-4
+                "
             >
                 {messages.length === 0 ? (
-                    <div className="flex-1 flex items-center justify-center p-8">
-                        <div className="bg-white/50 px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider text-charcoal/30 border border-charcoal/5">
-                            No messages yet. Send a message to start conversation.
+                    <div
+                        className="
+                            flex-1
+                            flex
+                            items-center
+                            justify-center
+                        "
+                    >
+                        <div
+                            className="
+                                px-4
+                                py-2
+                                rounded-full
+                                bg-white/70
+                                dark:bg-white/5
+                                border
+                                border-slate-200
+                                dark:border-white/10
+                                text-[10px]
+                                uppercase
+                                tracking-widest
+                                text-slate-400
+                            "
+                        >
+                            No messages yet
                         </div>
                     </div>
                 ) : (
-                    messages.map((msg, idx) => {
-                        const isSystem = msg.sender === 'system' || msg.sender === 'agent' || msg.sender === 'builder' || msg.sender === 'service_user';
-                        
-                        return (
-                            <div key={msg._id || idx} className={`flex w-full ${isSystem ? 'justify-end' : 'justify-start'}`}>
-                                <div className={`flex max-w-[95%] sm:max-w-[85%] ${isSystem ? 'flex-row-reverse' : 'flex-row'} gap-1.5 items-end`}>
-                                    {!isSystem && (
-                                        <div className="w-5 h-5 rounded-full bg-charcoal/10 flex-shrink-0 flex items-center justify-center text-charcoal/50 mb-1 hidden sm:flex">
-                                            <span className="material-symbols-outlined text-[10px]">person</span>
-                                        </div>
-                                    )}
-                                    <div className={`relative px-2.5 py-1.5 rounded-xl shadow-sm ${
-                                        isSystem 
-                                        ? 'bg-[#d9fdd3] text-charcoal rounded-br-sm' 
-                                        : 'bg-white text-charcoal rounded-bl-sm border border-charcoal/5'
-                                    }`}>
-                                        {msg.messageType === 'template' && (
-                                            <div className="flex items-center gap-1 mb-0 opacity-40">
-                                                <span className="material-symbols-outlined text-[9px]">smart_toy</span>
-                                                <span className="text-[7.5px] font-black uppercase tracking-wider">Template</span>
-                                            </div>
-                                        )}
-                                        <p className="m-0 text-[11px] sm:text-[12px] font-medium leading-tight whitespace-pre-wrap">{msg.content}</p>
-                                        <div className="text-right mt-0.5 -mb-0.5 flex justify-end items-center gap-1 opacity-60">
-                                            <span className="text-[7.5px] uppercase font-bold text-charcoal/30 tracking-wider">
-                                                {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                            </span>
-                                            {isSystem && msg.deliveryStatus === 'read' && (
-                                                <span className="material-symbols-outlined text-[9px] text-blue-500">done_all</span>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        );
-                    })
+                    messages.map((msg) => (
+                        <ChatMessage
+                            key={msg._id}
+                            msg={msg}
+                        />
+                    ))
                 )}
+
                 <div ref={messagesEndRef} />
             </div>
 
-            {/* Input Area */}
-            <div className="p-1.5 sm:p-2 bg-white border-t border-charcoal/10 shrink-0 z-10 w-full">
-                <form onSubmit={handleSend} className="flex gap-1.5 max-w-4xl mx-auto items-center">
-                    <input 
-                        type="text" 
+            {/* Input */}
+            <div
+                className="
+                    p-3
+                    border-t
+                    border-slate-200
+                    dark:border-white/10
+                    bg-white
+                    dark:bg-[#0F172A]
+                    shrink-0
+                "
+            >
+                <form
+                    onSubmit={handleSend}
+                    className="
+                        flex
+                        items-center
+                        gap-2
+                    "
+                >
+                    <input
+                        type="text"
                         value={inputText}
-                        onChange={(e) => setInputText(e.target.value)}
-                        placeholder="Type a message..." 
-                        className="flex-1 px-3 py-1.5 sm:py-2 bg-surface-subtle border border-charcoal/10 rounded-full text-[12px] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-medium text-charcoal placeholder:text-charcoal/30"
+                        onChange={(e) =>
+                            setInputText(
+                                e.target.value
+                            )
+                        }
+                        placeholder="Type a message..."
+                        className="
+                            flex-1
+                            px-4
+                            py-3
+                            rounded-full
+                            border
+                            border-slate-200
+                            dark:border-white/10
+                            bg-slate-100
+                            dark:bg-white/5
+                            text-slate-800
+                            dark:text-white
+                            placeholder:text-slate-400
+                            focus:outline-none
+                            focus:ring-2
+                            focus:ring-primary/20
+                        "
                     />
-                    <button 
+
+                    <button
                         type="submit"
-                        disabled={!inputText.trim()}
-                        className="w-8 h-8 flex items-center justify-center bg-primary text-white rounded-full disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary/90 transition-all shadow-sm active:scale-95 flex-shrink-0"
+                        disabled={
+                            !inputText.trim()
+                        }
+                        className="
+                            w-12
+                            h-12
+                            rounded-full
+                            bg-primary
+                            text-white
+                            flex
+                            items-center
+                            justify-center
+                            shadow-lg
+                            transition-all
+                            hover:scale-105
+                            disabled:opacity-50
+                            disabled:cursor-not-allowed
+                        "
                     >
-                        <span className="material-symbols-outlined text-[16px] ml-0.5">send</span>
+                        <span className="material-symbols-outlined">
+                            send
+                        </span>
                     </button>
                 </form>
             </div>
@@ -325,110 +918,288 @@ const ChatWindow = ({ leadId, leadName, onMessageReceived }) => {
 };
 
 export default function ChatDashboard() {
-    const { leadId: urlLeadId } = useParams();
+    const { leadId: urlLeadId } =
+        useParams();
+
     const navigate = useNavigate();
-    const [conversations, setConversations] = useState([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [activeLeadId, setActiveLeadId] = useState(urlLeadId && urlLeadId !== 'null' ? urlLeadId : null);
-    const { socket } = useNotifications();
+
+    const [conversations, setConversations] =
+        useState([]);
+
+    const [isLoading, setIsLoading] =
+        useState(true);
+
+    const [
+        activeLeadId,
+        setActiveLeadId,
+    ] = useState(
+        urlLeadId &&
+            urlLeadId !== 'null'
+            ? urlLeadId
+            : null
+    );
+
+    const { socket } =
+        useNotifications();
+
     const { user } = useAuth();
 
-    // Sync state with URL parameter (deep linking)
     useEffect(() => {
-        const sanitizedId = urlLeadId && urlLeadId !== 'null' ? urlLeadId : null;
+        const sanitizedId =
+            urlLeadId &&
+            urlLeadId !== 'null'
+                ? urlLeadId
+                : null;
+
         setActiveLeadId(sanitizedId);
     }, [urlLeadId]);
 
     const handleSelectLead = (id) => {
         setActiveLeadId(id);
-        if (id && id !== 'null') {
-            navigate(`/chat/whatsapp/${id}`);
+
+        if (id) {
+            navigate(
+                `/chat/whatsapp/${id}`
+            );
         } else {
             navigate('/chat/whatsapp');
         }
     };
 
-    const fetchConversations = useCallback(async (quiet = false) => {
-        try {
-            if (!quiet) setIsLoading(true);
-            const res = await getChatConversations(user?.id, user?.role);
-            setConversations(res.data);
-        } catch (err) {
-        } finally {
-            setIsLoading(false);
-        }
-    }, []);
+    const fetchConversations =
+        useCallback(
+            async (quiet = false) => {
+                try {
+                    if (!quiet) {
+                        setIsLoading(true);
+                    }
+
+                    const res =
+                        await getChatConversations(
+                            user?.id,
+                            user?.role
+                        );
+
+                    setConversations(
+                        res.data
+                    );
+                } catch {
+                } finally {
+                    setIsLoading(false);
+                }
+            },
+            [user]
+        );
 
     useEffect(() => {
         fetchConversations();
     }, [fetchConversations]);
 
-    // Handle Socket Updates
     useEffect(() => {
         if (!socket) return;
 
-        const handleChatListUpdate = () => {
-            fetchConversations(true); // Quiet update
+        const handleRefresh = () => {
+            fetchConversations(true);
         };
 
-        // Also listen for new messages broadly to refresh sidebar
-        socket.on('new_chat_message', handleChatListUpdate);
-        socket.on('chat_list_update', handleChatListUpdate);
+        socket.on(
+            'new_chat_message',
+            handleRefresh
+        );
+
+        socket.on(
+            'chat_list_update',
+            handleRefresh
+        );
 
         return () => {
-            socket.off('new_chat_message', handleChatListUpdate);
-            socket.off('chat_list_update', handleChatListUpdate);
+            socket.off(
+                'new_chat_message',
+                handleRefresh
+            );
+
+            socket.off(
+                'chat_list_update',
+                handleRefresh
+            );
         };
     }, [socket, fetchConversations]);
 
     return (
-        <div className="flex h-[calc(100vh-100px)] sm:h-[calc(100vh-120px)] w-full max-w-full overflow-hidden bg-white border border-charcoal/10 rounded-lg shadow-sm my-0 mx-0">
-            <div className="w-[280px] lg:w-[320px] hidden md:flex flex-col min-w-0">
-                <ChatSidebar 
-                    conversations={conversations} 
-                    activeLeadId={activeLeadId} 
-                    onSelect={handleSelectLead} 
+        <div
+            className="
+                flex
+                h-[calc(100vh-100px)]
+                sm:h-[calc(100vh-120px)]
+                overflow-hidden
+                rounded-2xl
+                border
+                border-slate-200
+                dark:border-white/10
+                bg-white
+                dark:bg-[#0F172A]
+                shadow-sm
+            "
+        >
+            {/* Desktop Sidebar */}
+            <div
+                className="
+                    hidden
+                    md:flex
+                    w-[320px]
+                    shrink-0
+                    border-r
+                    border-slate-200/80
+                    dark:border-white/10
+                    bg-white
+                    dark:bg-[#0F172A]
+                "
+            >
+                <ChatSidebar
+                    conversations={
+                        conversations
+                    }
+                    activeLeadId={
+                        activeLeadId
+                    }
+                    onSelect={
+                        handleSelectLead
+                    }
                     loading={isLoading}
                 />
             </div>
-            
-            {/* Mobile View Sidebar (show only if no active lead) */}
-            <div className={`w-full md:hidden flex-col min-w-0 ${activeLeadId ? 'hidden' : 'flex'}`}>
-                <ChatSidebar 
-                    conversations={conversations} 
-                    activeLeadId={activeLeadId} 
-                    onSelect={handleSelectLead} 
+
+            {/* Mobile Sidebar */}
+            <div
+                className={`
+                    w-full
+                    md:hidden
+                    ${
+                        activeLeadId
+                            ? 'hidden'
+                            : 'flex'
+                    }
+                `}
+            >
+                <ChatSidebar
+                    conversations={
+                        conversations
+                    }
+                    activeLeadId={
+                        activeLeadId
+                    }
+                    onSelect={
+                        handleSelectLead
+                    }
                     loading={isLoading}
                 />
             </div>
-            
-            {/* Chat Window Container */}
-            <div className={`flex-1 flex flex-col min-w-0 ${!activeLeadId ? 'hidden md:flex' : 'flex'}`}>
-                {/* Mobile Back Button */}
-                {activeLeadId && (
-                    <div className="md:hidden bg-white border-b border-charcoal/10 p-2 flex items-center shrink-0">
-                        <button 
-                            onClick={() => handleSelectLead(null)}
-                            className="flex items-center text-charcoal/60 hover:text-primary transition-colors p-2"
-                        >
-                            <span className="material-symbols-outlined text-[20px] mr-1">arrow_back</span>
-                            <span className="text-[10px] font-black uppercase tracking-widest">Back to Conversations</span>
-                        </button>
-                    </div>
-                )}
-                
+
+            {/* Chat Window */}
+            <div
+                className={`
+                    flex-1
+                    min-w-0
+                    ${
+                        !activeLeadId
+                            ? 'hidden md:flex'
+                            : 'flex'
+                    }
+                `}
+            >
                 {activeLeadId ? (
-                    <ChatWindow 
-                        leadId={activeLeadId} 
-                        leadName={(() => {
-                            const conv = conversations.find(c => c.lead.id === activeLeadId);
-                            if (!conv) return null;
-                            return (conv.lead.first_name || conv.lead.last_name) 
-                                ? `${conv.lead.first_name || ''} ${conv.lead.last_name || ''}`.trim()
-                                : conv.lead.phone_number;
-                        })()}
-                        onMessageReceived={() => fetchConversations(true)}
-                    />
+                    <div className="flex flex-col w-full">
+                        {/* Mobile Header */}
+                        <div
+                            className="
+                                md:hidden
+                                border-b
+                                border-slate-200
+                                dark:border-white/10
+                                bg-white
+                                dark:bg-[#0F172A]
+                                p-2
+                            "
+                        >
+                            <button
+                                onClick={() =>
+                                    handleSelectLead(
+                                        null
+                                    )
+                                }
+                                className="
+                                    flex
+                                    items-center
+                                    gap-2
+                                    text-slate-500
+                                    hover:text-primary
+                                    transition-colors
+                                "
+                            >
+                                <span className="material-symbols-outlined">
+                                    arrow_back
+                                </span>
+
+                                <span
+                                    className="
+                                        text-[10px]
+                                        font-black
+                                        uppercase
+                                        tracking-[0.15em]
+                                    "
+                                >
+                                    Conversations
+                                </span>
+                            </button>
+                        </div>
+
+                        <ChatWindow
+                            leadId={
+                                activeLeadId
+                            }
+                            leadName={(() => {
+                                const conv =
+                                    conversations.find(
+                                        (
+                                            c
+                                        ) =>
+                                            c
+                                                .lead
+                                                .id ===
+                                            activeLeadId
+                                    );
+
+                                if (!conv)
+                                    return null;
+
+                                return conv
+                                    .lead
+                                    .first_name ||
+                                    conv
+                                        .lead
+                                        .last_name
+                                    ? `${
+                                          conv
+                                              .lead
+                                              .first_name ||
+                                          ''
+                                      } ${
+                                          conv
+                                              .lead
+                                              .last_name ||
+                                          ''
+                                      }`.trim()
+                                    : conv
+                                          .lead
+                                          .phone_number;
+                            })()}
+                            onMessageReceived={() =>
+                                fetchConversations(
+                                    true
+                                )
+                            }
+                        />
+                    </div>
                 ) : (
                     <EmptyChatPlaceholder />
                 )}

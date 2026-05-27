@@ -12,6 +12,7 @@ import DashboardLayout from './layouts/DashboardLayout';
 import PublicLayout from './layouts/PublicLayout';
 import LeadChatSidebar from './components/lead/LeadChatSidebar';
 
+
 // Lazy-loaded pages — only downloaded when the route is visited
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const AddUserPage = lazy(() => import('./pages/AddUserPage'));
@@ -27,6 +28,7 @@ const FacebookIntegrationPage = lazy(() => import('./pages/FacebookIntegrationPa
 const GoogleIntegrationPage = lazy(() => import('./pages/GoogleIntegrationPage'));
 const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage'));
 const TermsOfServicePage = lazy(() => import('./pages/TermsOfServicePage'));
+const CallLogsPage = lazy(() => import('./pages/CallLogsPage'));
 
 function PageLoader() {
     return (
@@ -96,6 +98,7 @@ function App() {
                 <Route path="/integrations" element={<IntegrationsPage />} />
                 <Route path="/integrations/facebook" element={<FacebookIntegrationPage />} />
                 <Route path="/integrations/google" element={<GoogleIntegrationPage />} />
+                <Route path="/call-logs" element={<CallLogsPage />} />
               </Route>
 
               {/* Legacy redirects */}

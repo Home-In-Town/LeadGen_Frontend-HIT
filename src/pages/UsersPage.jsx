@@ -7,79 +7,130 @@ import { useAuth } from '../context/AuthContext';
 const UsersPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+
   const [users, setUsers] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 15;
 
   const [selectedUsers, setSelectedUsers] = useState(new Set());
+
   const [processing, setProcessing] = useState(false);
+  const [processingMessage, setProcessingMessage] = useState('');
+
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [projects, setProjects] = useState([]);
   const [fetchingProjects, setFetchingProjects] = useState(false);
-  const [processingMessage, setProcessingMessage] = useState('');
+
+  const itemsPerPage = 15;
+
+  /* ---------------------------------- */
+  /* Fetch Users */
+  /* ---------------------------------- */
 
   const fetchUsers = useCallback(async () => {
     try {
       if (!user) return;
-      const params = { userId: user.id, role: user.role };
+
+      const params = {
+        userId: user.id,
+        role: user.role,
+      };
+
       const res = await api.getAllUsers(params);
-      setUsers(res.data);
+
+      setUsers(res.data || []);
     } catch (err) {
       console.error('Failed to fetch users:', err);
     }
-  }, [navigate]);
+  }, [user]);
 
   useEffect(() => {
     fetchUsers();
   }, [fetchUsers]);
 
-  // Reset to page 1 whenever searching
+  /* ---------------------------------- */
+  /* Search */
+  /* ---------------------------------- */
+
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery]);
 
-  const filteredUsers = useMemo(() => users.filter(u => {
-    const fullName = `${u.first_name} ${u.last_name}`.toLowerCase();
-    return fullName.includes(searchQuery.toLowerCase());
-  }), [users, searchQuery]);
+  const filteredUsers = useMemo(() => {
+    return users.filter((u) => {
+      const fullName =
+        `${u.first_name || ''} ${u.last_name || ''}`.toLowerCase();
+
+      return fullName.includes(searchQuery.toLowerCase());
+    });
+  }, [users, searchQuery]);
+
+  /* ---------------------------------- */
+  /* Pagination */
+  /* ---------------------------------- */
+
+  const totalItems = filteredUsers.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+
+  const startIndex = (currentPage - 1) * itemsPerPage;
+
+  const paginatedUsers = filteredUsers.slice(
+    startIndex,
+    startIndex + itemsPerPage
+  );
+
+  /* ---------------------------------- */
+  /* Selection */
+  /* ---------------------------------- */
 
   const handleSelectAll = (e) => {
-    const newSelected = new Set(selectedUsers);
+    const updated = new Set(selectedUsers);
+
     if (e.target.checked) {
-      filteredUsers.forEach(u => newSelected.add(u.id));
+      filteredUsers.forEach((u) => updated.add(u.id));
     } else {
-      filteredUsers.forEach(u => newSelected.delete(u.id));
+      filteredUsers.forEach((u) => updated.delete(u.id));
     }
-    setSelectedUsers(newSelected);
+
+    setSelectedUsers(updated);
   };
 
   const handleSelectUser = (userId) => {
-    const newSelected = new Set(selectedUsers);
-    if (newSelected.has(userId)) {
-      newSelected.delete(userId);
+    const updated = new Set(selectedUsers);
+
+    if (updated.has(userId)) {
+      updated.delete(userId);
     } else {
-      newSelected.add(userId);
+      updated.add(userId);
     }
-    setSelectedUsers(newSelected);
+
+    setSelectedUsers(updated);
   };
+
+  /* ---------------------------------- */
+  /* Bulk Lead */
+  /* ---------------------------------- */
 
   const handleBulkCreateLead = async () => {
     if (selectedUsers.size === 0) return;
+
     setFetchingProjects(true);
+
     try {
       const res = await api.getBuilderProjects();
-      const projList = res.data.data || [];
-      if (projList.length === 0) {
-        alert("No projects available");
-        setFetchingProjects(false);
+
+      const projectList = res.data.data || [];
+
+      if (!projectList.length) {
+        alert('No projects available');
         return;
       }
-      setProjects(projList);
+
+      setProjects(projectList);
       setShowProjectModal(true);
     } catch (err) {
-      console.error("Failed to fetch projects", err);
-      alert("Failed to fetch projects");
+      console.error('Failed to fetch projects:', err);
+      alert('Failed to fetch projects');
     } finally {
       setFetchingProjects(false);
     }
@@ -88,54 +139,53 @@ const UsersPage = () => {
   const executeBulkCreate = async (projectSlug, projectName) => {
     setShowProjectModal(false);
     setProcessing(true);
-    setProcessingMessage('PREPARING BATCHES...');
-    
+
     try {
-      if (!user) { alert('Please login first.'); return; }
+      if (!user) {
+        alert('Please login first.');
+        return;
+      }
+
       const creatorData = {
         creatorId: user.id || user._id,
-        creatorName: user.name || (user.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : 'Agent'),
+        creatorName:
+          user.name ||
+          `${user.first_name || ''} ${user.last_name || ''}`.trim(),
         creatorRole: user.role || 'agent',
         projectSlug,
-        projectName
+        projectName,
       };
 
       const userIds = Array.from(selectedUsers);
-      const BATCH_SIZE = 1;
-      const INTERVAL = 2000;
+
       let successCount = 0;
       let failCount = 0;
 
-      for (let i = 0; i < userIds.length; i += BATCH_SIZE) {
-        const batch = userIds.slice(i, i + BATCH_SIZE);
-        const currentBatchNum = Math.floor(i / BATCH_SIZE) + 1;
-        const totalBatches = Math.ceil(userIds.length / BATCH_SIZE);
-        
-        setProcessingMessage(`PROCESSING BATCH ${currentBatchNum}/${totalBatches}...`);
-
-        const results = await Promise.all(
-          batch.map(userId => 
-            api.createLeadFromUser(userId, creatorData)
-              .then(() => ({ success: true }))
-              .catch(err => ({ success: false, error: err }))
-          )
+      for (let i = 0; i < userIds.length; i++) {
+        setProcessingMessage(
+          `PROCESSING ${i + 1}/${userIds.length}...`
         );
 
-        results.forEach(res => {
-          if (res.success) successCount++;
-          else failCount++;
-        });
+        try {
+          await api.createLeadFromUser(userIds[i], creatorData);
 
-        if (i + BATCH_SIZE < userIds.length) {
-          setProcessingMessage(`WAITING FOR NEXT BATCH (${currentBatchNum}/${totalBatches})...`);
-          await new Promise(resolve => setTimeout(resolve, INTERVAL));
+          successCount++;
+        } catch (err) {
+          console.error(err);
+          failCount++;
         }
+
+        await new Promise((resolve) => setTimeout(resolve, 800));
       }
-      
-      alert(`PROCESS COMPLETE!\n\nSUCCESS: ${successCount}\nFAILED: ${failCount}`);
+
+      alert(
+        `PROCESS COMPLETE!\n\nSUCCESS: ${successCount}\nFAILED: ${failCount}`
+      );
+
       setSelectedUsers(new Set());
     } catch (err) {
       console.error('Bulk create failed:', err);
+
       alert('FAILED TO PROCESS SOME REQUESTS.');
     } finally {
       setProcessing(false);
@@ -143,29 +193,41 @@ const UsersPage = () => {
     }
   };
 
-  // Pagination Logic
-  const totalItems = filteredUsers.length;
-  const totalPages = Math.ceil(totalItems / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedUsers = filteredUsers.slice(startIndex, startIndex + itemsPerPage);
+  /* ---------------------------------- */
+  /* Bulk Delete */
+  /* ---------------------------------- */
 
   const handleBulkDelete = async () => {
     if (selectedUsers.size === 0) return;
-    if (!confirm(`Are you sure you want to delete ${selectedUsers.size} users?`)) return;
-    
+
+    if (
+      !window.confirm(
+        `Delete ${selectedUsers.size} selected users?`
+      )
+    ) {
+      return;
+    }
+
     setProcessing(true);
+
     try {
-      const promises = Array.from(selectedUsers).map(userId => 
-        api.deleteUser(userId).catch(err => ({ error: err, userId }))
+      const promises = Array.from(selectedUsers).map((userId) =>
+        api.deleteUser(userId).catch((err) => ({
+          error: err,
+          userId,
+        }))
       );
 
       await Promise.all(promises);
-      
-      // Update UI
-      setUsers(users.filter(u => !selectedUsers.has(u.id)));
+
+      setUsers((prev) =>
+        prev.filter((u) => !selectedUsers.has(u.id))
+      );
+
       setSelectedUsers(new Set());
     } catch (err) {
       console.error('Bulk delete failed:', err);
+
       alert('Failed to delete some users.');
     } finally {
       setProcessing(false);
@@ -173,169 +235,228 @@ const UsersPage = () => {
   };
 
   return (
-    <div className="animate-fade-in font-display text-charcoal pb-10">
-      {/* Unified Header & Search Bar */}
-      <div className="bg-white border-2 border-charcoal p-4 sm:p-5 mb-8 shadow-sm">
-        <div className="flex flex-col lg:flex-row justify-between items-center gap-6">
-          {/* Left: Title & Stats */}
-          <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-8 w-full lg:w-auto">
-            <div className="text-center sm:text-left">
-              <h1 className="text-xl md:text-2xl font-black uppercase tracking-tighter leading-tight">
+    <div className="relative animate-fade-in font-display pb-10">
+      {/* Background */}
+      <div
+        className="pointer-events-none absolute inset-0 -z-10 landing-gradient-mesh opacity-10 dark:opacity-20"
+        aria-hidden
+      />
+
+      <div
+        className="pointer-events-none absolute inset-0 -z-10 landing-grid-bg opacity-10 dark:opacity-25"
+        aria-hidden
+      />
+
+      {/* ---------------------------------- */}
+      {/* Header */}
+      {/* ---------------------------------- */}
+
+      <div className="mb-8 rounded-[20px] border border-slate-200/70 dark:border-white/10 bg-white/70 dark:bg-slate-950/40 backdrop-blur-xl p-4 sm:p-6 shadow-sm">
+        <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-5">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-5">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900 dark:text-white">
                 User Management
               </h1>
-              <p className="text-charcoal/40 text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.2em]">
-                Manage all registered users
+
+              <p className="mt-1 text-[10px] font-black uppercase tracking-[0.25em] text-slate-600/70 dark:text-slate-300/60">
+                Manage registered users
               </p>
             </div>
-            
-            <div className="h-10 w-[2px] bg-charcoal/10 hidden sm:block"></div>
-            
-            <div className="flex items-center gap-3 bg-surface-subtle px-4 py-2 border border-charcoal/5">
-              <span className="material-symbols-outlined text-2xl text-charcoal/10">groups</span>
-              <div>
-                <h3 className="text-[8px] font-black uppercase tracking-[0.2em] text-charcoal/30">Total Users</h3>
-                <div className="text-xl font-black text-charcoal leading-none">{filteredUsers.length}</div>
+
+            <div className="hidden sm:block h-12 w-px bg-slate-200 dark:bg-white/10" />
+
+            <div className="rounded-[16px] border border-slate-200/70 dark:border-white/10 bg-white/70 dark:bg-white/[0.04] px-4 py-3">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-[14px] bg-primary/10 text-primary">
+                  <span className="material-symbols-outlined">
+                    groups
+                  </span>
+                </div>
+
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                    Total Users
+                  </p>
+
+                  <div className="text-2xl font-black text-slate-900 dark:text-white">
+                    {filteredUsers.length}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Right: Search & Add Button */}
-          <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
-            <div className="relative w-full sm:w-64">
-              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-charcoal/30 text-lg">search</span>
-              <input 
-                type="text" 
-                placeholder="FILTER BY NAME..." 
+          {/* Search + Add */}
+          <div className="flex flex-col sm:flex-row items-center gap-3 w-full xl:w-auto">
+            <div className="relative w-full sm:w-72">
+              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">
+                search
+              </span>
+
+              <input
+                type="text"
+                placeholder="Search users..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-surface-subtle border-2 border-transparent focus:border-charcoal/20 pl-10 pr-4 py-2 text-[10px] font-black placeholder-charcoal/20 outline-none transition-all uppercase tracking-widest"
+                className="w-full rounded-[14px] border border-slate-200 dark:border-white/10 bg-white/80 dark:bg-white/[0.04] pl-10 pr-4 py-3 text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 outline-none transition-all focus:border-primary/40 focus:ring-4 focus:ring-primary/10"
               />
             </div>
-            <button 
+
+            <button
               onClick={() => navigate('/add-user')}
-              className="w-full sm:w-auto bg-primary text-white py-2 px-5 font-black uppercase tracking-widest text-[10px] border-2 border-primary hover:bg-charcoal hover:border-charcoal transition-all cursor-pointer flex items-center justify-center gap-2 animate-bounce-continuous shadow-lg"
+              className="w-full sm:w-auto rounded-[14px] bg-primary px-5 py-3 text-[11px] font-black uppercase tracking-[0.2em] text-white transition-all hover:bg-charcoal shadow-lg"
             >
-              <span className="material-symbols-outlined text-base font-black">person_add</span>
-              ADD NEW
+              <div className="flex items-center justify-center gap-2">
+                <span className="material-symbols-outlined text-[18px]">
+                  person_add
+                </span>
+
+                Add User
+              </div>
             </button>
           </div>
         </div>
       </div>
 
-      {/* User List Section */}
-      <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b-2 border-charcoal/5 pb-2">
-        <h2 className="text-base sm:text-lg font-black uppercase tracking-tight flex items-center gap-2">
-          <span className="material-symbols-outlined text-lg sm:text-xl font-bold">list_alt</span>
-          User Records
-        </h2>
+      {/* ---------------------------------- */}
+      {/* Toolbar */}
+      {/* ---------------------------------- */}
 
-        {/* Bulk Actions Toolbar */}
-        <div className="flex items-center gap-3 w-full sm:w-auto">
+      <div className="mb-5 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <span className="material-symbols-outlined text-primary">
+            list_alt
+          </span>
+
+          <h2 className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-700 dark:text-slate-300">
+            User Records
+          </h2>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
           {processingMessage && (
-            <div className="flex items-center gap-2 bg-charcoal text-white px-3 py-1.5 animate-pulse border-2 border-primary shadow-[2px_2px_0px_0px_rgba(255,215,0,1)]">
-              <span className="material-symbols-outlined text-[14px] text-primary font-black animate-spin">sync</span>
-              <span className="text-[9px] font-black uppercase tracking-widest">{processingMessage}</span>
+            <div className="flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-2">
+              <span className="material-symbols-outlined animate-spin text-primary text-[16px]">
+                sync
+              </span>
+
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">
+                {processingMessage}
+              </span>
             </div>
           )}
-          
+
           {selectedUsers.size > 0 && (
-            <div className={`flex items-center gap-2 w-full sm:w-auto animate-fade-in ${processingMessage ? 'opacity-50 pointer-events-none' : ''}`}>
-              <span className="text-[10px] font-bold uppercase tracking-widest text-charcoal/40 mr-2 hidden md:inline">
+            <>
+              <div className="rounded-full border border-slate-200 dark:border-white/10 bg-white/70 dark:bg-white/[0.04] px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-700 dark:text-slate-300">
                 {selectedUsers.size} Selected
-              </span>
-              <button 
+              </div>
+
+              <button
                 onClick={handleBulkCreateLead}
                 disabled={processing || fetchingProjects}
-                className="bg-primary text-white px-3 py-1.5 font-black uppercase tracking-widest text-[9px] border border-primary hover:bg-charcoal hover:border-charcoal transition-all cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
+                className="rounded-[12px] bg-primary px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-white transition-all hover:bg-charcoal disabled:opacity-50"
               >
-                <span className="material-symbols-outlined text-[14px] font-black">bolt</span>
-                START LEAD
+                Start Lead
               </button>
-              <button 
+
+              <button
                 onClick={handleBulkDelete}
                 disabled={processing}
-                className="bg-red-600 text-white px-3 py-1.5 font-black uppercase tracking-widest text-[9px] border border-red-600 hover:bg-white hover:text-red-600 transition-all cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
+                className="rounded-[12px] border border-red-500 bg-red-500 px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-white transition-all hover:bg-red-600 disabled:opacity-50"
               >
-                <span className="material-symbols-outlined text-[14px] font-black">delete</span>
-                DELETE
+                Delete
               </button>
-            </div>
+            </>
           )}
         </div>
       </div>
-      
+
+      {/* ---------------------------------- */}
+      {/* Table */}
+      {/* ---------------------------------- */}
+
       {filteredUsers.length === 0 ? (
-        <div className="bg-white border-2 border-dashed border-charcoal/10 p-10 sm:p-12 text-center">
-            {searchQuery ? (
-              <>
-                <span className="material-symbols-outlined text-4xl sm:text-5xl text-charcoal/10 mb-3">search_off</span>
-                <p className="text-charcoal/40 text-[9px] sm:text-[10px] font-black uppercase tracking-widest mb-4">No users match "{searchQuery}".</p>
-                <button 
-                  onClick={() => setSearchQuery('')}
-                  className="px-5 py-2 bg-charcoal text-white font-black uppercase tracking-widest text-[9px] hover:bg-primary transition-all cursor-pointer"
-                >
-                  Clear Search
-                </button>
-              </>
-            ) : (
-              <>
-                <span className="material-symbols-outlined text-4xl sm:text-5xl text-charcoal/10 mb-3">person_off</span>
-                <p className="text-charcoal/40 text-[9px] sm:text-[10px] font-black uppercase tracking-widest mb-4">No users added yet.</p>
-                <button 
-                  onClick={() => navigate('/add-user')}
-                  className="px-5 py-2 bg-charcoal text-white font-black uppercase tracking-widest text-[9px] hover:bg-primary transition-all cursor-pointer"
-                >
-                  Add First Person
-                </button>
-              </>
-            )}
+        <div className="rounded-[20px] border border-dashed border-slate-300 dark:border-white/10 bg-white/70 dark:bg-white/[0.03] p-12 text-center backdrop-blur-xl">
+          <span className="material-symbols-outlined text-6xl text-slate-300 dark:text-white/10">
+            person_off
+          </span>
+
+          <p className="mt-4 text-[11px] font-black uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400">
+            No users found
+          </p>
+
+          <button
+            onClick={() => navigate('/add-user')}
+            className="mt-6 rounded-[14px] bg-charcoal px-5 py-3 text-[10px] font-black uppercase tracking-[0.2em] text-white transition-all hover:bg-primary"
+          >
+            Add First User
+          </button>
         </div>
       ) : (
-        <div className="bg-white border-2 border-charcoal">
-          {/* List Header */}
-          <div className="flex items-center gap-4 p-3 border-b-2 border-charcoal/5 bg-surface-subtle">
-            <input 
-              type="checkbox" 
+        <div className="overflow-hidden rounded-[20px] border border-slate-200/70 dark:border-white/10 bg-white/75 dark:bg-slate-950/40 backdrop-blur-xl shadow-sm">
+          {/* Header */}
+          <div className="grid grid-cols-[40px_1fr_140px] sm:grid-cols-[40px_1fr_180px_160px] items-center gap-4 border-b border-slate-200 dark:border-white/10 bg-slate-50/70 dark:bg-white/[0.03] px-4 py-3">
+            <input
+              type="checkbox"
               onChange={handleSelectAll}
-              checked={filteredUsers.length > 0 && filteredUsers.every(u => selectedUsers.has(u.id))}
-              className="w-4 h-4 accent-charcoal cursor-pointer"
+              checked={
+                filteredUsers.length > 0 &&
+                filteredUsers.every((u) =>
+                  selectedUsers.has(u.id)
+                )
+              }
+              className="h-4 w-4 accent-primary"
             />
-            <div className="text-[9px] font-black uppercase tracking-widest text-charcoal/40 flex-1">User Details</div>
-            {user?.role === 'admin' && <div className="text-[9px] font-black uppercase tracking-widest text-charcoal/40 w-32 hidden lg:block">Source</div>}
-            <div className="text-[9px] font-black uppercase tracking-widest text-charcoal/40 w-32 hidden sm:block">Phone</div>
+
+            <div className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400">
+              User
+            </div>
+
+            <div className="hidden sm:block text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400">
+              Phone
+            </div>
+
+            <div className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400">
+              Source
+            </div>
           </div>
 
-          {/* List Items */}
-          <div className="divide-y divide-charcoal/5">
-            {paginatedUsers.map((user) => (
-              <div 
-                key={user.id}
-                className={`flex items-center gap-4 p-3 transition-colors ${selectedUsers.has(user.id) ? 'bg-primary/5' : 'hover:bg-gray-50'}`}
+          {/* Rows */}
+          <div className="divide-y divide-slate-200/70 dark:divide-white/5">
+            {paginatedUsers.map((u) => (
+              <div
+                key={u.id}
+                className={`grid grid-cols-[40px_1fr_140px] sm:grid-cols-[40px_1fr_180px_160px] items-center gap-4 px-4 py-4 transition-all ${
+                  selectedUsers.has(u.id)
+                    ? 'bg-primary/5 dark:bg-primary/10'
+                    : 'hover:bg-slate-50 dark:hover:bg-white/[0.03]'
+                }`}
               >
-                <input 
-                  type="checkbox" 
-                  checked={selectedUsers.has(user.id)}
-                  onChange={() => handleSelectUser(user.id)}
-                  className="w-4 h-4 accent-charcoal cursor-pointer shrink-0"
+                <input
+                  type="checkbox"
+                  checked={selectedUsers.has(u.id)}
+                  onChange={() => handleSelectUser(u.id)}
+                  className="h-4 w-4 accent-primary"
                 />
-                
-                <div className="flex-1 min-w-0">
-                  <div className="font-bold text-sm text-charcoal uppercase tracking-tight truncate">
-                    {user.first_name} {user.last_name}
+
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-black uppercase tracking-tight text-slate-900 dark:text-white">
+                    {u.first_name} {u.last_name}
                   </div>
-                  <div className="sm:hidden text-[10px] font-mono text-charcoal/50 mt-0.5">
-                    {user.phone_number} {user?.role === 'admin' && user.createdBy?.name ? `• ${user.createdBy.name}` : ''}
+
+                  <div className="sm:hidden mt-1 text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                    {u.phone_number}
                   </div>
                 </div>
 
-                {user?.role === 'admin' && (
-                  <div className="hidden lg:block w-32 font-bold text-[10px] text-charcoal/40 uppercase tracking-widest truncate">
-                    {user.createdBy?.name || '—'}
-                  </div>
-                )}
+                <div className="hidden sm:block truncate font-mono text-xs text-slate-600 dark:text-slate-300">
+                  {u.phone_number}
+                </div>
 
-                <div className="hidden sm:block w-32 font-mono text-xs text-charcoal/60 truncate">
-                  {user.phone_number}
+                <div className="truncate text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                  {u.createdBy?.name || '—'}
                 </div>
               </div>
             ))}
@@ -343,112 +464,143 @@ const UsersPage = () => {
         </div>
       )}
 
-      {/* Pagination Controls */}
+      {/* ---------------------------------- */}
+      {/* Pagination */}
+      {/* ---------------------------------- */}
+
       {totalPages > 1 && (
         <div className="mt-8 flex flex-wrap items-center justify-center gap-2">
           <button
-            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-            disabled={currentPage === 1}
-            className="px-4 py-2 border-2 border-charcoal text-[10px] font-black uppercase tracking-widest hover:bg-charcoal hover:text-white transition-all disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-charcoal cursor-pointer"
-          >
-            PREV
-          </button>
-          
-          {(() => {
-            const range = [];
-            const totalVisible = 5;
-
-            if (totalPages <= totalVisible + 2) {
-              for (let i = 1; i <= totalPages; i++) range.push(i);
-            } else {
-              range.push(1);
-              if (currentPage <= 3) {
-                range.push(2, 3, '...', totalPages);
-              } else if (currentPage >= totalPages - 2) {
-                range.push('...', totalPages - 2, totalPages - 1, totalPages);
-              } else {
-                range.push('...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages);
-              }
+            onClick={() =>
+              setCurrentPage((prev) => Math.max(prev - 1, 1))
             }
+            disabled={currentPage === 1}
+            className="rounded-[12px] border border-slate-300 dark:border-white/10 px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-700 dark:text-slate-300 transition-all hover:bg-slate-100 dark:hover:bg-white/[0.04] disabled:opacity-40"
+          >
+            Prev
+          </button>
 
-            return range.map((page, i) => (
-              page === '...' ? (
-                <span key={`dots-${i}`} className="w-10 h-10 flex items-center justify-center font-black text-charcoal/20 select-none">
-                  ...
-                </span>
-              ) : (
-                <button
-                  key={page}
-                  onClick={() => setCurrentPage(page)}
-                  className={`w-10 h-10 border-2 font-black text-[10px] transition-all cursor-pointer flex items-center justify-center
-                    ${currentPage === page 
-                      ? 'bg-primary border-primary text-white' 
-                      : 'border-charcoal hover:bg-surface-subtle text-charcoal'}`}
-                >
-                  {page}
-                </button>
-              )
-            ));
-          })()}
+          {Array.from({ length: totalPages }).map((_, idx) => {
+            const page = idx + 1;
+
+            return (
+              <button
+                key={page}
+                onClick={() => setCurrentPage(page)}
+                className={`h-10 w-10 rounded-[12px] text-[11px] font-black transition-all ${
+                  currentPage === page
+                    ? 'bg-primary text-white shadow-lg'
+                    : 'border border-slate-300 dark:border-white/10 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/[0.04]'
+                }`}
+              >
+                {page}
+              </button>
+            );
+          })}
 
           <button
-            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+            onClick={() =>
+              setCurrentPage((prev) =>
+                Math.min(prev + 1, totalPages)
+              )
+            }
             disabled={currentPage === totalPages}
-            className="px-4 py-2 border-2 border-charcoal text-[10px] font-black uppercase tracking-widest hover:bg-charcoal hover:text-white transition-all disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-charcoal cursor-pointer"
+            className="rounded-[12px] border border-slate-300 dark:border-white/10 px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-700 dark:text-slate-300 transition-all hover:bg-slate-100 dark:hover:bg-white/[0.04] disabled:opacity-40"
           >
-            NEXT
+            Next
           </button>
         </div>
       )}
 
-      {/* Stats Footer */}
-      <div className="mt-12 flex flex-col sm:flex-row items-center justify-between gap-6 border-t-2 border-charcoal/5 pt-8">
-        <div className="flex flex-col">
-          <span className="text-[8px] font-black uppercase tracking-widest text-charcoal/30">Database Growth</span>
-          <span className="text-xl font-black">{users.length} Registered Users</span>
+      {/* ---------------------------------- */}
+      {/* Footer */}
+      {/* ---------------------------------- */}
+
+      <div className="mt-10 flex flex-col sm:flex-row items-center justify-between gap-5 border-t border-slate-200 dark:border-white/10 pt-6">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400">
+            Database Growth
+          </p>
+
+          <div className="mt-1 text-xl font-black text-slate-900 dark:text-white">
+            {users.length} Registered Users
+          </div>
         </div>
-        <div className="text-right">
-          <span className="text-[8px] font-black uppercase tracking-widest text-charcoal/30">Navigation</span>
-          <p className="font-mono text-xs font-bold uppercase">Page {currentPage} of {totalPages || 1}</p>
+
+        <div className="text-center sm:text-right">
+          <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400">
+            Navigation
+          </p>
+
+          <div className="mt-1 text-sm font-bold text-slate-700 dark:text-slate-300">
+            Page {currentPage} of {totalPages || 1}
+          </div>
         </div>
       </div>
 
-      {/* Project Selection Modal */}
-      {showProjectModal && createPortal(
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 overflow-hidden">
-          <div className="bg-white w-full max-w-sm border-2 border-charcoal shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] animate-scale-in">
-            <div className="flex justify-between items-center px-4 py-3 border-b-2 border-charcoal/10">
-              <h2 className="text-lg font-black uppercase tracking-tighter">Select Project</h2>
-              <button 
-                onClick={() => setShowProjectModal(false)} 
-                className="text-charcoal/40 hover:text-charcoal transition-colors cursor-pointer flex items-center justify-center"
-              >
-                <span className="material-symbols-outlined text-xl font-black">close</span>
-              </button>
-            </div>
-            <div className="p-5 max-h-[60vh] overflow-y-auto custom-scrollbar">
-              <p className="text-[9px] text-charcoal/40 uppercase font-black tracking-[0.2em] mb-4">Choose project to link leads</p>
-              <div className="space-y-2">
-                {projects.map(p => (
+      {/* ---------------------------------- */}
+      {/* Modal */}
+      {/* ---------------------------------- */}
+
+      {showProjectModal &&
+        createPortal(
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <div className="w-full max-w-md overflow-hidden rounded-[22px] border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-950 shadow-2xl">
+              <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 px-5 py-4">
+                <div>
+                  <h2 className="text-lg font-black text-slate-900 dark:text-white">
+                    Select Project
+                  </h2>
+
+                  <p className="mt-1 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                    Choose project to link leads
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => setShowProjectModal(false)}
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-300/70 dark:border-white/10 bg-white dark:bg-white/[0.05]
+                    text-slate-700 dark:text-white/80
+                    hover:bg-slate-100 dark:hover:bg-white/[0.12]
+                    hover:text-slate-900 dark:hover:text-white
+                    transition-all duration-200
+                  "
+                >
+                  <span className="material-symbols-outlined text-[20px] font-bold">
+                    close
+                  </span>
+                </button>
+              </div>
+
+              <div className="max-h-[60vh] overflow-y-auto p-5 space-y-3">
+                {projects.map((p) => (
                   <button
                     key={p._id || p.id || p.slug}
-                    onClick={() => {
-                        executeBulkCreate(p.slug, p.projectName);
-                        setShowProjectModal(false);
-                    }}
-                    className="w-full text-left px-4 py-3 border-2 border-charcoal/5 hover:border-black hover:bg-black hover:text-white transition-all cursor-pointer font-black uppercase tracking-tight text-xs"
+                    onClick={() =>
+                      executeBulkCreate(
+                        p.slug,
+                        p.projectName
+                      )
+                    }
+                    className="w-full rounded-[14px] border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.03] px-4 py-4 text-left transition-all hover:border-primary/40 hover:bg-primary/5 dark:hover:bg-primary/10"
                   >
-                    {p.projectName}
+                    <div className="text-sm font-black text-slate-900 dark:text-white">
+                      {p.projectName}
+                    </div>
+
+                    <div className="mt-1 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                      Click to continue
+                    </div>
                   </button>
                 ))}
               </div>
             </div>
-          </div>
-        </div>,
-        document.body
-      )}
+          </div>,
+          document.body
+        )}
     </div>
   );
 };
 
 export default UsersPage;
+

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import * as api from '../api';
 import { useAuth } from '../context/AuthContext';
@@ -7,823 +7,1232 @@ import { useNotifications } from '../context/NotificationContext';
 const LeadAutomationPage = () => {
   const { leadId } = useParams();
   const navigate = useNavigate();
+
   const { user } = useAuth();
   const { socket, addToast, playChime } = useNotifications();
+
+  /* ---------------------------------- */
+  /* STATE */
+  /* ---------------------------------- */
+
   const [lead, setLead] = useState(null);
-  
-  // Data status
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  
-  // Automations & Templates
+
   const [automations, setAutomations] = useState([]);
   const [templates, setTemplates] = useState([]);
-  const [allLeads, setAllLeads] = useState([]);
-  
-  // Calendar State
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedDateStamp, setSelectedDateStamp] = useState(null); // Selected date for adding a template
-  
-  // Modal State
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
-  const [selectedHistoryDate, setSelectedHistoryDate] = useState(null);
   const [projects, setProjects] = useState([]);
+  const [users, setUsers] = useState([]);
+
+  const [currentDate, setCurrentDate] = useState(new Date());
+
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [selectedHistoryDate, setSelectedHistoryDate] = useState(null);
+
+  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [isUserPickerOpen, setIsUserPickerOpen] = useState(!leadId);
+
+  const [isSaving, setIsSaving] = useState(false);
+
   const [newAutomation, setNewAutomation] = useState({
     templateName: '',
     time: '09:00',
     projectId: '',
-    selectedLeadId: '' // For when page is opened directly
   });
 
-  const [isSaving, setIsSaving] = useState(false);
-  const [isUserPickerOpen, setIsUserPickerOpen] = useState(!leadId);
+  /* ---------------------------------- */
+  /* THEME */
+  /* ---------------------------------- */
 
-  useEffect(() => {
-    if (!leadId) {
-      setIsUserPickerOpen(true);
-    } else {
-      setIsUserPickerOpen(false);
-    }
-  }, [leadId]);
+  const cardClass =
+    'bg-white/75 dark:bg-white/[0.04] border border-slate-200/80 dark:border-white/10 backdrop-blur-xl rounded-[18px] shadow-sm';
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    try {
-      if (!user) return;
+  const inputClass =
+  'w-full rounded-[14px] border border-slate-200 dark:border-white/10 bg-white dark:bg-[#111827] px-4 py-3 text-sm font-semibold text-slate-900 dark:text-white outline-none transition-all focus:border-primary appearance-none';
 
-      // Clear previous lead state to avoid overlap
-      setLead(null);
-      setAutomations([]);
+  const buttonPrimary =
+    'bg-primary text-white border border-primary hover:bg-charcoal hover:border-charcoal transition-all rounded-[14px] font-black uppercase tracking-widest text-[10px] px-5 py-3';
 
-      // Fetch Users instead of Leads for the "Recipient" list as requested
-      const usersRes = await api.getAllUsers({ userId: user.id, role: user.role });
-      if (usersRes.data) {
-        setAllLeads(usersRes.data);
-      }
+  const buttonSecondary =
+    'bg-white dark:bg-white/[0.04] text-slate-900 dark:text-white border border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/[0.08] transition-all rounded-[14px] font-black uppercase tracking-widest text-[10px] px-5 py-3';
 
-      // 2. Resolve the actual Lead
-      let actualLead = null;
-      if (leadId) {
-        // A. First, try to fetch as an existing lead (most common when coming from History)
-        try {
-          const summaryRes = await api.getSummary(leadId);
-          if (summaryRes.data && summaryRes.data.id) {
-            actualLead = summaryRes.data;
-            setLead(actualLead);
-            console.log('✅ Lead resolved directly from ID:', actualLead.id);
-          }
-        } catch (err) {
-          console.log('ℹ️ ID not found in leads, checking users...');
-        }
+  /* ---------------------------------- */
+  /* HELPERS */
+  /* ---------------------------------- */
 
-        // B. If not found as lead, check if it's a User ID to promote (coming from User Manager)
-        if (!actualLead && allLeads.length > 0) {
-          const selectedUser = allLeads.find(u => u.id === leadId || u._id === leadId);
-          if (selectedUser) {
-            try {
-              const promoteRes = await api.createLeadFromUser(selectedUser.id, {
-                creatorId: user.id,
-                creatorName: `${user.first_name} ${user.last_name}`,
-                creatorRole: user.role || 'agent',
-                skipCall: true
-              });
-              actualLead = promoteRes.data;
-              setLead(actualLead);
-              console.log('✅ Lead created/resolved from user:', actualLead.id);
-            } catch (err) {
-              console.error('Failed to resolve lead for user:', err);
-            }
-          }
-        }
-      }
+  const formatTime = (iso) =>
+    new Date(iso).toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
 
-      // 3. Fetch all automations by creator, filter to the resolved lead only
-      const autoRes = await api.getCreatorAutomations(user.id);
-      if (autoRes.data.success) {
-        const allAutomations = autoRes.data.data;
-        const filtered = actualLead
-          ? allAutomations.filter(auto => auto.leadId === actualLead.id)
-          : [];
-        setAutomations(filtered);
-      } else {
-        setAutomations([]);
-      }
+  const getTemplateLabel = (id) => {
+    const found = templates.find((t) => t.id === id);
+    return found?.label || id;
+  };
 
-      // 4. Fetch templates mapping
-      const tplRes = await api.getWhatsappTemplates();
-      if (tplRes.data.success) {
-        setTemplates(tplRes.data.data);
-      }
+  const getDaysInMonth = (year, month) =>
+    new Date(year, month + 1, 0).getDate();
 
-      // 5. Fetch Projects for dynamic variables
-      const projRes = await api.getBuilderProjects();
-      if (projRes.data.success) {
-        setProjects(projRes.data.data);
-      }
+  const getFirstDayOfMonth = (year, month) =>
+    new Date(year, month, 1).getDay();
 
-    } catch (err) {
-      console.error('Error fetching data:', err);
-      setError('Failed to load automation data.');
-    } finally {
-      setLoading(false);
-    }
-  }, [leadId, user, socket, addToast, playChime]);
+  /* ---------------------------------- */
+  /* CALENDAR */
+  /* ---------------------------------- */
 
-  useEffect(() => {
-    if (user) fetchData();
-  }, [leadId, user, fetchData]);
-
-  // Real-time synchronization
-  useEffect(() => {
-    if (!socket || !leadId) return;
-
-    // 1. Join lead room for real-time tracking updates
-    socket.emit('join_lead', leadId);
-
-    // 2. Optimized event handler for all automation-related real-time events
-    const handleEvents = (payload) => {
-      console.log('📡 Real-time automation event received:', payload);
-      
-      // A. Handle Link/Status Updates (link clicks, opened status)
-      if (payload.linkActivity || payload.status) {
-        setAutomations(prev => prev.map(auto => {
-          const payloadId = payload.automationId || payload._id;
-          if (auto._id === payloadId) {
-            return {
-              ...auto,
-              status: payload.status || auto.status,
-              linkActivity: {
-                ...auto.linkActivity,
-                ...payload.linkActivity
-              }
-            };
-          }
-          return auto;
-        }));
-      }
-
-      // B. Handle Creation (from other tabs/users/cron)
-      // Check if it's a "full" automation object and not just an update
-      if (payload.templateName && !payload.automationId && payload.leadId === leadId) {
-        setAutomations(prev => {
-          if (prev.some(a => a._id === (payload._id || payload.automationId))) return prev;
-          return [...prev, payload].sort((a, b) => new Date(a.scheduledAt) - new Date(b.scheduledAt));
-        });
-      }
-
-      // C. Handle Deletion (from other tabs/users)
-      if (payload.automationId && !payload.linkActivity && !payload.status) {
-        setAutomations(prev => prev.filter(a => a._id !== payload.automationId));
-      }
-    };
-
-    const events = ['automation_update', 'link_update', 'automation_created', 'automation_deleted'];
-    events.forEach(event => socket.on(event, handleEvents));
-
-    // 3. Re-join room on reconnection (Socket.IO loses rooms on disconnect)
-    const onConnect = () => {
-      console.log('🔌 Re-joined lead room after reconnection:', leadId);
-      socket.emit('join_lead', leadId);
-    };
-    socket.on('connect', onConnect);
-
-    return () => {
-      events.forEach(event => socket.off(event, handleEvents));
-      socket.off('connect', onConnect);
-    };
-  }, [socket, leadId]);
-
-  // Calendar Helpers
-  const getDaysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
-  const getFirstDayOfMonth = (year, month) => new Date(year, month, 1).getDay();
-  
-  const generateMonthGrid = () => {
+  const monthGrid = useMemo(() => {
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
-    
+
     const daysInMonth = getDaysInMonth(year, month);
     const firstDay = getFirstDayOfMonth(year, month);
-    
+
     const grid = [];
+
     let dayCount = 1;
-    
-    // Create 6 rows for maximum month layout
+
     for (let i = 0; i < 6; i++) {
       const week = [];
+
       for (let j = 0; j < 7; j++) {
         if (i === 0 && j < firstDay) {
-          week.push(null); // Empty cells before 1st of month
+          week.push(null);
         } else if (dayCount > daysInMonth) {
-          week.push(null); // Empty cells after last day of month
+          week.push(null);
         } else {
           week.push(new Date(year, month, dayCount));
           dayCount++;
         }
       }
+
       grid.push(week);
+
       if (dayCount > daysInMonth) break;
     }
+
     return grid;
-  };
+  }, [currentDate]);
 
-  // Check if a date has automations (using local date comparison to avoid timezone shifts)
-  const getAutomationsForDate = (dateObj) => {
-    if (!dateObj) return [];
+  const getAutomationsForDate = useCallback(
+    (dateObj) => {
+      if (!dateObj) return [];
 
-    const targetDateStr = dateObj.toDateString(); // "Fri Mar 20 2026"
+      const target = dateObj.toDateString();
 
-    return automations.filter(auto => {
-      const autoDate = new Date(auto.scheduledAt);
-      // Date match only — API endpoint already filters by leadId
-      return autoDate.toDateString() === targetDateStr;
-    });
-  };
+      return automations.filter((auto) => {
+        const autoDate = new Date(auto.scheduledAt);
+        return autoDate.toDateString() === target;
+      });
+    },
+    [automations]
+  );
 
-  // Formatting helpers
-  const formatTime = (isoString) => {
-    const d = new Date(isoString);
-    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
-  
-  const getTemplateLabel = (templateName) => {
-    const t = templates.find(t => t.id === templateName);
-    return t ? t.label : templateName;
-  };
+  /* ---------------------------------- */
+  /* FETCH */
+  /* ---------------------------------- */
 
-  // Actions
-  const handlePrevMonth = () => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
-  };
+  const fetchData = useCallback(async () => {
+    if (!user) return;
 
-  const handleNextMonth = () => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
-  };
+    try {
+      setLoading(true);
+      setError('');
 
-  const openAddModal = (dateObj) => {
-    setSelectedDateStamp(dateObj);
-    setNewAutomation({ 
-      templateName: '', 
-      time: '09:00', 
+      const [
+        usersRes,
+        templatesRes,
+        projectsRes,
+        automationsRes,
+      ] = await Promise.all([
+        api.getAllUsers({
+          userId: user.id,
+          role: user.role,
+        }),
+
+        api.getWhatsappTemplates(),
+
+        api.getBuilderProjects(),
+
+        api.getCreatorAutomations(user.id),
+      ]);
+
+      const fetchedUsers = usersRes?.data || [];
+      setUsers(fetchedUsers);
+
+      if (templatesRes?.data?.success) {
+        setTemplates(templatesRes.data.data);
+      }
+
+      if (projectsRes?.data?.success) {
+        setProjects(projectsRes.data.data);
+      }
+
+      let resolvedLead = null;
+
+      if (leadId) {
+        try {
+          const leadRes = await api.getSummary(leadId);
+
+          if (leadRes?.data?.id) {
+            resolvedLead = leadRes.data;
+          }
+        } catch {
+          const matchedUser = fetchedUsers.find(
+            (u) => u.id === leadId || u._id === leadId
+          );
+
+          if (matchedUser) {
+            try {
+              const promoteRes = await api.createLeadFromUser(
+                matchedUser.id,
+                {
+                  creatorId: user.id,
+                  creatorName: user.name,
+                  creatorRole: user.role,
+                  skipCall: true,
+                }
+              );
+
+              resolvedLead = promoteRes.data;
+            } catch (err) {
+              console.error(err);
+            }
+          }
+        }
+      }
+
+      setLead(resolvedLead);
+
+      if (automationsRes?.data?.success) {
+        const allAutos = automationsRes.data.data || [];
+
+        const filtered = resolvedLead
+          ? allAutos.filter(
+              (a) => a.leadId === resolvedLead.id
+            )
+          : [];
+
+        setAutomations(filtered);
+      }
+    } catch (err) {
+      console.error(err);
+      setError('Failed to load automation data.');
+    } finally {
+      setLoading(false);
+    }
+  }, [leadId, user]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  /* ---------------------------------- */
+  /* SOCKETS */
+  /* ---------------------------------- */
+
+  useEffect(() => {
+    if (!socket || !leadId) return;
+
+    socket.emit('join_lead', leadId);
+
+    const handleRealtime = (payload) => {
+      if (!payload) return;
+
+      if (
+        payload.linkActivity ||
+        payload.status
+      ) {
+        setAutomations((prev) =>
+          prev.map((auto) => {
+            const payloadId =
+              payload.automationId || payload._id;
+
+            if (auto._id === payloadId) {
+              return {
+                ...auto,
+                status: payload.status || auto.status,
+                linkActivity: {
+                  ...auto.linkActivity,
+                  ...payload.linkActivity,
+                },
+              };
+            }
+
+            return auto;
+          })
+        );
+      }
+
+      if (
+        payload.templateName &&
+        payload.leadId === leadId
+      ) {
+        setAutomations((prev) => {
+          if (
+            prev.some(
+              (a) =>
+                a._id ===
+                (payload._id ||
+                  payload.automationId)
+            )
+          ) {
+            return prev;
+          }
+
+          return [...prev, payload].sort(
+            (a, b) =>
+              new Date(a.scheduledAt) -
+              new Date(b.scheduledAt)
+          );
+        });
+      }
+
+      if (
+        payload.automationId &&
+        !payload.linkActivity &&
+        !payload.status
+      ) {
+        setAutomations((prev) =>
+          prev.filter(
+            (a) =>
+              a._id !== payload.automationId
+          )
+        );
+      }
+    };
+
+    socket.on('automation_update', handleRealtime);
+    socket.on('link_update', handleRealtime);
+    socket.on('automation_created', handleRealtime);
+    socket.on('automation_deleted', handleRealtime);
+
+    return () => {
+      socket.off(
+        'automation_update',
+        handleRealtime
+      );
+      socket.off('link_update', handleRealtime);
+      socket.off(
+        'automation_created',
+        handleRealtime
+      );
+      socket.off(
+        'automation_deleted',
+        handleRealtime
+      );
+    };
+  }, [socket, leadId]);
+
+  /* ---------------------------------- */
+  /* ACTIONS */
+  /* ---------------------------------- */
+
+  const openScheduleModal = (date) => {
+    setSelectedDate(date);
+
+    setNewAutomation({
+      templateName: '',
+      time: '09:00',
       projectId: '',
-      selectedLeadId: lead ? lead.id : ''
     });
-    setIsModalOpen(true);
+
+    setIsScheduleModalOpen(true);
   };
 
-  const openHistoryModal = (dateObj) => {
-    setSelectedHistoryDate(dateObj);
+  const openHistoryModal = (date) => {
+    setSelectedHistoryDate(date);
     setIsHistoryModalOpen(true);
   };
 
   const handleSaveAutomation = async () => {
-    if (!newAutomation.templateName || !newAutomation.time || !selectedDateStamp) {
-      alert("Please select a template and time.");
-      return;
-    }
-
-    if (!lead) {
-      alert("Please select a recipient user.");
-      return;
-    }
-
-    const finalLeadId = lead.id;
-
-    setIsSaving(true);
-    
-    // Parse time
-    const [hours, minutes] = newAutomation.time.split(':');
-    const scheduledAt = new Date(selectedDateStamp);
-    scheduledAt.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
-
-    // Prevent scheduling in the past
-    if (scheduledAt < new Date()) {
-      alert("Cannot schedule automations in the past.");
-      setIsSaving(false);
+    if (
+      !newAutomation.templateName ||
+      !selectedDate ||
+      !lead
+    ) {
       return;
     }
 
     try {
+      setIsSaving(true);
+
+      const [hours, minutes] =
+        newAutomation.time.split(':');
+
+      const scheduledAt = new Date(selectedDate);
+
+      scheduledAt.setHours(
+        parseInt(hours),
+        parseInt(minutes),
+        0,
+        0
+      );
+
       const payload = {
-        leadId: finalLeadId,
-        templateName: newAutomation.templateName,
-        scheduledAt: scheduledAt.toISOString(),
+        leadId: lead.id,
+        templateName:
+          newAutomation.templateName,
+        scheduledAt:
+          scheduledAt.toISOString(),
+
         createdBy: {
-           userId: user?.id,
-           role: user?.role,
-           name: user?.name
-        }
+          userId: user?.id,
+          role: user?.role,
+          name: user?.name,
+        },
       };
 
-      // Add dynamic button suffix if Virtual View is selected
-      if (newAutomation.templateName === 'lead_street_view' && newAutomation.projectId) {
+      if (
+        newAutomation.templateName ===
+          'lead_street_view' &&
+        newAutomation.projectId
+      ) {
         payload.button_0 = `${newAutomation.projectId}#street`;
       }
 
-      const res = await api.createLeadAutomation(payload);
+      const res =
+        await api.createLeadAutomation(
+          payload
+        );
 
-      
-      if (res.data.success) {
-        // Add to local state (already handled by socket listener normally, but local update is faster)
-        setAutomations(prev => [...prev, res.data.data].sort((a, b) => new Date(a.scheduledAt) - new Date(b.scheduledAt)));
-        
-        // Success Feedback
-        if (addToast) {
-          addToast('success', 'Automation Scheduled', `Template "${newAutomation.templateName}" scheduled successfully.`);
-          if (playChime) playChime();
-        }
-        
-        setIsModalOpen(false);
-      } else {
-        alert(res.data.error || "Failed to save");
+      if (res?.data?.success) {
+  const newAuto = res.data.data;
+
+  setAutomations((prev) => {
+    const exists = prev.some(
+      (a) =>
+        a._id === newAuto._id ||
+        (
+          a.leadId === newAuto.leadId &&
+          a.templateName === newAuto.templateName &&
+          new Date(a.scheduledAt).getTime() ===
+            new Date(newAuto.scheduledAt).getTime()
+        )
+    );
+
+    if (exists) return prev;
+
+    return [...prev, newAuto].sort(
+      (a, b) =>
+        new Date(a.scheduledAt) -
+        new Date(b.scheduledAt)
+    );
+  });
+
+        addToast?.(
+          'success',
+          'Automation Scheduled',
+          'Message scheduled successfully.'
+        );
+
+        playChime?.();
+
+        setIsScheduleModalOpen(false);
       }
     } catch (err) {
       console.error(err);
-      alert("Something went wrong saving the automation.");
+
+      addToast?.(
+        'error',
+        'Failed',
+        'Unable to save automation.'
+      );
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handleDelete = async (autoId, e) => {
+  const handleDelete = async (
+    automationId,
+    e
+  ) => {
     e.stopPropagation();
-    if (!confirm('Are you sure you want to delete this scheduled message?')) return;
-    
+
+    const confirmed = confirm(
+      'Delete this automation?'
+    );
+
+    if (!confirmed) return;
+
     try {
-      const res = await api.deleteLeadAutomation(autoId);
-      if (res.data.success) {
-        setAutomations(prev => prev.filter(a => a._id !== autoId));
-        if (addToast) {
-          addToast('info', 'Automation Deleted', 'The scheduled message has been removed.');
-        }
+      const res =
+        await api.deleteLeadAutomation(
+          automationId
+        );
+
+      if (res?.data?.success) {
+        setAutomations((prev) =>
+          prev.filter(
+            (a) => a._id !== automationId
+          )
+        );
+
+        addToast?.(
+          'info',
+          'Deleted',
+          'Automation removed.'
+        );
       }
     } catch (err) {
-      console.error('Failed to delete', err);
-      alert('Failed to delete automation');
+      console.error(err);
     }
   };
+
+  /* ---------------------------------- */
+  /* LOADING */
+  /* ---------------------------------- */
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-center">
-          <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="font-black uppercase tracking-widest text-charcoal/40 text-[10px]">Loading calendar...</p>
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-10 w-10 rounded-full border-4 border-primary border-t-transparent animate-spin" />
+
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">
+            Loading
+          </p>
         </div>
       </div>
     );
   }
 
-  // Generate grid for rendering
-  const monthGrid = generateMonthGrid();
-  const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  /* ---------------------------------- */
+  /* RENDER */
+  /* ---------------------------------- */
 
   return (
     <>
-      <div className="animate-fade-in font-display pb-5 max-w-5xl mx-auto px-4">
-      {/* Top Header Section - Re-styled to be more compact */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center py-3 sm:py-4 mb-1 sm:mb-2 border-b-4 border-[#232121]">
-        <div className="flex flex-col gap-0.5">
-          <button 
-            onClick={() => navigate(-1)}
-            className="group text-[8px] font-black uppercase tracking-widest text-[#232121]/40 hover:text-primary transition-colors flex items-center gap-1 mb-0.5"
-          >
-            <span className="material-symbols-outlined text-[10px] transition-transform group-hover:-translate-x-1">arrow_back</span>
-            Dashboard
-          </button>
-          
-          <div className="flex items-center gap-2">
-            <h1 className="text-base sm:text-xl font-black uppercase tracking-tighter text-[#232121] leading-none">
-              {currentDate.toLocaleDateString('default', { month: 'long', year: 'numeric' })}
-            </h1>
-            {lead && (
-              <span className="text-[9px] font-mono font-black uppercase tracking-tight text-[#232121] bg-[#13ec13] px-1.5 py-0.5 border border-[#232121] shadow-[1px_1px_0px_#232121]">
-                {lead.first_name} {lead.last_name}
-              </span>
-            )}
-          </div>
-        </div>
-        
-        <div className="flex items-center gap-2 mt-4 md:mt-0">
-          {/* "Manage in Calendar" style button */}
-          <button className="hidden sm:flex items-center gap-2 bg-white border-2 border-[#232121] px-3 py-1.5 text-[9px] font-black uppercase tracking-widest shadow-[3px_3px_0px_#232121] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_#232121] transition-all">
-            <span className="material-symbols-outlined text-xs">calendar_month</span>
-            Manage in Calendar
-          </button>
+      <div className="relative animate-fade-in font-display pb-10">
 
-          {/* Navigation Controls */}
-          <div className="flex items-center bg-white border-2 border-[#232121] shadow-[3px_3px_0px_#232121]">
-            <button 
-              onClick={handlePrevMonth}
-              className="p-2 border-r-2 border-[#232121] hover:bg-[#232121] hover:text-white transition-colors"
-            >
-              <span className="material-symbols-outlined block text-sm">chevron_left</span>
-            </button>
-            <button 
-              onClick={() => setCurrentDate(new Date())}
-              className="px-4 py-1.5 text-[9px] font-black uppercase tracking-widest hover:bg-surface-subtle transition-colors"
-            >
-              Today
-            </button>
-            <button 
-              onClick={handleNextMonth}
-              className="p-2 border-l-2 border-[#232121] hover:bg-[#232121] hover:text-white transition-colors"
-            >
-              <span className="material-symbols-outlined block text-sm">chevron_right</span>
-            </button>
-          </div>
-        </div>
-      </div>
+        {/* BACKGROUND */}
 
-      {error && (
-        <div className="bg-red-50 border-4 border-red-500 text-red-700 p-5 mb-8 font-mono text-sm font-bold uppercase shadow-[6px_6px_0px_#ef4444]">
-          <div className="flex items-center gap-3">
-            <span className="material-symbols-outlined">warning</span>
-            {error}
-          </div>
-        </div>
-      )}
+        <div className="pointer-events-none absolute inset-0 -z-10 landing-gradient-mesh opacity-10 dark:opacity-25" />
 
-      {/* Main Calendar Container - SaaS Minimal Layout */}
-      <div className="bg-white border-[1px] border-[#E5E7EB] w-full overflow-hidden">
-        {/* Days of Week Header */}
-        <div className="grid grid-cols-7 border-b-[1px] border-[#E5E7EB] bg-[#F9FAFB]">
-          {weekDays.map(day => (
-            <div key={day} className="py-2 text-center text-[10px] font-bold uppercase tracking-widest text-gray-400 border-r-[1px] border-[#E5E7EB] last:border-r-0">
-              {day.substring(0, 3)}
-            </div>
-          ))}
-        </div>
-        
-        {/* Calendar Grid */}
-        <div className="grid grid-cols-7">
-          {monthGrid.flat().map((dateObj, idx) => {
-            if (!dateObj) {
-              return (
-                <div 
-                  key={`empty-${idx}`} 
-                  className="bg-gray-50/30 border-r-[1px] border-b-[1px] border-[#E5E7EB] aspect-square"
-                />
-              );
-            }
-            
-            const isToday = new Date().toDateString() === dateObj.toDateString();
-            const isPast = dateObj < new Date(new Date().setHours(0,0,0,0));
-            const dayAutomations = getAutomationsForDate(dateObj);
-            const isCurrentMonth = dateObj.getMonth() === currentDate.getMonth();
-            
-            return (
-              <div 
-                key={dateObj.toISOString()} 
-                onClick={() => openHistoryModal(dateObj)}
-                className={`relative border-r-[1px] border-b-[1px] border-[#E5E7EB] aspect-square group transition-all duration-200 ease-in-out flex flex-col items-center justify-center cursor-pointer 
-                  ${!isCurrentMonth ? 'bg-gray-50/50' : 'bg-white hover:bg-gray-50/50'}
-                `}
-              >
-                {/* Date Content - Perfectly Centered */}
-                <div className="relative flex flex-col items-center justify-center">
-                  <div className={`relative w-7 h-7 flex items-center justify-center rounded-none transition-all duration-300
-                    ${isToday ? 'bg-[#FF6B6B] text-white' : (isCurrentMonth ? 'text-charcoal' : 'text-gray-300')}
-                    ${isToday ? 'font-black' : 'font-bold'}
-                  `}>
-                    <span className="text-[12px] relative z-10">{dateObj.getDate()}</span>
-                  </div>
+        <div className="pointer-events-none absolute inset-0 -z-10 landing-grid-bg opacity-10 dark:opacity-30" />
 
-                  {/* Automation Count Indicator (Badge) as requested */}
-                  {dayAutomations.length > 0 && (
-                    <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 flex items-center justify-center bg-[#FF6B6B] text-white w-5 h-5 rounded-full border-2 border-white shadow-sm font-black text-[9px] z-10 animate-bounce">
-                      {dayAutomations.length}
-                    </div>
-                  )}
-                </div>
+        <div className="mx-auto max-w-7xl px-3 sm:px-0">
 
-                {/* Hover Action: Fade-in Plus Button (Top Right) */}
-                {!isPast && (
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); openAddModal(dateObj); }}
-                    className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center rounded-full bg-white border border-gray-200 shadow-sm opacity-0 group-hover:opacity-100 hover:bg-gray-50 transition-all duration-200 z-20 cursor-pointer focus:outline-none"
-                    title="Add Automation"
-                  >
-                    <span className="material-symbols-outlined text-[16px] text-gray-500 font-light">add</span>
-                  </button>
-                )}
+          {/* HEADER */}
 
-                {/* Removed redundant JOBS tooltip as requested */}
-              </div>
-            );
-          })}
-        </div>
-      </div>
+          <div className={`${cardClass} p-4 sm:p-6 mb-6`}>
 
-      </div>
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
 
-      {/* Add Automation Modal - Refined */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#232121]/80 backdrop-blur-md animate-fade-in">
-          <div className="bg-white border-4 border-[#232121] shadow-[8px_8px_0px_#232121] max-w-md w-full flex flex-col overflow-hidden animate-slide-up">
-            
-            <div className="flex justify-between items-center p-3 border-b-2 border-[#232121] bg-surface-subtle">
               <div>
-                <h3 className="text-sm font-black uppercase tracking-tighter text-[#232121]">
-                  Schedule Automation
-                </h3>
-                <p className="text-[9px] font-mono font-bold text-[#232121]/60 uppercase flex items-center gap-1.5 mt-0.5">
-                  <span className="material-symbols-outlined text-[10px]">calendar_today</span>
-                  {selectedDateStamp && selectedDateStamp.toLocaleDateString('default', { day: 'numeric', month: 'long', year: 'numeric' })}
+
+                <button
+                  onClick={() => navigate(-1)}
+                  className="mb-3 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 hover:text-primary transition-colors"
+                >
+                  <span className="material-symbols-outlined text-sm">
+                    arrow_back
+                  </span>
+
+                  Dashboard
+                </button>
+
+                <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900 dark:text-white">
+                  Automation Calendar
+                </h1>
+
+                <p className="mt-1 text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">
+                  Schedule & monitor lead workflows
                 </p>
-              </div>
-              <button 
-                onClick={() => setIsModalOpen(false)}
-                className="w-7 h-7 flex items-center justify-center border-2 border-[#232121] hover:bg-[#232121] hover:text-white transition-colors"
-              >
-                <span className="material-symbols-outlined font-black text-xs">close</span>
-              </button>
-            </div>
-            
-            <div className="p-4 space-y-4">
-              {/* Recipient Card */}
-              <div className="bg-[#13ec13]/5 border-2 border-[#232121] p-3 flex flex-col gap-2">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-[#232121] text-[#13ec13] flex items-center justify-center">
-                    <span className="material-symbols-outlined text-xl font-black">person</span>
+
+                {lead && (
+                  <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-2">
+                    <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+
+                    <span className="text-[10px] font-black uppercase tracking-[0.25em] text-primary">
+                      {lead.first_name} {lead.last_name}
+                    </span>
                   </div>
-                  <div className="flex-1">
-                    <div className="text-[9px] font-black uppercase text-[#232121]/40 tracking-widest">Recipient</div>
-                    {lead && (
-                      <>
-                        <div className="text-[13px] font-mono font-black text-[#232121] leading-tight">
-                          {lead.first_name} {lead.last_name}
+                )}
+              </div>
+
+              <div className="flex flex-wrap gap-3">
+
+                <button
+                  onClick={() =>
+                    setCurrentDate(new Date())
+                  }
+                  className={buttonSecondary}
+                >
+                  Today
+                </button>
+
+                <button
+                  onClick={() =>
+                    setCurrentDate(
+                      new Date(
+                        currentDate.getFullYear(),
+                        currentDate.getMonth() - 1,
+                        1
+                      )
+                    )
+                  }
+                  className={buttonSecondary}
+                >
+                  Prev
+                </button>
+
+                <button
+                  onClick={() =>
+                    setCurrentDate(
+                      new Date(
+                        currentDate.getFullYear(),
+                        currentDate.getMonth() + 1,
+                        1
+                      )
+                    )
+                  }
+                  className={buttonSecondary}
+                >
+                  Next
+                </button>
+
+              </div>
+
+            </div>
+
+          </div>
+
+          {/* ERROR */}
+
+          {error && (
+            <div className="mb-6 rounded-[18px] border border-red-300 bg-red-50 p-5 text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300">
+              {error}
+            </div>
+          )}
+
+          {/* CALENDAR */}
+
+          <div className={`${cardClass} overflow-hidden`}>
+
+            {/* MONTH */}
+
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 px-5 py-4">
+
+              <h2 className="text-sm font-black uppercase tracking-[0.3em] text-slate-700 dark:text-slate-300">
+                {currentDate.toLocaleDateString(
+                  'default',
+                  {
+                    month: 'long',
+                    year: 'numeric',
+                  }
+                )}
+              </h2>
+
+              <div className="hidden sm:flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+
+                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">
+                  Live
+                </span>
+              </div>
+
+            </div>
+
+            {/* DAYS */}
+
+            <div className="grid grid-cols-7 border-b border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.03]">
+
+              {[
+                'Sun',
+                'Mon',
+                'Tue',
+                'Wed',
+                'Thu',
+                'Fri',
+                'Sat',
+              ].map((day) => (
+                <div
+                  key={day}
+                  className="py-3 text-center text-[10px] font-black uppercase tracking-[0.3em] text-slate-500"
+                >
+                  {day}
+                </div>
+              ))}
+
+            </div>
+
+            {/* GRID */}
+
+            <div className="grid grid-cols-7">
+
+              {monthGrid.flat().map(
+                (dateObj, idx) => {
+                  if (!dateObj) {
+                    return (
+                      <div
+                        key={idx}
+                        className="aspect-square border-r border-b border-slate-200 bg-slate-50/40 dark:border-white/10 dark:bg-white/[0.02]"
+                      />
+                    );
+                  }
+
+                  const isToday =
+                    new Date().toDateString() ===
+                    dateObj.toDateString();
+
+                  const isPast =
+                    dateObj <
+                    new Date(
+                      new Date().setHours(
+                        0,
+                        0,
+                        0,
+                        0
+                      )
+                    );
+
+                  const dayAutomations =
+                    getAutomationsForDate(
+                      dateObj
+                    );
+
+                  return (
+                    <div
+                      key={dateObj.toISOString()}
+                      onClick={() =>
+                        openHistoryModal(
+                          dateObj
+                        )
+                      }
+                      className="group relative aspect-square cursor-pointer border-r border-b border-slate-200 bg-white transition-all hover:bg-slate-50 dark:border-white/10 dark:bg-transparent dark:hover:bg-white/[0.03]"
+                    >
+
+                      {/* DATE */}
+
+                      <div className="absolute left-3 top-3">
+
+                        <div
+                          className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-black ${
+                            isToday
+                              ? 'bg-primary text-white'
+                              : 'text-slate-900 dark:text-white'
+                          }`}
+                        >
+                          {dateObj.getDate()}
                         </div>
-                        <div className="text-[9px] font-mono text-[#232121]/60">{lead.phone_number}</div>
-                      </>
+
+                      </div>
+
+                      {/* COUNT */}
+
+                      {dayAutomations.length >
+                        0 && (
+                        <div className="absolute right-3 top-3 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-[10px] font-black text-white shadow-lg">
+                          {
+                            dayAutomations.length
+                          }
+                        </div>
+                      )}
+
+                      {/* LIST */}
+
+                      <div className="flex h-full flex-col justify-end gap-1 p-3">
+
+                        {dayAutomations
+                          .slice(0, 2)
+                          .map((auto) => (
+                            <div
+                              key={auto._id}
+                              className="truncate rounded-[10px] bg-primary/10 px-2 py-1 text-[9px] font-black uppercase tracking-wide text-primary"
+                            >
+                              {getTemplateLabel(
+                                auto.templateName
+                              )}
+                            </div>
+                          ))}
+
+                        {dayAutomations.length >
+                          2 && (
+                          <div className="text-[9px] font-black uppercase tracking-wide text-slate-500">
+                            +
+                            {dayAutomations.length -
+                              2}{' '}
+                            more
+                          </div>
+                        )}
+
+                      </div>
+
+                      {/* ADD */}
+
+                      {!isPast && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+
+                            openScheduleModal(
+                              dateObj
+                            );
+                          }}
+                          className="absolute bottom-3 right-3 flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white opacity-0 shadow-sm transition-all hover:border-primary hover:text-primary group-hover:opacity-100 dark:border-white/10 dark:bg-slate-900"
+                        >
+                          <span className="material-symbols-outlined text-base">
+                            add
+                          </span>
+                        </button>
+                      )}
+
+                    </div>
+                  );
+                }
+              )}
+
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+
+      {/* SCHEDULE MODAL */}
+
+{isScheduleModalOpen && (
+  <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+
+    <div className={`${cardClass} w-full max-w-lg overflow-hidden`}>
+
+      {/* HEADER */}
+
+      <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 px-6 py-5">
+
+        <div>
+          <h3 className="text-lg font-black tracking-tight text-slate-900 dark:text-white">
+            Schedule Automation
+          </h3>
+
+          <p className="mt-1 text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">
+            {selectedDate?.toLocaleDateString()}
+          </p>
+        </div>
+
+        {/* CLOSE BUTTON */}
+
+        <button
+          onClick={() => setIsScheduleModalOpen(false)}
+          className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition-all hover:border-primary hover:text-primary dark:border-white/10"
+        >
+          <span className="material-symbols-outlined text-[18px]">
+            close
+          </span>
+        </button>
+
+      </div>
+
+      {/* BODY */}
+
+      <div className="space-y-5 p-6">
+
+        {/* USER */}
+
+        {lead && (
+          <div className="rounded-[16px] border border-primary/20 bg-primary/5 p-4">
+
+            <div className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">
+              Recipient
+            </div>
+
+            <div className="mt-2 text-lg font-black text-slate-900 dark:text-white">
+              {`${lead.first_name} ${lead.last_name}`.toUpperCase()}
+            </div>
+
+            <div className="text-sm text-slate-500">
+              {lead.phone_number}
+            </div>
+
+          </div>
+        )}
+
+        {/* TEMPLATE */}
+
+        <div>
+
+          <label className="mb-2 flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.35em] text-slate-900/45 dark:text-slate-300/50">
+
+            <span className="material-symbols-outlined text-[14px] text-primary">
+              auto_awesome
+            </span>
+
+            Template
+
+          </label>
+
+          <select
+            value={newAutomation.templateName}
+            onChange={(e) =>
+              setNewAutomation({
+                ...newAutomation,
+                templateName: e.target.value,
+              })
+            }
+            className={inputClass}
+          >
+
+            <option
+              value=""
+              className="bg-white text-slate-900 dark:bg-[#111827] dark:text-white"
+            >
+              Select Template
+            </option>
+
+            {templates.map((t) => (
+              <option
+                key={t.id}
+                value={t.id}
+                className="bg-white text-slate-900 dark:bg-[#111827] dark:text-white"
+              >
+                {t.label}
+              </option>
+            ))}
+
+          </select>
+
+        </div>
+
+        {/* PROJECT */}
+
+        {newAutomation.templateName === 'lead_street_view' && (
+          <div>
+
+            <label className="mb-2 flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.35em] text-slate-900/45 dark:text-slate-300/50">
+
+              <span className="material-symbols-outlined text-[14px] text-primary">
+                apartment
+              </span>
+
+              Project
+
+            </label>
+
+            <select
+              value={newAutomation.projectId}
+              onChange={(e) =>
+                setNewAutomation({
+                  ...newAutomation,
+                  projectId: e.target.value,
+                })
+              }
+              className={inputClass}
+            >
+
+              <option value="">
+                Select Project
+              </option>
+
+              {projects.map((p) => (
+                <option
+                  key={p._id}
+                  value={p.slug}
+                  className="bg-white text-slate-900 dark:bg-[#111827] dark:text-white"
+                >
+                  {p.projectName}
+                </option>
+              ))}
+
+            </select>
+
+          </div>
+        )}
+
+        {/* TIME */}
+
+        <div>
+
+          <label className="mb-2 flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.35em] text-slate-900/45 dark:text-slate-300/50">
+
+            <span className="material-symbols-outlined text-[14px] text-primary">
+              schedule
+            </span>
+
+            Time
+
+          </label>
+
+          <input
+            type="time"
+            value={newAutomation.time}
+            onChange={(e) =>
+              setNewAutomation({
+                ...newAutomation,
+                time: e.target.value,
+              })
+            }
+            className={`${inputClass} dark:[color-scheme:dark]`}
+          />
+
+        </div>
+
+      </div>
+
+      {/* FOOTER */}
+
+      <div className="flex justify-end gap-3 border-t border-slate-200 dark:border-white/10 px-6 py-5">
+
+        <button
+          onClick={() =>
+            setIsScheduleModalOpen(false)
+          }
+          className={buttonSecondary}
+        >
+          Cancel
+        </button>
+
+        <button
+          disabled={isSaving}
+          onClick={handleSaveAutomation}
+          className={buttonPrimary}
+        >
+          {isSaving ? 'Saving...' : 'Schedule'}
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
+)}
+
+      {/* HISTORY MODAL */}
+
+{isHistoryModalOpen && (
+  <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+
+    <div className={`${cardClass} w-full max-w-xl overflow-hidden`}>
+
+      {/* HEADER */}
+
+      <div className="flex items-start justify-between border-b border-slate-200 dark:border-white/10 px-6 py-5">
+
+        <div>
+          <h3 className="text-lg font-black tracking-tight text-slate-900 dark:text-white">
+            Automation History
+          </h3>
+
+          <p className="mt-1 text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">
+            {selectedHistoryDate?.toLocaleDateString()}
+          </p>
+        </div>
+
+        {/* CLOSE BUTTON */}
+
+        <button
+          onClick={() => setIsHistoryModalOpen(false)}
+          className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition-all hover:border-red-300 hover:bg-red-50 hover:text-red-500 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-300 dark:hover:bg-red-500/10 dark:hover:text-red-400"
+        >
+          <span className="material-symbols-outlined text-[20px]">
+            close
+          </span>
+        </button>
+
+      </div>
+
+      {/* BODY */}
+
+      <div className="max-h-[65vh] overflow-y-auto p-6">
+
+        {getAutomationsForDate(
+          selectedHistoryDate
+        ).length === 0 ? (
+          <div className="rounded-[18px] border border-dashed border-slate-300 p-10 text-center dark:border-white/10">
+
+            <span className="material-symbols-outlined text-5xl text-slate-300 dark:text-white/20">
+              history
+            </span>
+
+            <p className="mt-4 text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">
+              No history found
+            </p>
+
+          </div>
+        ) : (
+          <div className="space-y-3">
+
+            {getAutomationsForDate(
+              selectedHistoryDate
+            ).map((auto) => (
+              <div
+                key={auto._id}
+                className="flex items-center justify-between rounded-[16px] border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/[0.03]"
+              >
+
+                <div>
+
+                  <div className="text-sm font-black text-slate-900 dark:text-white">
+                    {getTemplateLabel(
+                      auto.templateName
                     )}
                   </div>
-                </div>
-              </div>
 
-              {/* Form Controls */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-3">
-                  <label className="block text-[10px] font-black uppercase tracking-widest text-[#232121]">
-                    1. Choose Template
-                  </label>
-                  <div className="relative">
-                    <select
-                      value={newAutomation.templateName}
-                      onChange={(e) => setNewAutomation({...newAutomation, templateName: e.target.value})}
-                      className="w-full appearance-none bg-white border-2 border-[#232121] px-4 py-3 text-[11px] font-black uppercase text-[#232121] focus:bg-[#13ec13]/5 focus:outline-none transition-colors"
+                  <div className="mt-1 text-[10px] font-black uppercase tracking-[0.25em] text-slate-500">
+                    {formatTime(
+                      auto.scheduledAt
+                    )}
+                  </div>
+
+                </div>
+
+                <div className="flex items-center gap-3">
+
+                  <span
+                    className={`rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.25em] ${
+                      auto.status === 'sent'
+                        ? 'bg-green-100 text-green-700'
+                        : auto.status === 'failed'
+                        ? 'bg-red-100 text-red-700'
+                        : 'bg-yellow-100 text-yellow-700'
+                    }`}
+                  >
+                    {auto.status}
+                  </span>
+
+                  {auto.status === 'pending' && (
+                    <button
+                      onClick={(e) =>
+                        handleDelete(
+                          auto._id,
+                          e
+                        )
+                      }
+                      className="flex h-9 w-9 items-center justify-center rounded-full border border-red-200 text-red-500 transition-all hover:bg-red-50"
                     >
-                      <option value="" disabled>Select Sequence</option>
-                      {templates.map(t => (
-                        <option key={t.id} value={t.id}>{t.label}</option>
-                      ))}
-                    </select>
-                    <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none opacity-40">expand_more</span>
-                  </div>
+                      <span className="material-symbols-outlined text-base">
+                        delete
+                      </span>
+                    </button>
+                  )}
+
                 </div>
 
-                {/* Project Selection Dropdown - Only if Virtual View template is picked */}
-                {newAutomation.templateName === 'lead_street_view' && (
-                  <div className="space-y-3 animate-fade-in md:col-span-2">
-                    <label className="block text-[10px] font-black uppercase tracking-widest text-primary">
-                      2. Select Project for Virtual View
-                    </label>
-                    <div className="relative">
-                      <select
-                        value={newAutomation.projectId} // keeping variable name for state but storing slug
-                        onChange={(e) => setNewAutomation({...newAutomation, projectId: e.target.value})}
-                        className="w-full appearance-none bg-white border-2 border-primary px-4 py-3 text-[11px] font-black uppercase text-[#232121] focus:bg-primary/5 focus:outline-none transition-colors"
-                      >
-                        <option value="" disabled>Select Project</option>
-                        {projects.map(p => (
-                          <option key={p._id || p.id} value={p.slug}>{p.projectName}</option>
-                        ))}
-                      </select>
-                      <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none opacity-40">apartment</span>
-                    </div>
-                    <p className="text-[10px] font-mono text-[#232121]/40 uppercase">This will generate a custom street view link suffix.</p>
-                  </div>
-                )}
-
-                <div className="space-y-3">
-                  <label className="block text-[10px] font-black uppercase tracking-widest text-[#232121]">
-                    {newAutomation.templateName === 'lead_street_view' ? '3. Dispatch Time' : '2. Dispatch Time'}
-                  </label>
-                  <input 
-                    type="time" 
-                    value={newAutomation.time}
-                    onChange={(e) => setNewAutomation({...newAutomation, time: e.target.value})}
-                    className="w-full bg-white border-2 border-[#232121] px-4 py-2.5 text-xl font-mono font-black text-[#232121] focus:bg-[#13ec13]/5 focus:outline-none transition-colors"
-                  />
-                </div>
               </div>
+            ))}
+
+          </div>
+        )}
+
+      </div>
+
+    </div>
+
+  </div>
+)}
+      {/* USER PICKER */}
+
+      {isUserPickerOpen && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+
+          <div className={`${cardClass} w-full max-w-3xl overflow-hidden`}>
+
+            <div className="border-b border-slate-200 dark:border-white/10 px-6 py-5">
+
+              <h3 className="text-xl font-black tracking-tight text-slate-900 dark:text-white">
+                Select User
+              </h3>
+
+              <p className="mt-1 text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">
+                Choose a user to manage automations
+              </p>
+
             </div>
-            
-            <div className="bg-surface-subtle p-4 border-t-4 border-[#232121] flex justify-end gap-3 mt-auto">
+
+            <div className="grid max-h-[70vh] grid-cols-1 gap-4 overflow-y-auto p-6 md:grid-cols-2">
+
+              {users.map((u) => (
+                <button
+                  key={u.id}
+                  onClick={async () => {
+                    try {
+                      setIsUserPickerOpen(false);
+
+                      // Try creating/fetching lead first
+
+                      const promoteRes =
+                        await api.createLeadFromUser(
+                          u.id,
+                          {
+                            creatorId: user.id,
+                            creatorName: user.name,
+                            creatorRole: user.role,
+                            skipCall: true,
+                          }
+                        );
+
+                      const createdLead =
+                        promoteRes?.data;
+
+                      if (createdLead?.id) {
+                        navigate(
+                          `/lead-automation/${createdLead.id}`
+                        );
+                      }
+                    } catch (err) {
+                      console.error(err);
+
+                      addToast?.(
+                        'error',
+                        'Failed',
+                        'Unable to open lead automation.'
+                      );
+                    }
+                  }}
+                  className="group flex items-center gap-4 rounded-[18px] border border-slate-200 bg-white p-4 text-left transition-all hover:-translate-y-px hover:border-primary hover:shadow-md dark:border-white/10 dark:bg-white/[0.03]"
+                >
+
+                  <div className="flex h-12 w-12 items-center justify-center rounded-[14px] bg-primary/10 text-lg font-black text-primary">
+                    {u.first_name?.[0]?.toUpperCase()}
+                    {u.last_name?.[0]?.toUpperCase()}
+                  </div>
+
+                  <div className="flex-1 overflow-hidden">
+
+                    <div className="truncate text-sm font-black text-slate-900 dark:text-white">
+                      {`${u.first_name || ''} ${u.last_name || ''}`
+                        .replace(/\b\w/g, (char) => char.toUpperCase())}
+                    </div>
+
+                    <div className="truncate text-xs text-slate-500">
+                      {u.phone_number}
+                    </div>
+
+                  </div>
+
+                  <span className="material-symbols-outlined text-slate-400 transition-all group-hover:text-primary">
+                    arrow_forward
+                  </span>
+
+                </button>
+              ))}
+
+            </div>
+
+            <div className="flex items-center justify-between border-t border-slate-200 dark:border-white/10 px-6 py-5">
+
               <button
-                onClick={() => setIsModalOpen(false)}
-                className="px-6 py-2 border-2 border-[#232121] text-[9px] font-black uppercase tracking-widest hover:bg-white transition-all shadow-[3px_3px_0px_#232121] active:shadow-none active:translate-x-0.5 active:translate-y-0.5"
+                onClick={() =>
+                  navigate('/dashboard')
+                }
+                className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 transition-colors hover:text-primary"
               >
                 Cancel
               </button>
-              <button
-                onClick={handleSaveAutomation}
-                disabled={isSaving || !newAutomation.templateName || (!lead && !newAutomation.selectedLeadId)}
-                className="px-8 py-2 bg-[#13ec13] border-2 border-[#232121] text-[#232121] text-[9px] font-black uppercase tracking-widest hover:bg-[#232121] hover:text-[#13ec13] transition-all shadow-[4px_4px_0px_#232121] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 active:shadow-none active:translate-x-0.5 auto:translate-y-0.5"
-              >
-                {isSaving ? 'Processing...' : 'Confirm Schedule'}
-                {!isSaving && <span className="material-symbols-outlined text-[14px] font-black">rocket_launch</span>}
-              </button>
-            </div>
-            
-          </div>
-        </div>
-      )}
 
-      {/* Day History Modal — NEW */}
-      {isHistoryModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 bg-[#232121]/80 backdrop-blur-md animate-fade-in text-left">
-          <div className="bg-white border-4 border-[#232121] shadow-[6px_6px_0px_#232121] max-w-md w-full flex flex-col overflow-hidden animate-slide-up">
-            
-            <div className="flex justify-between items-center p-2 sm:p-2.5 border-b-4 border-[#232121] bg-[#13ec13]/10">
-              <div>
-                <h3 className="text-sm font-black uppercase tracking-tighter text-[#232121]">
-                  Automation History
-                </h3>
-                <p className="text-[8px] font-mono font-bold text-[#232121]/60 uppercase flex items-center gap-1 mt-0.5">
-                  <span className="material-symbols-outlined text-[9px]">event</span>
-                  {selectedHistoryDate && selectedHistoryDate.toLocaleDateString('default', { day: 'numeric', month: 'long', year: 'numeric' })}
-                </p>
+              <div className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">
+                Total Users: {users.length}
               </div>
-              <button 
-                onClick={() => setIsHistoryModalOpen(false)}
-                className="w-6 h-6 flex items-center justify-center border-2 border-[#232121] hover:bg-[#232121] hover:text-white transition-colors"
-                title="ESC to Close"
-              >
-                <span className="material-symbols-outlined font-black text-[10px]">close</span>
-              </button>
+
             </div>
 
-            <div className="p-2 sm:p-2.5 max-h-[60vh] overflow-y-auto">
-              {getAutomationsForDate(selectedHistoryDate).length === 0 ? (
-                <div className="text-center py-4 border-2 border-dashed border-gray-100">
-                  <span className="material-symbols-outlined text-lg text-gray-300">history_off</span>
-                  <p className="mt-1 text-[8px] font-black uppercase text-gray-400 tracking-widest">No history</p>
-                </div>
-              ) : (
-                <div className="space-y-1.5">
-                    {getAutomationsForDate(selectedHistoryDate).map((auto, i) => {
-                      // Extract project name from button_0 (it stores the slug)
-                      const projectSlug = auto.button_0?.split('#')[0];
-                      const project = projects.find(p => p.slug === projectSlug);
-                      const projectName = project ? project.projectName : (projectSlug || 'N/A');
-                      
-                      // Find lead name from leads list or use enriched backend name
-                      const recipientLead = allLeads.find(l => l.id === auto.leadId);
-                      const recipientName = auto.leadName || (recipientLead ? `${recipientLead.first_name} ${recipientLead.last_name}` : 'Unknown');
-
-                      return (
-                        <div key={auto._id || i} className="border-2 border-[#232121] p-1.5 flex items-center justify-between gap-2 hover:translate-x-0.5 hover:-translate-y-0.5 transition-transform bg-white shadow-[2px_2px_0px_#232121]">
-                          <div className="flex gap-2 items-center min-w-0">
-                            <div className="w-9 h-9 bg-[#232121] text-[#13ec13] flex items-center justify-center shrink-0">
-                              <span className="material-symbols-outlined font-black text-lg">
-                                {auto.status === 'sent' ? 'done_all' : (auto.status === 'failed' ? 'error' : 'schedule')}
-                              </span>
-                            </div>
-                            <div className="text-left py-0 min-w-0">
-                              <div className="text-[7.5px] font-black uppercase tracking-widest text-[#232121]/40 mb-0 truncate">
-                                {recipientName} &bull; {auto.status}
-                              </div>
-                              <div className="text-[10.5px] font-black text-[#232121] leading-tight flex flex-wrap items-center gap-1">
-                                <span className="truncate max-w-[130px]">{getTemplateLabel(auto.templateName)}</span>
-                                {auto.templateName === 'lead_street_view' && (
-                                  <span className="text-[6.5px] font-mono font-bold text-[#13ec13] bg-[#232121] px-1 py-0.5 uppercase shrink-0">
-                                    {projectName}
-                                  </span>
-                                )}
-                              </div>
-                              <div className="flex gap-1 text-[7.5px] items-center mt-0.5 text-left">
-                                <span className="font-mono bg-[#232121] text-white px-1 py-0.5 shrink-0">{formatTime(auto.scheduledAt)}</span>
-                                <span className={`px-1 py-0.5 font-bold uppercase shrink-0 ${auto.status === 'sent' ? 'bg-[#13ec13]/20 text-[#13ec13]' : 'bg-gray-100 text-gray-600'}`}>
-                                  {auto.status}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="flex gap-2 border-l border-[#232121]/10 pl-2 animate-fade-in shrink-0">
-                            {auto.status === 'pending' ? (
-                              <button 
-                                onClick={(e) => handleDelete(auto._id, e)}
-                                className="w-7 h-7 flex items-center justify-center border-2 border-[#232121]/10 text-danger hover:border-danger hover:bg-danger/5 transition-all group/del"
-                                title="Delete"
-                              >
-                                <span className="material-symbols-outlined text-base group-hover/del:scale-110 transition-transform">delete_forever</span>
-                              </button>
-                            ) : (
-                              <>
-                                <div className="text-center min-w-[30px]">
-                                  <div className="text-[6.5px] font-black text-[#232121]/40 uppercase tracking-tighter mb-0">Opened</div>
-                                  <div className={`text-[14px] font-black leading-none ${auto.linkActivity?.opened ? 'text-[#13ec13]' : 'text-gray-200'}`}>
-                                    {auto.linkActivity?.opened ? 'YES' : 'NO'}
-                                  </div>
-                                </div>
-                                <div className="hidden sm:block text-center min-w-[30px]">
-                                  <div className="text-[6.5px] font-black text-[#232121]/40 uppercase tracking-tighter mb-0">Time</div>
-                                  <div className="text-[14px] font-black text-[#232121] leading-none">
-                                    {auto.linkActivity?.timeSpentSeconds 
-                                      ? (auto.linkActivity.timeSpentSeconds >= 60 
-                                          ? `${Math.floor(auto.linkActivity.timeSpentSeconds / 60)}m` 
-                                          : `${auto.linkActivity.timeSpentSeconds}s`) 
-                                      : '0s'}
-                                  </div>
-                                </div>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                </div>
-              )}
-            </div>
-
-            <div className="p-1.5 sm:p-2 bg-surface-subtle border-t-2 border-[#232121] flex justify-end">
-              <button
-                onClick={() => setIsHistoryModalOpen(false)}
-                className="px-3 py-1 bg-[#232121] text-white text-[8px] font-black uppercase tracking-widest hover:bg-[#13ec13] hover:text-[#232121] transition-all"
-              >
-                Done
-              </button>
-            </div>
-            
           </div>
-        </div>
-      )}
-      {/* User Selection Modal — MANDATORY if no leadId */}
-      {isUserPickerOpen && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-[#232121]/95 backdrop-blur-xl animate-fade-in">
-          <div className="bg-white border-2 border-[#232121] shadow-[4px_4px_0px_#232121] max-w-xl w-full flex flex-col overflow-hidden animate-slide-up">
-            
-            <div className="p-3 sm:p-4 border-b-2 border-[#232121] bg-[#13ec13]/10">
-              <h3 className="text-xl font-black uppercase tracking-tighter text-[#232121]">
-                Select User
-              </h3>
-              <p className="text-[9px] font-mono font-bold text-[#232121]/60 uppercase mt-0.5 leading-tight">
-                Choose a user to set or view automation history
-              </p>
-            </div>
 
-            <div className="p-3 sm:p-4 max-h-[50vh] overflow-y-auto bg-surface-subtle">
-              {allLeads.length === 0 ? (
-                <div className="text-center py-10 border-2 border-dashed border-[#232121]/10 rounded-xl">
-                  <span className="material-symbols-outlined text-4xl text-[#232121]/20">person_off</span>
-                  <p className="mt-3 text-sm font-black uppercase text-[#232121]/40 tracking-widest">No users found in your records</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {allLeads.map(u => (
-                    <button
-                      key={u.id}
-                      onClick={() => navigate(`/lead-automation/${u.id}`)}
-                      className="group border-2 border-[#232121] p-2.5 flex items-center gap-3 bg-white hover:bg-[#13ec13] hover:translate-x-0.5 hover:-translate-y-0.5 transition-all text-left shadow-[3px_3px_0px_#232121] active:shadow-none active:translate-x-0 active:translate-y-0"
-                    >
-                      <div className="w-10 h-10 bg-[#232121] text-[#13ec13] group-hover:bg-white group-hover:text-[#232121] transition-colors flex items-center justify-center text-lg font-black rounded-sm shrink-0">
-                        {u.first_name[0]}{u.last_name[0]}
-                      </div>
-                      <div className="flex-1 overflow-hidden">
-                        <div className="font-black uppercase text-[13px] truncate text-[#232121] leading-tight mb-0.5">
-                          {u.first_name} {u.last_name}
-                        </div>
-                        <div className="font-mono text-[9px] text-[#232121]/60 group-hover:text-[#232121] transition-colors">
-                          {u.phone_number}
-                        </div>
-                      </div>
-                      <span className="material-symbols-outlined text-base opacity-0 group-hover:opacity-100 transition-opacity">arrow_forward</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="p-3 border-t-2 border-[#232121] flex justify-between items-center bg-white">
-               <button 
-                 onClick={() => navigate('/dashboard')}
-                 className="text-[8px] font-black uppercase tracking-widest text-[#232121]/40 hover:text-primary transition-colors flex items-center gap-1"
-               >
-                 <span className="material-symbols-outlined text-[10px]">arrow_back</span>
-                 Cancel & Go Back
-               </button>
-               <div className="text-[9px] font-mono font-bold text-[#232121]/60 uppercase">
-                 Total Users: {allLeads.length}
-               </div>
-            </div>
-            
-          </div>
         </div>
       )}
     </>
-  );
-};
+  )};
 
 export default LeadAutomationPage;

@@ -1,220 +1,434 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, {
+    useState,
+    useRef,
+    useEffect,
+    useCallback,
+    useMemo,
+} from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useNotifications } from '../context/NotificationContext';
 
+const NOTIFICATION_ICONS = {
+    LEAD_CREATED: {
+        icon: 'person_add',
+        iconClass:
+            'bg-blue-500/10 text-blue-500 ring-1 ring-blue-500/20',
+    },
+    WHATSAPP_REPLY: {
+        icon: 'chat',
+        iconClass:
+            'bg-primary/10 text-primary ring-1 ring-primary/20',
+    },
+    CALL_COMPLETED: {
+        icon: 'call',
+        iconClass:
+            'bg-emerald-500/10 text-emerald-500 ring-1 ring-emerald-500/20',
+    },
+    LINK_OPENED: {
+        icon: 'bolt',
+        iconClass:
+            'bg-primary/10 text-primary ring-1 ring-primary/20',
+    },
+    AUTOMATION_STATUS: {
+        icon: 'schedule_send',
+        iconClass:
+            'bg-violet-500/10 text-violet-500 ring-1 ring-violet-500/20',
+    },
+    LEAD_INTERESTED: {
+        icon: 'favorite',
+        iconClass:
+            'bg-emerald-500/10 text-emerald-500 ring-1 ring-emerald-500/20',
+    },
+    LEAD_REJECTED: {
+        icon: 'not_interested',
+        iconClass:
+            'bg-red-500/10 text-red-500 ring-1 ring-red-500/20',
+    },
+    DEFAULT: {
+        icon: 'notifications',
+        iconClass:
+            'bg-slate-500/10 text-slate-500 ring-1 ring-slate-500/20',
+    },
+};
+
 const NotificationCenter = () => {
-    const { notifications, unreadCount, markAsRead, markAllRead } = useNotifications();
-    const [isOpen, setIsOpen] = useState(false);
-    const buttonRef = useRef(null);
-    const sidebarRef = useRef(null);  // ref for the aside panel itself
+    const {
+        notifications,
+        unreadCount,
+        markAsRead,
+        markAllRead,
+    } = useNotifications();
+
     const navigate = useNavigate();
 
-    // Close sidebar on click outside — but NOT when clicking inside the aside panel
+    const [isOpen, setIsOpen] = useState(false);
+
+    const buttonRef = useRef(null);
+    const sidebarRef = useRef(null);
+
     useEffect(() => {
         if (!isOpen) return;
 
         const handleClickOutside = (event) => {
-            // If click is on the bell button, let the button toggle handle it
-            if (buttonRef.current && buttonRef.current.contains(event.target)) return;
-            // If click is inside the sidebar panel itself, do NOT close
-            if (sidebarRef.current && sidebarRef.current.contains(event.target)) return;
-            // Only close if truly outside both
+            if (
+                buttonRef.current?.contains(event.target) ||
+                sidebarRef.current?.contains(event.target)
+            ) {
+                return;
+            }
+
             setIsOpen(false);
         };
 
-        // Small delay so the open-click doesn't immediately re-close
         const timer = setTimeout(() => {
-            document.addEventListener('mousedown', handleClickOutside);
-        }, 100);
+            document.addEventListener(
+                'mousedown',
+                handleClickOutside
+            );
+        }, 80);
 
         return () => {
             clearTimeout(timer);
-            document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener(
+                'mousedown',
+                handleClickOutside
+            );
         };
     }, [isOpen]);
 
     const toggleDropdown = (e) => {
         e.stopPropagation();
-        setIsOpen(prev => !prev);
+        setIsOpen((prev) => !prev);
     };
 
-    const formatTime = (dateString) => {
+    const formatTime = useCallback((dateString) => {
         try {
-            const date = new Date(dateString);
-            return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        } catch (e) {
+            return new Date(dateString).toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+            });
+        } catch {
             return '--:--';
         }
-    };
+    }, []);
 
-    const getNotificationRoute = (n) => {
-        const { type, leadId } = n;
+    const getNotificationRoute = useCallback((notification) => {
+        const { type, leadId } = notification;
 
-        // WhatsApp replies → open that lead's chat directly
         if (type === 'WHATSAPP_REPLY') {
-            return '/chat';  // ChatDashboard will select the lead via sidebar
+            return '/chat';
         }
 
-        // Lead Automation Page always wants the leadId to show the calendar
         if (type === 'AUTOMATION_STATUS') {
-            return leadId ? `/lead-automation/${leadId}` : '/lead-automation';
+            return leadId
+                ? `/lead-automation/${leadId}`
+                : '/lead-automation';
         }
 
-        // LEAD_CREATED, LINK_OPENED → lead detail page
-        if (leadId) return `/lead/${leadId}`;
-
-        return '/crm'; // fallback
-    };
-
-    const handleNotificationClick = useCallback((n) => {
-        console.log('🎯 Notification clicked:', n.type, n.leadId);
-        
-        // 1. Mark as read in background
-        if (!n.read) {
-            markAsRead(n._id).catch(err => console.error('Failed to mark read:', err));
+        if (leadId) {
+            return `/lead/${leadId}`;
         }
 
-        // 2. Determine destination
-        const route = getNotificationRoute(n);
-        console.log('🚀 Navigating to:', route);
+        return '/crm';
+    }, []);
 
-        // 3. UI Actions
-        setIsOpen(false);
-        navigate(route);
-    }, [markAsRead, navigate]);
+    const handleNotificationClick = useCallback(
+        async (notification) => {
+            try {
+                if (!notification.read) {
+                    await markAsRead(notification._id);
+                }
+            } catch (error) {
+                console.error(
+                    'Failed to mark notification as read:',
+                    error
+                );
+            }
+
+            setIsOpen(false);
+
+            navigate(getNotificationRoute(notification));
+        },
+        [markAsRead, navigate, getNotificationRoute]
+    );
+
+    const renderedNotifications = useMemo(() => {
+        if (notifications.length === 0) {
+            return (
+                <div className="flex h-full flex-col items-center justify-center px-8 text-center">
+                    <div className="relative mb-6 flex h-24 w-24 items-center justify-center rounded-full border border-slate-200/80 bg-white/70 backdrop-blur-xl">
+                        <span className="material-symbols-outlined text-[42px] text-slate-300 dark:text-slate-600">
+                            notifications_off
+                        </span>
+
+                        <div className="absolute inset-0 rounded-full bg-primary/5 blur-2xl" />
+                    </div>
+
+                    <h4 className="text-sm font-black uppercase tracking-[0.2em] text-slate-900 dark:text-white">
+                        All Caught Up
+                    </h4>
+
+                    <p className="mt-3 max-w-[220px] text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
+                        No new activity detected in the system.
+                    </p>
+                </div>
+            );
+        }
+
+        return (
+            <div className="flex flex-col px-2 py-3">
+                {notifications.map((notification) => {
+                    const config =
+                        NOTIFICATION_ICONS[notification.type] ||
+                        NOTIFICATION_ICONS.DEFAULT;
+
+                    return (
+                        <button
+                            key={notification._id}
+                            type="button"
+                            onClick={() =>
+                                handleNotificationClick(notification)
+                            }
+                            className={`
+    group
+    relative
+    flex
+    w-full
+    items-start
+    gap-4
+    overflow-hidden
+    rounded-[18px]
+    border
+    p-4
+    text-left
+    transition-all
+    duration-200
+    hover:-translate-y-[1px]
+    hover:shadow-lg
+    ${
+        notification.read
+            ? `
+                border-slate-200/60
+                bg-white/50
+                opacity-75
+                hover:bg-white/80
+
+                dark:border-white/10
+                dark:bg-white/[0.03]
+                dark:hover:bg-white/[0.06]
+            `
+            : `
+                border-primary/10
+                bg-white
+                shadow-[0_4px_20px_rgba(255,107,0,0.06)]
+
+                dark:border-primary/20
+                dark:bg-[#11141B]
+                dark:shadow-[0_8px_30px_rgba(0,0,0,0.45)]
+            `
+    }
+`}
+                        >
+                            {!notification.read && (
+                                <div className="absolute left-0 top-0 h-full w-[3px] bg-primary" />
+                            )}
+
+                            <div
+                                className={`
+                                    flex
+                                    h-11
+                                    w-11
+                                    shrink-0
+                                    items-center
+                                    justify-center
+                                    rounded-[14px]
+                                    transition-transform
+                                    duration-200
+                                    group-hover:scale-105
+                                    ${config.iconClass}
+                                `}
+                            >
+                                <span className="material-symbols-outlined text-[18px]">
+                                    {config.icon}
+                                </span>
+                            </div>
+
+                            <div className="min-w-0 flex-1">
+                                <div className="mb-1 flex items-start justify-between gap-3">
+                                    <h4 className="truncate pr-2 text-[11px] font-black uppercase tracking-[0.12em] text-slate-900 dark:text-white transition-colors group-hover:text-primary">
+                                        {notification.title}
+                                    </h4>
+
+                                    <span className="shrink-0 font-mono text-[9px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                                        {formatTime(
+                                            notification.createdAt
+                                        )}
+                                    </span>
+                                </div>
+
+                                <p className="line-clamp-2 text-[11px] font-medium leading-relaxed text-slate-500 dark:text-slate-400">
+                                    {notification.message}
+                                </p>
+                            </div>
+                        </button>
+                    );
+                })}
+            </div>
+        );
+    }, [
+        notifications,
+        formatTime,
+        handleNotificationClick,
+    ]);
 
     const sidebarPortal = createPortal(
         <>
-            {/* Backdrop Overlay */}
+            {/* Backdrop */}
             <div
-                className={`fixed inset-0 bg-black/10 z-[1000] transition-opacity duration-300 ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+                className={`
+                    fixed
+                    inset-0
+                    z-[1000]
+                    bg-black/30
+                    backdrop-blur-[2px]
+                    transition-opacity
+                    duration-300
+                    ${
+                        isOpen
+                            ? 'pointer-events-auto opacity-100'
+                            : 'pointer-events-none opacity-0'
+                    }
+                `}
                 onClick={() => setIsOpen(false)}
                 aria-hidden="true"
             />
 
-            {/* Main Sidebar Drawer */}
+            {/* Drawer */}
             <aside
                 ref={sidebarRef}
-                className={`fixed top-0 right-0 h-screen w-[320px] sm:w-[400px] max-w-[90vw] bg-white border-l border-charcoal/5 shadow-[-30px_0_60px_rgba(0,0,0,0.12)] z-[1001] flex flex-col transform transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
-                    isOpen ? 'translate-x-0' : 'translate-x-full'
-                }`}
-                inert={!isOpen ? true : undefined}
-                aria-label="Activity center"
+                aria-label="Notifications panel"
+                className={`
+                    fixed
+                    right-0
+                    top-0
+                    z-[1001]
+                    flex
+                    h-screen
+                    w-[380px]
+                    max-w-[92vw]
+                    flex-col
+                    border-l
+                    border-white/20
+                    bg-white/75
+                    shadow-[-20px_0_60px_rgba(15,23,42,0.12)]
+                    backdrop-blur-2xl
+                    transition-transform
+                    duration-500
+                    ease-[cubic-bezier(0.16,1,0.3,1)]
+                    dark:border-white/10
+                    dark:bg-[#0B0D12]/80
+                    ${
+                        isOpen
+                            ? 'translate-x-0'
+                            : 'translate-x-full'
+                    }
+                `}
             >
-                {/* Header: Activity & Actions */}
-                <div className="shrink-0 p-4 sm:p-5 pt-6 sm:pt-8 pb-3 sm:pb-4 bg-white/80 backdrop-blur-xl flex flex-col gap-2.5 sm:gap-4 sticky top-0 z-20 border-b border-charcoal/5">
-                    <div className="flex items-center justify-between">
-                        <div className="flex flex-col gap-1">
-                            <h3 className="text-[11px] sm:text-[12px] font-black uppercase tracking-[0.15em] sm:tracking-[0.2em] text-charcoal">
-                                Activity
-                            </h3>
-                            <div className="flex items-center gap-1.5">
-                                <span className="text-[7.5px] sm:text-[8px] font-bold uppercase tracking-widest text-charcoal/30">Live Status</span>
-                                <div className="w-1 h-1 rounded-full bg-green-500 animate-pulse"></div>
+                {/* Top Glow */}
+                <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-primary/10 to-transparent" />
+
+                {/* Header */}
+                <div className="relative z-10 border-b border-slate-200/70 bg-white/60 px-5 pb-4 pt-7 backdrop-blur-xl dark:border-white/10 dark:bg-black/10">
+                    <div className="flex items-start justify-between gap-4">
+                        <div>
+                            <div className="flex items-center gap-2">
+                                <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+
+                                <span className="text-[9px] font-black uppercase tracking-[0.28em] text-primary">
+                                    Live Activity
+                                </span>
                             </div>
+
+                            <h2 className="mt-3 text-xl font-black tracking-tight text-slate-900 dark:text-white">
+                                Notifications
+                            </h2>
+
+                            <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
+                                Real-time system events
+                            </p>
                         </div>
+
                         <div className="flex items-center gap-2">
                             {unreadCount > 0 && (
                                 <button
                                     type="button"
                                     onClick={markAllRead}
-                                    className="text-[8.5px] sm:text-[9px] font-black uppercase tracking-widest text-primary hover:text-charcoal transition-colors cursor-pointer"
+                                    className="
+                                        rounded-full
+                                        border
+                                        border-primary/20
+                                        bg-primary/5
+                                        px-3
+                                        py-1.5
+                                        text-[9px]
+                                        font-black
+                                        uppercase
+                                        tracking-[0.18em]
+                                        text-primary
+                                        transition-all
+                                        hover:bg-primary
+                                        hover:text-white
+                                    "
                                 >
-                                    Clear All
+                                    Mark All
                                 </button>
                             )}
+
                             <button
                                 type="button"
                                 onClick={() => setIsOpen(false)}
-                                className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-full hover:bg-charcoal/5 border-none text-charcoal/20 hover:text-charcoal transition-all cursor-pointer group"
-                                aria-label="Close activity center"
+                                className="
+                                    flex
+                                    h-9
+                                    w-9
+                                    items-center
+                                    justify-center
+                                    rounded-full
+                                    border
+                                    border-slate-200/80
+                                    bg-white/70
+                                    text-slate-500
+                                    transition-all
+                                    hover:rotate-90
+                                    hover:border-primary/20
+                                    hover:text-primary
+                                    dark:border-white/10
+                                    dark:bg-white/5
+                                "
+                                aria-label="Close notifications"
                             >
-                                <span className="material-symbols-outlined text-[16px] sm:text-[18px] group-hover:rotate-90 transition-transform duration-300">close</span>
+                                <span className="material-symbols-outlined text-[18px]">
+                                    close
+                                </span>
                             </button>
                         </div>
                     </div>
                 </div>
 
-                {/* Notifications List */}
-                <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-none custom-scrollbar">
-                    {notifications.length === 0 ? (
-                        <div className="h-full flex flex-col items-center justify-center p-12 text-center">
-                            <div className="w-20 h-20 rounded-full bg-charcoal/[0.02] flex items-center justify-center mb-6 relative">
-                                <span className="material-symbols-outlined text-charcoal/5 text-[40px]">notifications_off</span>
-                                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 bg-primary/5 rounded-full blur-[40px] pointer-events-none animate-pulse"></div>
-                            </div>
-                            <h4 className="text-[12px] font-black uppercase tracking-widest text-charcoal mb-3">All Caught Up</h4>
-                            <p className="text-[10px] font-bold uppercase tracking-tight text-charcoal/20 max-w-[180px] leading-relaxed">
-                                No new events to report.
-                            </p>
-                        </div>
-                    ) : (
-                        <div className="flex flex-col pb-20">
-                            {notifications.map((n) => (
-                                <div
-                                    key={n._id}
-                                    onClick={(e) => {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        handleNotificationClick(n);
-                                    }}
-                                    className={`relative px-4 sm:px-6 py-3 sm:py-4 border-b border-charcoal/[0.03] transition-all cursor-pointer group flex gap-3 sm:gap-4
-                                        ${!n.read ? 'bg-white' : 'bg-charcoal/[0.01] opacity-70'}
-                                        hover:bg-charcoal/[0.02]`}
-                                    title={n.read ? 'View' : 'Mark as read'}
-                                >
-                                    {/* Icon Container */}
-                                    <div className="shrink-0 flex items-start">
-                                        {(() => {
-                                            const iconMap = {
-                                                LEAD_CREATED:      { icon: 'person_add',    bg: 'bg-blue-500/5',    text: 'text-blue-500' },
-                                                WHATSAPP_REPLY:    { icon: 'chat',           bg: 'bg-primary/5',     text: 'text-primary' },
-                                                CALL_COMPLETED:    { icon: 'call',           bg: 'bg-emerald-500/5', text: 'text-emerald-500' },
-                                                LINK_OPENED:       { icon: 'bolt',           bg: 'bg-primary/5',     text: 'text-primary' },
-                                                AUTOMATION_STATUS: { icon: 'schedule_send',  bg: 'bg-purple-500/5',  text: 'text-purple-500' },
-                                                LEAD_INTERESTED:   { icon: 'favorite',       bg: 'bg-emerald-500/5', text: 'text-emerald-500' },
-                                                LEAD_REJECTED:     { icon: 'not_interested', bg: 'bg-red-500/5',     text: 'text-red-500' },
-                                            };
-                                            const cfg = iconMap[n.type] || { icon: 'notifications', bg: 'bg-charcoal/5', text: 'text-charcoal/40' };
-                                            return (
-                                                <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center transition-all group-hover:scale-105 ${cfg.bg} ${cfg.text}`}>
-                                                    <span className="material-symbols-outlined text-[14px] sm:text-[16px]">{cfg.icon}</span>
-                                                </div>
-                                            );
-                                        })()}
-                                    </div>
-
-                                    {/* Content Area */}
-                                    <div className="flex-1 min-w-0 flex flex-col justify-center text-left">
-                                        <div className="flex items-center justify-between gap-2 mb-0.5">
-                                            <h4 className="text-[10px] sm:text-[11px] font-black text-charcoal uppercase tracking-wide truncate group-hover:text-primary transition-colors">
-                                                {n.title}
-                                            </h4>
-                                            <span className="text-[7.5px] sm:text-[8px] font-black text-charcoal/20 uppercase tracking-tighter shrink-0">
-                                                {formatTime(n.createdAt)}
-                                            </span>
-                                        </div>
-                                        <p className="text-[9.5px] sm:text-[10px] font-medium text-charcoal/40 leading-tight truncate">
-                                            {n.message}
-                                        </p>
-                                    </div>
-
-                                    {/* Unread Indicator Dot */}
-                                    {!n.read && (
-                                        <div className="absolute top-1/2 -translate-y-1/2 left-2 w-1 h-1 rounded-full bg-primary shadow-[0_0_8px_rgba(255,107,0,0.4)]"></div>
-                                    )}
-                                </div>
-                            ))}
-                        </div>
-                    )}
+                {/* Content */}
+                <div className="relative flex-1 overflow-y-auto custom-scrollbar">
+                    {renderedNotifications}
                 </div>
 
                 {/* Footer */}
-                <div className="mt-auto shrink-0 p-3 sm:p-4 bg-white border-t border-charcoal/5 flex items-center justify-center z-20">
-                    <div className="flex items-center gap-1.5 sm:gap-2">
-                        <div className="h-1 w-1 sm:h-1.5 sm:w-1.5 rounded-full bg-green-500 animate-pulse"></div>
-                        <span className="text-[7.5px] sm:text-[8px] font-black uppercase tracking-[0.15em] sm:tracking-[0.2em] text-charcoal/20">System Encrypted & Active</span>
+                <div className="border-t border-slate-200/70 bg-white/60 px-5 py-4 backdrop-blur-xl dark:border-white/10 dark:bg-black/10">
+                    <div className="flex items-center justify-center gap-2">
+                        <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+
+                        <span className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-400">
+                            Secure Realtime Sync Active
+                        </span>
                     </div>
                 </div>
             </aside>
@@ -224,27 +438,60 @@ const NotificationCenter = () => {
 
     return (
         <>
-            {/* Notification Bell Button */}
+            {/* Notification Trigger */}
             <button
                 ref={buttonRef}
                 type="button"
                 onClick={toggleDropdown}
-                className="relative p-2 text-charcoal/60 hover:text-primary transition-colors cursor-pointer group flex items-center justify-center bg-transparent border-none outline-none"
                 title="Notifications"
                 aria-expanded={isOpen}
                 aria-label="Open notifications"
+                className={`
+                    relative
+                    flex
+                    h-11
+                    w-11
+                    items-center
+                    justify-center
+                    rounded-[16px]
+                    border
+                    border-slate-200/70
+                    bg-white/70
+                    text-slate-700
+                    shadow-sm
+                    backdrop-blur-xl
+                    transition-all
+                    duration-200
+                    hover:-translate-y-[1px]
+                    hover:border-primary/20
+                    hover:bg-white
+                    hover:text-primary
+                    hover:shadow-md
+                    active:scale-95
+                    dark:border-white/10
+                    dark:bg-white/[0.05]
+                    dark:text-slate-200
+                `}
             >
-                <span className="material-symbols-outlined text-[20px] lg:text-[22px] group-active:scale-95 transition-transform">
-                    {unreadCount > 0 ? 'notifications_active' : 'notifications'}
+                <span className="material-symbols-outlined text-[22px] transition-transform duration-200 group-hover:scale-105">
+                    {unreadCount > 0
+                        ? 'notifications_active'
+                        : 'notifications'}
                 </span>
+
                 {unreadCount > 0 && (
-                    <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[8px] font-black text-white border-2 border-white animate-pulse">
-                        {unreadCount > 9 ? '9+' : unreadCount}
-                    </span>
+                    <>
+                        <span className="absolute -right-1 -top-1 flex h-5 min-w-[20px] items-center justify-center rounded-full border-2 border-white bg-primary px-1 text-[9px] font-black text-white shadow-lg dark:border-[#0B0D12]">
+                            {unreadCount > 9
+                                ? '9+'
+                                : unreadCount}
+                        </span>
+
+                        <span className="absolute inset-0 rounded-[16px] border border-primary/30 animate-ping" />
+                    </>
                 )}
             </button>
 
-            {/* Sidebar rendered at document.body level via portal */}
             {sidebarPortal}
         </>
     );

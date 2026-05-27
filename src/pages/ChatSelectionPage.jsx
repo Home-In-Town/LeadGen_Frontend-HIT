@@ -1,83 +1,179 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from "react-router-dom";
 
-const PlatformCard = ({ title, description, icon, color, to, badge, disabled }) => {
-    const navigate = useNavigate();
+const platforms = [
+  {
+    title: "WhatsApp",
+    description: "Real-time two-way messaging with leads",
+    icon: "forum",
+    color: "from-emerald-500/20 to-emerald-500/5",
+    accent: "bg-emerald-500",
+    text: "text-emerald-500",
+    border: "hover:border-emerald-500/30",
+    glow: "group-hover:shadow-emerald-500/10",
+    to: "/chat/whatsapp",
+    status: "LIVE",
+  },
+  {
+    title: "Email",
+    description: "Professional lead communication over SMTP",
+    icon: "mail",
+    color: "from-blue-500/20 to-blue-500/5",
+    accent: "bg-blue-500",
+    text: "text-blue-500",
+    border: "hover:border-blue-500/30",
+    glow: "group-hover:shadow-blue-500/10",
+    to: "/chat/email",
+    status: "BETA",
+  },
+];
 
-    return (
-        <div 
-            onClick={() => !disabled && navigate(to)}
-            className={`group bg-white border-2 ${disabled ? 'border-charcoal/5 opacity-60 cursor-not-allowed' : 'border-charcoal hover:bg-charcoal cursor-pointer'} p-2.5 sm:p-4 transition-all relative overflow-hidden flex flex-col justify-between min-h-[110px] sm:min-h-[135px] shadow-sm`}
-        >
-            <div className="relative z-10">
-                <div className="flex justify-between items-start mb-1.5 sm:mb-2">
-                    <span className={`material-symbols-outlined ${disabled ? 'text-charcoal/20' : 'text-charcoal group-hover:text-white'} transition-colors text-xl sm:text-2xl`}>
-                        {icon}
-                    </span>
-                    {badge && (
-                        <div className="px-1 py-0.5 bg-primary/10 border border-primary/20 text-primary font-black uppercase tracking-widest text-[5px] sm:text-[7px] animate-pulse">
-                            {badge}
-                        </div>
-                    )}
-                </div>
-                <h3 className={`text-sm sm:text-base font-black uppercase tracking-tight ${disabled ? 'text-charcoal/20' : 'text-charcoal group-hover:text-white'} transition-colors mb-0.5`}>
-                    {title}
-                </h3>
-                <p className={`text-[7px] sm:text-[9px] font-bold ${disabled ? 'text-charcoal/10' : 'text-charcoal/40 group-hover:text-white/40'} transition-colors uppercase tracking-[0.2em] max-w-[110px] sm:max-w-[160px]`}>
-                    {description}
-                </p>
+const PlatformCard = ({
+  title,
+  description,
+  icon,
+  color,
+  accent,
+  text,
+  border,
+  glow,
+  to,
+  status,
+  disabled,
+}) => {
+  const navigate = useNavigate();
+
+  return (
+    <button
+      onClick={() => !disabled && navigate(to)}
+      className={`group relative overflow-hidden rounded-[28px] border border-slate-200/70 dark:border-white/10 bg-white/80 dark:bg-white/[0.03] backdrop-blur-2xl p-5 sm:p-6 text-left transition-all duration-500 shadow-[0_10px_30px_rgba(0,0,0,0.04)] dark:shadow-[0_10px_30px_rgba(0,0,0,0.2)] hover:-translate-y-2 hover:shadow-2xl ${border} ${glow} ${
+        disabled
+          ? "opacity-50 cursor-not-allowed"
+          : "cursor-pointer"
+      }`}
+    >
+      {/* BACKGROUND GLOW */}
+      <div
+        className={`absolute inset-0 bg-gradient-to-br ${color} opacity-0 group-hover:opacity-100 transition-opacity duration-500`}
+      />
+
+      {/* DECORATIVE ORB */}
+      <div className="absolute -right-10 -bottom-10 w-32 h-32 rounded-full bg-white/10 blur-2xl group-hover:scale-125 transition-transform duration-700" />
+
+      {/* CONTENT */}
+      <div className="relative z-10 flex flex-col h-full">
+        {/* TOP */}
+        <div className="flex items-start justify-between mb-8">
+          <div
+            className={`w-14 h-14 rounded-2xl ${text} bg-white dark:bg-white/5 border border-slate-200/70 dark:border-white/10 flex items-center justify-center transition-all duration-500 group-hover:scale-110`}
+          >
+            <span className="material-symbols-outlined text-[28px]">
+              {icon}
+            </span>
+          </div>
+
+          {status && (
+            <div
+              className={`px-3 h-8 rounded-full border border-white/10 bg-white/70 dark:bg-white/5 backdrop-blur-xl flex items-center`}
+            >
+              <span
+                className={`text-[9px] font-black uppercase tracking-[0.2em] ${text}`}
+              >
+                {status}
+              </span>
             </div>
-            
-            {!disabled && (
-                <div className="relative z-10 flex items-center justify-between mt-1.5 sm:mt-2">
-                    <div className="flex items-center gap-1 sm:gap-1.5">
-                        <span className={`h-1 w-1 sm:h-1.5 sm:w-1.5 rounded-full ${color}`}></span>
-                        <span className={`text-[7px] sm:text-[8px] font-black uppercase tracking-widest ${disabled ? 'text-charcoal/10' : 'text-charcoal/60 group-hover:text-white/60'} transition-colors`}>
-                            {title}
-                        </span>
-                    </div>
-                    <span className="material-symbols-outlined text-charcoal/20 group-hover:text-white/40 transition-all group-hover:translate-x-1 text-xs sm:text-sm">
-                        arrow_forward
-                    </span>
-                </div>
-            )}
-
-            {/* Background design element */}
-            <div className={`absolute -right-6 -bottom-6 w-20 h-20 sm:w-28 sm:h-28 ${disabled ? 'bg-charcoal/5' : 'bg-charcoal/5 group-hover:bg-white/5'} rotate-12 transition-all`}></div>
+          )}
         </div>
-    );
+
+        {/* TEXT */}
+        <div className="flex-1">
+          <h3 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white mb-3">
+            {title}
+          </h3>
+
+          <p className="text-sm leading-relaxed text-slate-500 dark:text-slate-400 max-w-[260px]">
+            {description}
+          </p>
+        </div>
+
+        {/* FOOTER */}
+        <div className="flex items-center justify-between mt-8">
+          <div className="flex items-center gap-2">
+            <span
+              className={`w-2 h-2 rounded-full ${accent} animate-pulse`}
+            />
+
+            <span className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400">
+              Active Channel
+            </span>
+          </div>
+
+          <div
+            className={`w-10 h-10 rounded-xl bg-slate-100 dark:bg-white/5 flex items-center justify-center transition-all duration-300 group-hover:translate-x-1`}
+          >
+            <span className="material-symbols-outlined text-slate-500 dark:text-slate-300">
+              arrow_forward
+            </span>
+          </div>
+        </div>
+      </div>
+    </button>
+  );
 };
 
 export default function ChatSelectionPage() {
-    return (
-        <div className="animate-fade-in font-display max-w-5xl mx-auto px-4">
-            <div className="mb-5 sm:mb-8 text-center sm:text-left">
-                <h1 className="text-lg sm:text-xl font-black uppercase tracking-tighter leading-tight text-charcoal mb-0.5">
-                    Choose Platform
-                </h1>
-                <div className="flex items-center gap-2 justify-center sm:justify-start">
-                    <p className="text-charcoal/40 text-[8px] sm:text-[9px] font-black uppercase tracking-[0.3em]">
-                        Select a communication channel
-                    </p>
-                    <div className="h-[1px] w-6 bg-primary"></div>
-                </div>
-            </div>
+  return (
+    <div className="animate-fade-in min-h-[calc(100vh-120px)] px-4 sm:px-6 lg:px-8 py-6">
+      {/* HERO */}
+      <div className="max-w-6xl mx-auto mb-10 sm:mb-14">
+        <div className="inline-flex items-center gap-2 px-4 h-10 rounded-full bg-primary/10 border border-primary/20 text-primary mb-5">
+          <span className="material-symbols-outlined text-[16px]">
+            hub
+          </span>
 
-            <div className="grid grid-cols-2 gap-3 sm:gap-6 mb-10 max-w-3xl">
-                <PlatformCard 
-                    title="WhatsApp"
-                    description="Real-time two-way messaging with leads"
-                    icon="forum"
-                    color="bg-green-500"
-                    to="/chat/whatsapp"
-                />
-                <PlatformCard 
-                    title="Email"
-                    description="Professional lead communication over SMTP"
-                    icon="mail"
-                    color="bg-blue-500"
-                    to="/chat/email"
-                />
-            </div>
+          <span className="text-[10px] font-black uppercase tracking-[0.25em]">
+            Communication Hub
+          </span>
         </div>
-    );
+
+        <h1 className="text-4xl sm:text-6xl font-black tracking-tight leading-none text-slate-900 dark:text-white max-w-3xl mb-5">
+          Choose Your Messaging Platform
+        </h1>
+
+        <p className="text-base sm:text-lg text-slate-500 dark:text-slate-400 leading-relaxed max-w-2xl">
+          Manage conversations, automate engagement, and communicate with
+          leads across multiple channels in one unified workspace.
+        </p>
+      </div>
+
+      {/* GRID */}
+      <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
+        {platforms.map((platform) => (
+          <PlatformCard key={platform.title} {...platform} />
+        ))}
+      </div>
+
+      {/* FOOTER */}
+      <div className="max-w-6xl mx-auto mt-16 pt-8 border-t border-slate-200 dark:border-white/10">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <p className="text-[11px] font-black uppercase tracking-[0.25em] text-slate-400">
+              Unified Communication Infrastructure
+            </p>
+
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
+              Real-time sync • AI-powered workflows • Centralized messaging
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 px-4 h-11 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 text-emerald-500">
+            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+
+            <span className="text-[10px] font-black uppercase tracking-[0.2em]">
+              Systems Operational
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }

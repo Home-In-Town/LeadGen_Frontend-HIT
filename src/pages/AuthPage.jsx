@@ -4,6 +4,19 @@ import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
 import { useNavigate } from 'react-router-dom';
 
+const THEME_STORAGE_KEY = 'hit-landing-theme';
+
+function getInitialTheme() {
+    if (typeof window === 'undefined') return 'light';
+    try {
+        const stored = localStorage.getItem(THEME_STORAGE_KEY);
+        if (stored === 'dark' || stored === 'light') return stored;
+    } catch {
+        /* ignore */
+    }
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+
 // ── Icons (SVG) ──
 const PhoneIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-phone-call"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/><path d="m14.05 2 .23 2"/><path d="M15 5.4V6"/><path d="m19.3 2.05-.2.23"/><path d="M18 5V4"/></svg>
@@ -40,9 +53,23 @@ export default function AuthPage() {
     const [isResetFlow, setIsResetFlow] = useState(false);
     const [forgotPhone, setForgotPhone] = useState('');
 
+    const [theme, setTheme] = useState(getInitialTheme);
+
     const { user, status, checkAuth } = useAuth();
     const { playChime, addToast } = useNotifications();
     const navigate = useNavigate();
+
+    const isDark = theme === 'dark';
+
+    const toggleTheme = () => {
+        const next = theme === 'dark' ? 'light' : 'dark';
+        setTheme(next);
+        try {
+            localStorage.setItem(THEME_STORAGE_KEY, next);
+        } catch {
+            /* ignore */
+        }
+    };
 
     // Auto-redirect if already authenticated
     useEffect(() => {
@@ -208,173 +235,489 @@ export default function AuthPage() {
         }
     };
 
-    // ─── Shared Styles (Lead Filtration Theme) ───
-    const inputBase = "w-full bg-white border-2 border-charcoal/10 py-4 pl-12 pr-4 text-charcoal placeholder:text-charcoal/30 focus:outline-none focus:border-primary transition-all font-bold";
-    const buttonBase = "w-full bg-primary border-2 border-primary hover:bg-charcoal hover:border-charcoal text-white font-black uppercase tracking-widest py-4 transition-all flex items-center justify-center gap-2 group disabled:opacity-50 cursor-pointer";
-    const linkBase = "text-charcoal/40 hover:text-primary text-[10px] font-black uppercase tracking-widest transition-colors cursor-pointer";
+    const inputBase =
+        'w-full rounded-xl bg-white/90 dark:bg-white/[0.06] border border-slate-200/90 dark:border-white/10 py-3.5 pl-11 pr-4 text-sm font-semibold text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 placeholder:font-medium shadow-[inset_0_1px_0_rgba(255,255,255,0.6)] dark:shadow-none focus:outline-none focus:ring-2 focus:ring-primary/35 focus:border-primary transition-all duration-200';
+    const buttonBase =
+        'w-full rounded-xl bg-gradient-to-r from-primary to-emerald-600 text-white font-semibold tracking-wide py-3.5 px-4 shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 hover:brightness-[1.03] active:scale-[0.99] transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:pointer-events-none disabled:shadow-none cursor-pointer';
+    const linkBase =
+        'text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-primary text-[11px] font-semibold uppercase tracking-wider transition-colors duration-200 cursor-pointer';
+
+    const screenTitle = () => {
+        switch (screen) {
+            case 'login':
+                return 'Sign in';
+            case 'register':
+                return 'Create account';
+            case 'otp':
+                return 'Verify code';
+            case 'reset-mpin':
+                return 'New MPIN';
+            case 'forgot-phone':
+                return 'Recover access';
+            default:
+                return 'Welcome';
+        }
+    };
+
+    const screenSubtitle = () => {
+        switch (screen) {
+            case 'login':
+                return 'Welcome back to your CRM workspace.';
+            case 'register':
+                return 'Start automating leads in minutes.';
+            case 'otp':
+                return 'Enter the code we sent to your phone.';
+            case 'reset-mpin':
+                return 'Choose a new secure MPIN.';
+            case 'forgot-phone':
+                return 'We’ll send a verification code.';
+            default:
+                return '';
+        }
+    };
+
+    const highlights = [
+        { icon: 'smart_toy', text: 'AI voice & smart automation' },
+        { icon: 'chat', text: 'WhatsApp & omnichannel CRM' },
+        { icon: 'campaign', text: 'Ads & lead sync built in' },
+    ];
 
     return (
-        <div className="min-h-screen bg-white flex items-center justify-center p-4 font-display">
-            {/* Background Engineering Grid */}
-            <div className="fixed inset-0 opacity-[0.03] pointer-events-none">
-                <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(#0F1115_1px,_transparent_1px)] bg-[length:32px_32px]" />
-            </div>
+        <div className={`${isDark ? 'dark' : ''} min-h-screen`}>
+            <div className="relative min-h-screen bg-slate-50 text-slate-900 transition-colors duration-300 dark:bg-[#07080c] dark:text-slate-100">
+                <div className="pointer-events-none absolute inset-0 landing-gradient-mesh opacity-80 dark:opacity-100" aria-hidden />
+                <div className="pointer-events-none absolute inset-0 landing-grid-bg opacity-25 dark:opacity-35" aria-hidden />
 
-            <div className="w-full max-w-md bg-white border-4 border-charcoal shadow-[12px_12px_0px_0px_rgba(15,17,21,1)] p-8 sm:p-10 relative overflow-hidden">
-                
-                {/* Visual Identity Element */}
-                <div className="absolute -right-6 -top-6 w-24 h-24 bg-primary/10 rotate-12 pointer-events-none"></div>
-                <div className="absolute -left-6 -bottom-6 w-16 h-16 bg-charcoal/5 -rotate-12 pointer-events-none"></div>
+                <button
+                    type="button"
+                    onClick={toggleTheme}
+                    aria-label={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
+                    className="fixed right-4 top-4 z-50 inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200/80 bg-white/80 text-slate-700 shadow-sm backdrop-blur-md transition-all hover:border-primary/40 hover:text-primary dark:border-white/10 dark:bg-white/10 dark:text-slate-200 dark:hover:border-primary/50"
+                >
+                    <span className="material-symbols-outlined text-[22px]">{isDark ? 'light_mode' : 'dark_mode'}</span>
+                </button>
 
-                {/* Notifications */}
-                {error && (
-                    <div className="mb-6 p-4 bg-red-50 text-red-600 border-2 border-red-100 text-[10px] font-black uppercase tracking-widest animate-shake">
-                        {error}
-                    </div>
-                )}
-                {success && (
-                    <div className="mb-6 p-4 bg-primary/10 text-primary border-2 border-primary/20 text-[10px] font-black uppercase tracking-widest">
-                        {success}
-                    </div>
-                )}
-
-                {/* Screen: LOGIN */}
-                {screen === 'login' && (
-                    <form onSubmit={onLoginSubmit} className="space-y-8 relative z-10">
-                        <div className="space-y-1">
-                            <h2 className="text-3xl font-black text-charcoal uppercase tracking-tighter leading-none">System Access</h2>
-                            <p className="text-charcoal/40 text-[10px] font-black uppercase tracking-[0.3em]">Precision Lead Filtration</p>
-                        </div>
-
-                        <div className="space-y-4">
-                            <div className="relative group">
-                                <i className="absolute left-4 top-1/2 -translate-y-1/2 text-charcoal/20 group-focus-within:text-primary transition-colors flex"><PhoneIcon /></i>
-                                <input type="tel" placeholder="Mobile Number" value={phone} onChange={(e) => setPhone(e.target.value)} className={`${inputBase} font-mono`} />
-                            </div>
-                            <div className="relative group">
-                                <i className="absolute left-4 top-1/2 -translate-y-1/2 text-charcoal/20 group-focus-within:text-primary transition-colors flex"><LockIcon /></i>
-                                <input type="password" placeholder="Access MPIN" maxLength={6} value={mpin} onChange={(e) => setMpin(e.target.value)} className={`${inputBase} text-2xl ${mpin ? 'tracking-[0.8em]' : 'tracking-normal'} placeholder:tracking-normal placeholder:text-[10px] placeholder:uppercase placeholder:font-black placeholder:tracking-widest`} />
-                            </div>
-                        </div>
-
-                        <div className="space-y-5">
-                            <button disabled={loading} className={buttonBase}>
-                                {loading ? "Verifying Credentials..." : <>Login <ArrowRightIcon /></>}
-                            </button>
-                            <div className="flex justify-between items-center bg-charcoal/5 p-3">
-                                <button type="button" onClick={() => { resetFields(); setScreen('forgot-phone'); }} className={linkBase}>Forgot Access?</button>
-                                <button type="button" onClick={() => { resetFields(); setScreen('register'); }} className={`${linkBase} text-primary`}>New Registration</button>
-                            </div>
-                        </div>
-                    </form>
-                )}
-
-                {/* Screen: REGISTER */}
-                {screen === 'register' && (
-                    <form onSubmit={onRegisterSubmit} className="space-y-6 relative z-10">
-                        <div className="space-y-1">
-                            <h2 className="text-3xl font-black text-charcoal uppercase tracking-tighter leading-none">Register Unit</h2>
-                            <p className="text-charcoal/40 text-[10px] font-black uppercase tracking-[0.3em]">Initialize System Account</p>
-                        </div>
-
-                        <div className="space-y-3">
-                            <div className="relative">
-                                <i className="absolute left-4 top-1/2 -translate-y-1/2 text-charcoal/20 flex"><UserIcon /></i>
-                                <input type="text" placeholder="Identity Name" value={name} onChange={(e) => setName(e.target.value)} className={inputBase} />
-                            </div>
-                            <div className="relative">
-                                <i className="absolute left-4 top-1/2 -translate-y-1/2 text-charcoal/20 flex"><PhoneIcon /></i>
-                                <input type="tel" placeholder="Terminal Mobile" value={phone} onChange={(e) => setPhone(e.target.value)} className={`${inputBase} font-mono`} />
-                            </div>
-                            <div className="relative">
-                                <i className="absolute left-4 top-1/2 -translate-y-1/2 text-charcoal/20 flex"><MailIcon /></i>
-                                <input type="email" placeholder="Email Reference" value={email} onChange={(e) => setEmail(e.target.value)} className={inputBase} />
-                            </div>
-
-
-                            <div className="grid grid-cols-2 gap-3">
-                                <div className="relative">
-                                    <i className="absolute left-3 top-1/2 -translate-y-1/2 text-charcoal/20 flex scale-90"><LockIcon /></i>
-                                    <input type="password" placeholder="MPIN" maxLength={6} value={mpin} onChange={(e) => setMpin(e.target.value)} className={`${inputBase} pl-10 text-xl tracking-[0.2em] placeholder:tracking-normal placeholder:text-[9px] placeholder:uppercase placeholder:font-black`} />
+                <div className="relative z-10 mx-auto flex min-h-screen max-w-6xl flex-col px-4 py-8 sm:px-6 lg:flex-row lg:items-stretch lg:gap-10 lg:px-10 lg:py-12">
+                    {/* Left: branding */}
+                    <aside className="mb-8 flex flex-col justify-center lg:mb-0 lg:w-[42%] lg:max-w-xl lg:py-4">
+                        <div className="rounded-2xl border border-slate-200/70 bg-white/60 p-6 shadow-xl shadow-slate-900/5 backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.06] dark:shadow-black/40 sm:p-8">
+                            <div className="flex items-center gap-3">
+                                <img
+                                    src="/vite.svg"
+                                    alt="OneEmployee Logo"
+                                    className="h-10 w-10 object-contain"
+                                />
+                                <div>
+                                    <p className="text-lg font-bold tracking-tight text-slate-900 dark:text-white">
+                                        OneEmployee<span className="text-primary">®</span>
+                                    </p>
+                                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                                        AI-powered CRM · Lead automation
+                                    </p>
                                 </div>
-                                <div className="relative">
-                                    <i className="absolute left-3 top-1/2 -translate-y-1/2 text-charcoal/20 flex scale-90"><LockIcon /></i>
-                                    <input type="password" placeholder="Confirm" maxLength={6} value={confirmMpin} onChange={(e) => setConfirmMpin(e.target.value)} className={`${inputBase} pl-10 text-xl tracking-[0.2em] placeholder:tracking-normal placeholder:text-[9px] placeholder:uppercase placeholder:font-black`} />
+                            </div>
+                            <p className="mt-6 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+                                Run voice, WhatsApp, and ads-led workflows from one premium workspace-built for teams who
+                                live in real-time pipeline.
+                            </p>
+                            <ul className="mt-6 space-y-3">
+                                {highlights.map((h) => (
+                                    <li key={h.text} className="flex items-center gap-3 text-sm text-slate-700 dark:text-slate-200">
+                                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary ring-1 ring-primary/20">
+                                            <span className="material-symbols-outlined text-[18px]">{h.icon}</span>
+                                        </span>
+                                        <span>{h.text}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                            <div className="mt-8 grid grid-cols-2 gap-3">
+                                <div className="rounded-xl border border-slate-200/60 bg-white/50 p-3 dark:border-white/10 dark:bg-white/[0.04]">
+                                    <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                                        Pipeline
+                                    </p>
+                                    <p className="mt-1 font-mono text-lg font-bold text-slate-900 dark:text-white">Live</p>
+                                </div>
+                                <div className="rounded-xl border border-slate-200/60 bg-white/50 p-3 dark:border-white/10 dark:bg-white/[0.04]">
+                                    <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                                        Sync
+                                    </p>
+                                    <p className="mt-1 font-mono text-lg font-bold text-primary">Real-time</p>
                                 </div>
                             </div>
                         </div>
+                    </aside>
 
-                        <div className="space-y-4">
-                            <button disabled={loading} className={buttonBase}>
-                                {loading ? "Initializing System..." : "Complete Registration"}
-                            </button>
-                            <button type="button" onClick={() => setScreen('login')} className="w-full text-center text-[10px] font-black uppercase tracking-widest text-charcoal/40 hover:text-charcoal transition-colors">Return to <span className="text-primary underline">Main Login</span></button>
-                        </div>
-                    </form>
-                )}
+                    {/* Right: auth card */}
+                    <main className="flex flex-1 flex-col justify-center lg:min-w-0 lg:py-4">
+                        <div className="rounded-2xl border border-slate-200/80 bg-white/75 p-6 shadow-2xl shadow-slate-900/10 backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.06] dark:shadow-black/50 sm:p-8 lg:p-10">
+                            {/* Login / Register toggle — only when those screens */}
+                            {(screen === 'login' || screen === 'register') && (
+                                <div className="mb-8 flex rounded-xl border border-slate-200/80 bg-slate-100/80 p-1 dark:border-white/10 dark:bg-white/[0.06]">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            resetFields();
+                                            setScreen('login');
+                                        }}
+                                        className={`relative flex-1 rounded-lg py-2.5 text-center text-xs font-semibold uppercase tracking-wide transition-all duration-300 ${
+                                            screen === 'login'
+                                                ? 'bg-white text-slate-900 shadow-sm dark:bg-slate-800 dark:text-white'
+                                                : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'
+                                        }`}
+                                    >
+                                        Login
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            resetFields();
+                                            setScreen('register');
+                                        }}
+                                        className={`relative flex-1 rounded-lg py-2.5 text-center text-xs font-semibold uppercase tracking-wide transition-all duration-300 ${
+                                            screen === 'register'
+                                                ? 'bg-white text-slate-900 shadow-sm dark:bg-slate-800 dark:text-white'
+                                                : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'
+                                        }`}
+                                    >
+                                        Register
+                                    </button>
+                                </div>
+                            )}
 
-                {/* Screen: OTP */}
-                {screen === 'otp' && (
-                    <form onSubmit={onOtpSubmit} className="space-y-10 relative z-10 text-center">
-                        <div className="space-y-2">
-                            <h2 className="text-3xl font-black text-charcoal uppercase tracking-tighter leading-none">Security Gate</h2>
-                            <p className="text-charcoal/40 text-[10px] font-black uppercase tracking-widest">Code sent to: <span className="font-mono font-bold text-charcoal">{isResetFlow ? forgotPhone : phone}</span></p>
-                        </div>
-
-                        <input type="text" maxLength={6} placeholder="000000" value={otpCode} onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))} className="w-full bg-surface-subtle border-4 border-charcoal/5 py-8 text-center text-5xl font-black text-primary focus:outline-none focus:border-primary transition-all tracking-[0.4em] placeholder:tracking-normal" />
-
-                        <div className="space-y-4">
-                            <button disabled={loading} className={buttonBase}>{loading ? "Verifying Unit..." : "Authorize Access"}</button>
-                            <button type="button" onClick={() => { setIsResetFlow(false); setScreen('login'); }} className={linkBase}>Reset Interface</button>
-                        </div>
-                    </form>
-                )}
-
-                {/* Screen: RESET MPIN */}
-                {screen === 'reset-mpin' && (
-                    <form onSubmit={onResetMpinSubmit} className="space-y-10 relative z-10">
-                        <div className="space-y-2 text-center">
-                            <h2 className="text-3xl font-black text-charcoal uppercase tracking-tighter leading-none">Update Token</h2>
-                            <p className="text-charcoal/40 text-[10px] font-black uppercase tracking-widest">Setup new secure access sequence</p>
-                        </div>
-
-                        <div className="space-y-4">
-                            <div className="relative group">
-                                <i className="absolute left-4 top-1/2 -translate-y-1/2 text-charcoal/20 flex"><LockIcon /></i>
-                                <input type="password" placeholder="New Access MPIN" maxLength={6} value={mpin} onChange={(e) => setMpin(e.target.value)} className={`${inputBase} text-2xl tracking-[0.5em] placeholder:tracking-normal placeholder:text-[10px] placeholder:uppercase placeholder:font-black`} />
+                            <div className="mb-6">
+                                <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-3xl">
+                                    {screenTitle()}
+                                </h2>
+                                <p className="mt-1.5 text-sm text-slate-600 dark:text-slate-400">{screenSubtitle()}</p>
                             </div>
-                            <div className="relative group">
-                                <i className="absolute left-4 top-1/2 -translate-y-1/2 text-charcoal/20 flex"><LockIcon /></i>
-                                <input type="password" placeholder="Verify New MPIN" maxLength={6} value={confirmMpin} onChange={(e) => setConfirmMpin(e.target.value)} className={`${inputBase} text-2xl tracking-[0.5em] placeholder:tracking-normal placeholder:text-[10px] placeholder:uppercase placeholder:font-black`} />
+
+                            {error && (
+                                <div
+                                    role="alert"
+                                    className="mb-6 rounded-xl border border-red-200/80 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-sm dark:border-red-500/30 dark:bg-red-950/40 dark:text-red-200"
+                                >
+                                    {error}
+                                </div>
+                            )}
+                            {success && (
+                                <div
+                                    role="status"
+                                    className="mb-6 rounded-xl border border-primary/30 bg-primary/10 px-4 py-3 text-sm font-medium text-primary dark:bg-primary/15"
+                                >
+                                    {success}
+                                </div>
+                            )}
+
+                            <div
+                                key={screen}
+                                className="animate-fade-in transition-opacity duration-300 ease-out"
+                            >
+                                {/* Screen: LOGIN */}
+                                {screen === 'login' && (
+                                    <form onSubmit={onLoginSubmit} className="space-y-6">
+                                        <div className="space-y-4">
+                                            <div className="relative group">
+                                                <i className="absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-primary dark:text-slate-500">
+                                                    <PhoneIcon />
+                                                </i>
+                                                <input
+                                                    type="tel"
+                                                    autoComplete="tel"
+                                                    placeholder="Mobile number"
+                                                    value={phone}
+                                                    onChange={(e) => setPhone(e.target.value)}
+                                                    className={`${inputBase} font-mono`}
+                                                />
+                                            </div>
+                                            <div className="relative group">
+                                                <i className="absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-primary dark:text-slate-500">
+                                                    <LockIcon />
+                                                </i>
+                                                <input
+                                                    type="password"
+                                                    autoComplete="current-password"
+                                                    placeholder="MPIN"
+                                                    maxLength={6}
+                                                    value={mpin}
+                                                    onChange={(e) => setMpin(e.target.value)}
+                                                    className={`${inputBase} text-xl ${mpin ? 'tracking-[0.45em]' : 'tracking-normal'} placeholder:text-xs placeholder:tracking-normal placeholder:font-semibold`}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-4">
+                                            <button disabled={loading} type="submit" className={buttonBase}>
+                                                {loading ? (
+                                                    <span className="flex items-center gap-2">
+                                                        <span className="material-symbols-outlined animate-spin text-xl">progress_activity</span>
+                                                        Signing in…
+                                                    </span>
+                                                ) : (
+                                                    <>
+                                                        Continue
+                                                        <ArrowRightIcon />
+                                                    </>
+                                                )}
+                                            </button>
+                                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        resetFields();
+                                                        setScreen('forgot-phone');
+                                                    }}
+                                                    className={linkBase}
+                                                >
+                                                    Forgot access?
+                                                </button>
+                                                {/* <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        resetFields();
+                                                        setScreen('register');
+                                                    }}
+                                                    className={`${linkBase} text-primary`}
+                                                >
+                                                    New registration
+                                                </button> */}
+                                            </div>
+                                        </div>
+                                    </form>
+                                )}
+
+                                {/* Screen: REGISTER */}
+                                {screen === 'register' && (
+                                    <form onSubmit={onRegisterSubmit} className="space-y-5">
+                                        <div className="space-y-3">
+                                            <div className="relative group">
+                                                <i className="absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-slate-400 group-focus-within:text-primary dark:text-slate-500">
+                                                    <UserIcon />
+                                                </i>
+                                                <input
+                                                    type="text"
+                                                    autoComplete="name"
+                                                    placeholder="Full name"
+                                                    value={name}
+                                                    onChange={(e) => setName(e.target.value)}
+                                                    className={inputBase}
+                                                />
+                                            </div>
+                                            <div className="relative group">
+                                                <i className="absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-slate-400 group-focus-within:text-primary dark:text-slate-500">
+                                                    <PhoneIcon />
+                                                </i>
+                                                <input
+                                                    type="tel"
+                                                    autoComplete="tel"
+                                                    placeholder="Mobile number"
+                                                    value={phone}
+                                                    onChange={(e) => setPhone(e.target.value)}
+                                                    className={`${inputBase} font-mono`}
+                                                />
+                                            </div>
+                                            <div className="relative group">
+                                                <i className="absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-slate-400 group-focus-within:text-primary dark:text-slate-500">
+                                                    <MailIcon />
+                                                </i>
+                                                <input
+                                                    type="email"
+                                                    autoComplete="email"
+                                                    placeholder="Email"
+                                                    value={email}
+                                                    onChange={(e) => setEmail(e.target.value)}
+                                                    className={inputBase}
+                                                />
+                                            </div>
+
+                                            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                                <div className="relative group">
+                                                    <i className="absolute left-3 top-1/2 z-10 -translate-y-1/2 scale-90 text-slate-400 group-focus-within:text-primary dark:text-slate-500">
+                                                        <LockIcon />
+                                                    </i>
+                                                    <input
+                                                        type="password"
+                                                        placeholder="MPIN"
+                                                        maxLength={6}
+                                                        value={mpin}
+                                                        onChange={(e) => setMpin(e.target.value)}
+                                                        className={`${inputBase} pl-10 text-lg tracking-[0.15em]`}
+                                                    />
+                                                </div>
+                                                <div className="relative group">
+                                                    <i className="absolute left-3 top-1/2 z-10 -translate-y-1/2 scale-90 text-slate-400 group-focus-within:text-primary dark:text-slate-500">
+                                                        <LockIcon />
+                                                    </i>
+                                                    <input
+                                                        type="password"
+                                                        placeholder="Confirm MPIN"
+                                                        maxLength={6}
+                                                        value={confirmMpin}
+                                                        onChange={(e) => setConfirmMpin(e.target.value)}
+                                                        className={`${inputBase} pl-10 text-lg tracking-[0.15em]`}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-3">
+                                            <button disabled={loading} type="submit" className={buttonBase}>
+                                                {loading ? (
+                                                    <span className="flex items-center gap-2">
+                                                        <span className="material-symbols-outlined animate-spin text-xl">progress_activity</span>
+                                                        Creating account…
+                                                    </span>
+                                                ) : (
+                                                    'Complete registration'
+                                                )}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setScreen('login')}
+                                                className="w-full rounded-xl py-2 text-center text-sm font-medium text-slate-500 transition-colors hover:text-slate-800 dark:text-slate-400 dark:hover:text-white"
+                                            >
+                                                Back to <span className="font-semibold text-primary">sign in</span>
+                                            </button>
+                                        </div>
+                                    </form>
+                                )}
+
+                                {/* Screen: OTP */}
+                                {screen === 'otp' && (
+                                    <form onSubmit={onOtpSubmit} className="space-y-8 text-center">
+                                        <p className="text-sm text-slate-600 dark:text-slate-400">
+                                            Code sent to{' '}
+                                            <span className="font-mono font-semibold text-slate-900 dark:text-white">
+                                                {isResetFlow ? forgotPhone : phone}
+                                            </span>
+                                        </p>
+
+                                        <input
+                                            type="text"
+                                            inputMode="numeric"
+                                            autoComplete="one-time-code"
+                                            maxLength={6}
+                                            placeholder="• • • • • •"
+                                            value={otpCode}
+                                            onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                                            className="w-full rounded-xl border border-slate-200/90 bg-slate-50/90 py-6 text-center font-mono text-3xl font-bold tracking-[0.35em] text-primary placeholder:text-slate-300 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/35 dark:border-white/10 dark:bg-white/[0.06] dark:text-primary dark:placeholder:text-slate-600 sm:text-4xl"
+                                        />
+
+                                        <div className="space-y-4">
+                                            <button disabled={loading} type="submit" className={buttonBase}>
+                                                {loading ? (
+                                                    <span className="flex items-center gap-2">
+                                                        <span className="material-symbols-outlined animate-spin text-xl">progress_activity</span>
+                                                        Verifying…
+                                                    </span>
+                                                ) : (
+                                                    'Verify'
+                                                )}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setIsResetFlow(false);
+                                                    setScreen('login');
+                                                }}
+                                                className={linkBase}
+                                            >
+                                                Back to sign in
+                                            </button>
+                                        </div>
+                                    </form>
+                                )}
+
+                                {/* Screen: RESET MPIN */}
+                                {screen === 'reset-mpin' && (
+                                    <form onSubmit={onResetMpinSubmit} className="space-y-6">
+                                        <div className="space-y-4">
+                                            <div className="relative group">
+                                                <i className="absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-slate-400 group-focus-within:text-primary dark:text-slate-500">
+                                                    <LockIcon />
+                                                </i>
+                                                <input
+                                                    type="password"
+                                                    placeholder="New MPIN"
+                                                    maxLength={6}
+                                                    value={mpin}
+                                                    onChange={(e) => setMpin(e.target.value)}
+                                                    className={`${inputBase} text-xl tracking-[0.35em]`}
+                                                />
+                                            </div>
+                                            <div className="relative group">
+                                                <i className="absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-slate-400 group-focus-within:text-primary dark:text-slate-500">
+                                                    <LockIcon />
+                                                </i>
+                                                <input
+                                                    type="password"
+                                                    placeholder="Confirm new MPIN"
+                                                    maxLength={6}
+                                                    value={confirmMpin}
+                                                    onChange={(e) => setConfirmMpin(e.target.value)}
+                                                    className={`${inputBase} text-xl tracking-[0.35em]`}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <button disabled={loading} type="submit" className={buttonBase}>
+                                            {loading ? (
+                                                <span className="flex items-center gap-2">
+                                                    <span className="material-symbols-outlined animate-spin text-xl">progress_activity</span>
+                                                    Updating…
+                                                </span>
+                                            ) : (
+                                                'Save MPIN'
+                                            )}
+                                        </button>
+                                    </form>
+                                )}
+
+                                {/* Screen: FORGOT PHONE */}
+                                {screen === 'forgot-phone' && (
+                                    <form onSubmit={onForgotPhoneSubmit} className="space-y-8">
+                                        <div className="relative group">
+                                            <i className="absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-slate-400 group-focus-within:text-primary dark:text-slate-500">
+                                                <PhoneIcon />
+                                            </i>
+                                            <input
+                                                type="tel"
+                                                autoComplete="tel"
+                                                placeholder="Registered mobile number"
+                                                value={forgotPhone}
+                                                onChange={(e) => setForgotPhone(e.target.value)}
+                                                className={`${inputBase} font-mono text-base`}
+                                            />
+                                        </div>
+
+                                        <div className="space-y-4">
+                                            <button disabled={loading} type="submit" className={buttonBase}>
+                                                {loading ? (
+                                                    <span className="flex items-center gap-2">
+                                                        <span className="material-symbols-outlined animate-spin text-xl">progress_activity</span>
+                                                        Sending…
+                                                    </span>
+                                                ) : (
+                                                    <>
+                                                        Send OTP
+                                                        <ArrowRightIcon />
+                                                    </>
+                                                )}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setScreen('login')}
+                                                className="w-full rounded-xl py-2 text-center text-sm font-medium text-slate-500 underline-offset-4 hover:text-slate-800 hover:underline dark:text-slate-400 dark:hover:text-white"
+                                            >
+                                                Back to sign in
+                                            </button>
+                                        </div>
+                                    </form>
+                                )}
                             </div>
                         </div>
-
-                        <button disabled={loading} className={buttonBase}>{loading ? "Updating Token..." : "Re-Initialize Account"}</button>
-                    </form>
-                )}
-
-                {/* Screen: FORGOT PHONE */}
-                {screen === 'forgot-phone' && (
-                    <form onSubmit={onForgotPhoneSubmit} className="space-y-10 relative z-10">
-                        <div className="space-y-2 text-center">
-                            <h2 className="text-3xl font-black text-charcoal uppercase tracking-tighter leading-none">Recovery Mode</h2>
-                            <p className="text-charcoal/40 text-[10px] font-black uppercase tracking-widest">Enter registered terminal mobile</p>
-                        </div>
-
-                        <div className="relative group">
-                            <i className="absolute left-4 top-1/2 -translate-y-1/2 text-charcoal/20 flex"><PhoneIcon /></i>
-                            <input type="tel" placeholder="Terminal Mobile" value={forgotPhone} onChange={(e) => setForgotPhone(e.target.value)} className={`${inputBase} font-mono text-lg`} />
-                        </div>
-
-                        <div className="space-y-5">
-                            <button disabled={loading} className={buttonBase}>{loading ? "Checking Database..." : <>Send OTP <ArrowRightIcon /></>}</button>
-                            <button type="button" onClick={() => setScreen('login')} className="w-full text-center text-[10px] font-black uppercase tracking-widest text-charcoal/40 hover:text-charcoal transition-colors underline">Return to Registry</button>
-                        </div>
-                    </form>
-                )}
-
+                    </main>
+                </div>
             </div>
         </div>
     );
 }
-

@@ -1,420 +1,799 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { useNotifications } from '../context/NotificationContext';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://lead-filteration-backend-624770114041.asia-south1.run.app';
-// Cookie-based — no token needed, just withCredentials
-const ownersApi = axios.create({ baseURL: `${API_BASE_URL}/api/owners`, withCredentials: true });
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  'https://lead-filteration-backend-624770114041.asia-south1.run.app';
+
+const ownersApi = axios.create({
+  baseURL: `${API_BASE_URL}/api/owners`,
+  withCredentials: true,
+});
 
 const IntegrationsPage = () => {
-    const [activeTab, setActiveTab] = useState('call');
-    const [agukenSettings, setAgukenSettings] = useState({ agentId: '', clientId: '' });
-    const [whatsappSettings, setWhatsappSettings] = useState({ vendorUid: '', apiKey: '' });
-    const [externalSource, setExternalSource] = useState({ sourceUrl: '', webhookSecret: '', isActive: false });
-    const [projectSettings, setProjectSettings] = useState({ salesWebsiteUrl: '' });
-    const [loading, setLoading] = useState(false);
-    const [saving, setSaving] = useState(false);
-    const [testing, setTesting] = useState(false);
-    const [showAgukenAgentSecret, setShowAgukenAgentSecret] = useState(false);
-    const [showAgukenSecret, setShowAgukenSecret] = useState(false);
-    const [showWhatsappVendorSecret, setShowWhatsappVendorSecret] = useState(false);
-    const [showWhatsappSecret, setShowWhatsappSecret] = useState(false);
-    const [showExternalSecret, setShowExternalSecret] = useState(false);
-    const { addToast } = useNotifications();
+  const { addToast } = useNotifications();
 
-    useEffect(() => {
-        fetchIntegrations();
-    }, []);
+  /* ---------------------------------- */
+  /* STATE */
+  /* ---------------------------------- */
 
-    const fetchIntegrations = async () => {
-        setLoading(true);
-        try {
-            const response = await ownersApi.get('/integrations');
-            setAgukenSettings(response.data.aguken);
-            setWhatsappSettings(response.data.whatsapp);
-            if (response.data.externalSource) {
-                setExternalSource(response.data.externalSource);
-            }
-            if (response.data.projectSettings) {
-                setProjectSettings(response.data.projectSettings);
-            }
-        } catch (error) {
-            console.error('Error fetching integrations:', error);
-            addToast('Failed to load integration settings', 'error');
-        } finally {
-            setLoading(false);
+  const [activeTab, setActiveTab] = useState('call');
+
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
+
+  const [visibility, setVisibility] = useState({
+    agukenAgent: false,
+    agukenClient: false,
+    whatsappVendor: false,
+    whatsappApi: false,
+    externalSecret: false,
+  });
+
+  const [agukenSettings, setAgukenSettings] = useState({
+    agentId: '',
+    clientId: '',
+  });
+
+  const [whatsappSettings, setWhatsappSettings] = useState({
+    vendorUid: '',
+    apiKey: '',
+  });
+
+  const [externalSource, setExternalSource] = useState({
+    sourceUrl: '',
+    webhookSecret: '',
+    isActive: false,
+  });
+
+  const [projectSettings, setProjectSettings] = useState({
+    salesWebsiteUrl: '',
+  });
+
+  /* ---------------------------------- */
+  /* UI */
+  /* ---------------------------------- */
+
+  const cardClass =
+    'bg-white/75 dark:bg-white/[0.04] backdrop-blur-xl border border-slate-200/80 dark:border-white/10 rounded-[24px] shadow-sm';
+
+  const inputClass =
+    'w-full rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#1e293b] px-4 py-4 text-sm font-semibold text-slate-900 dark:text-slate-300 outline-none transition-all focus:border-primary focus:bg-white dark:focus:bg-[#1e293b]';
+
+  const labelClass =
+    'mb-2 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.3em] text-slate-500';
+
+  const primaryButton =
+    'rounded-2xl bg-black px-6 py-4 text-[10px] font-black uppercase tracking-[0.25em] text-white transition-all hover:-translate-y-[1px] hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed';
+
+  const secondaryButton =
+    'rounded-2xl border border-indigo-300 bg-white dark:bg-[#1e293b] px-6 py-4 text-[10px] font-black uppercase tracking-[0.25em] text-indigo-600 transition-all hover:bg-indigo-50 disabled:opacity-50 disabled:cursor-not-allowed';
+
+  /* ---------------------------------- */
+  /* FETCH */
+  /* ---------------------------------- */
+
+  useEffect(() => {
+    fetchIntegrations();
+  }, []);
+
+  const fetchIntegrations = async () => {
+    try {
+      setLoading(true);
+
+      const response = await ownersApi.get('/integrations');
+
+      setAgukenSettings(response.data.aguken || {});
+      setWhatsappSettings(response.data.whatsapp || {});
+
+      if (response.data.externalSource) {
+        setExternalSource(response.data.externalSource);
+      }
+
+      if (response.data.projectSettings) {
+        setProjectSettings(response.data.projectSettings);
+      }
+    } catch (error) {
+      console.error(error);
+
+      addToast(
+        'Failed to load integration settings',
+        'error'
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /* ---------------------------------- */
+  /* SAVE */
+  /* ---------------------------------- */
+
+  const handleSaveAguken = async (e) => {
+    e.preventDefault();
+
+    try {
+      setSaving(true);
+
+      await ownersApi.put(
+        '/integrations/aguken',
+        agukenSettings
+      );
+
+      addToast(
+        'Aguken settings saved successfully',
+        'success'
+      );
+    } catch (error) {
+      console.error(error);
+
+      addToast(
+        'Failed to save Aguken settings',
+        'error'
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveWhatsapp = async (e) => {
+    e.preventDefault();
+
+    try {
+      setSaving(true);
+
+      await ownersApi.put(
+        '/integrations/whatsapp',
+        whatsappSettings
+      );
+
+      addToast(
+        'WhatsApp settings saved successfully',
+        'success'
+      );
+    } catch (error) {
+      console.error(error);
+
+      addToast(
+        'Failed to save WhatsApp settings',
+        'error'
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveExternal = async (e) => {
+    e.preventDefault();
+
+    try {
+      setSaving(true);
+
+      await Promise.all([
+        ownersApi.put(
+          '/integrations/external-source',
+          externalSource
+        ),
+
+        ownersApi.put(
+          '/integrations/project-settings',
+          projectSettings
+        ),
+      ]);
+
+      addToast(
+        'Project source settings saved successfully',
+        'success'
+      );
+    } catch (error) {
+      console.error(error);
+
+      addToast(
+        'Failed to save settings',
+        'error'
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  /* ---------------------------------- */
+  /* TEST CONNECTION */
+  /* ---------------------------------- */
+
+  const handleTestConnection = async () => {
+    if (!externalSource.sourceUrl) {
+      addToast(
+        'Please provide a source URL first',
+        'warning'
+      );
+
+      return;
+    }
+
+    try {
+      setTesting(true);
+
+      const response = await axios.post(
+        `${API_BASE_URL}/api/projects/test-connection`,
+        {
+          sourceUrl: externalSource.sourceUrl,
+
+          webhookSecret:
+            externalSource.webhookSecret ===
+            '********'
+              ? null
+              : externalSource.webhookSecret,
+        },
+        {
+          withCredentials: true,
         }
-    };
+      );
 
-    const handleSaveAguken = async (e) => {
-        e.preventDefault();
-        setSaving(true);
-        try {
-            await ownersApi.put('/integrations/aguken', agukenSettings);
-            addToast('Aguken settings saved successfully', 'success');
-        } catch (error) {
-            console.error('Error saving Aguken settings:', error);
-            addToast('Failed to save settings', 'error');
-        } finally {
-            setSaving(false);
-        }
-    };
+      if (response.data.success) {
+        addToast(
+          response.data.message ||
+            `Successfully connected! Found ${response.data.data.length} projects.`,
+          'success'
+        );
+      } else {
+        addToast(
+          'Connected, but verification failed.',
+          'warning'
+        );
+      }
+    } catch (error) {
+      console.error(error);
 
-    const handleSaveWhatsapp = async (e) => {
-        e.preventDefault();
-        setSaving(true);
-        try {
-            await ownersApi.put('/integrations/whatsapp', whatsappSettings);
-            addToast('WhatsApp settings saved successfully', 'success');
-        } catch (error) {
-            console.error('Error saving WhatsApp settings:', error);
-            addToast('Failed to save settings', 'error');
-        } finally {
-            setSaving(false);
-        }
-    };
+      const errorMsg =
+        error.response?.data?.error ||
+        error.response?.data?.message ||
+        'Connection failed';
 
-    const handleSaveExternalSource = async (e) => {
-        e.preventDefault();
-        setSaving(true);
-        try {
-            // Save both external source and project settings together
-            await Promise.all([
-                ownersApi.put('/integrations/external-source', externalSource),
-                ownersApi.put('/integrations/project-settings', projectSettings)
-            ]);
-            addToast('Project source settings saved successfully', 'success');
-        } catch (error) {
-            console.error('Error saving external source settings:', error);
-            addToast('Failed to save settings', 'error');
-        } finally {
-            setSaving(false);
-        }
-    };
+      addToast(errorMsg, 'error');
+    } finally {
+      setTesting(false);
+    }
+  };
 
-    const handleTestConnection = async () => {
-        if (!externalSource.sourceUrl) {
-            addToast('Please provide a source URL first', 'warning');
-            return;
-        }
-        setTesting(true);
-        try {
-            // Use POST to test the current UI input (allows testing before saving)
-            const res = await axios.post(`${API_BASE_URL}/api/projects/test-connection`, {
-                sourceUrl: externalSource.sourceUrl,
-                webhookSecret: externalSource.webhookSecret === '********' ? null : externalSource.webhookSecret
-            }, { withCredentials: true });
+  /* ---------------------------------- */
+  /* HELPERS */
+  /* ---------------------------------- */
 
-            if (res.data.success) {
-                addToast(res.data.message || `Successfully connected! Found ${res.data.data.length} projects.`, 'success');
-            } else {
-                addToast('Connected, but verification failed.', 'warning');
-            }
-        } catch (error) {
-            console.error('Test connection error:', error);
-            // Handle both response data and generic error messages
-            const errorMsg = error.response?.data?.error || error.response?.data?.message || 'Connection failed';
-            addToast(errorMsg, 'error');
-            
-            if (error.response?.status === 403) {
-                console.log('TIP: Ensure your secret matches the one in Sales Website.');
-            }
-        } finally {
-            setTesting(false);
-        }
-    };
+  const toggleVisibility = (field) => {
+    setVisibility((prev) => ({
+      ...prev,
+      [field]: !prev[field],
+    }));
+  };
 
+  const tabs = useMemo(
+    () => [
+      {
+        id: 'call',
+        title: 'Aguken Voice',
+        icon: 'settings_voice',
+        activeClass: 'bg-black text-white',
+      },
+
+      {
+        id: 'whatsapp',
+        title: 'WhatsApp',
+        icon: 'chat',
+        activeClass: 'bg-[#25D366] text-white',
+      },
+
+      {
+        id: 'external',
+        title: 'Project Source',
+        icon: 'webhook',
+        activeClass: 'bg-indigo-600 text-white',
+      },
+    ],
+    []
+  );
+
+  const renderPasswordField = ({
+    label,
+    value,
+    onChange,
+    placeholder,
+    visible,
+    onToggle,
+  }) => (
+    <div>
+      <label className={labelClass}>
+        {label}
+      </label>
+
+      <div className="relative">
+        <input
+          type={visible ? 'text' : 'password'}
+          value={value || ''}
+          onChange={onChange}
+          placeholder={placeholder}
+          className={`${inputClass} pr-14`}
+        />
+
+        <button
+          type="button"
+          onClick={onToggle}
+          className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-white transition-colors hover:text-slate-700 dark:hover:text-slate-300"
+        >
+          <span className="material-symbols-outlined text-lg">
+            {visible
+              ? 'visibility_off'
+              : 'visibility'}
+          </span>
+        </button>
+      </div>
+    </div>
+  );
+
+  /* ---------------------------------- */
+  /* LOADING */
+  /* ---------------------------------- */
+
+  if (loading) {
     return (
-        <div className="max-w-4xl mx-auto px-4 py-4 sm:py-8 animate-fade-in">
-            <header className="mb-4 sm:mb-10">
-                <h1 className="text-2xl sm:text-4xl font-black uppercase tracking-tighter text-charcoal mb-1 sm:mb-2">Integrations</h1>
-                <p className="text-[9px] sm:text-[11px] font-black uppercase tracking-[0.3em] sm:tracking-[0.4em] text-charcoal/40">Connect and manage your external services</p>
-            </header>
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
 
-            <div className="flex flex-col lg:flex-row gap-8">
-                {/* Sidebar Tabs */}
-                <div className="w-full lg:w-64 space-y-1.5 sm:space-y-2">
-                    <button 
-                        onClick={() => setActiveTab('call')}
-                        className={`w-full flex items-center gap-2 sm:gap-3 px-4 py-3 sm:px-6 sm:py-4 text-[8.5px] sm:text-[10px] font-black uppercase tracking-[0.2em] transition-all border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] sm:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[1px] active:translate-y-[1px] cursor-pointer ${activeTab === 'call' ? 'bg-black text-white' : 'bg-white text-charcoal hover:bg-charcoal/5'}`}
-                    >
-                        <span className="material-symbols-outlined text-base sm:text-lg">call</span>
-                        Aguken Voice
-                    </button>
-                    <button 
-                        onClick={() => setActiveTab('whatsapp')}
-                        className={`w-full flex items-center gap-2 sm:gap-3 px-4 py-3 sm:px-6 sm:py-4 text-[8.5px] sm:text-[10px] font-black uppercase tracking-[0.2em] transition-all border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] sm:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[1px] active:translate-y-[1px] cursor-pointer ${activeTab === 'whatsapp' ? 'bg-[#25D366] text-white' : 'bg-white text-charcoal hover:bg-charcoal/5'}`}
-                    >
-                        <span className="material-symbols-outlined text-base sm:text-lg">chat</span>
-                        WhatsApp
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('external')}
-                        className={`w-full flex items-center gap-2 sm:gap-3 px-4 py-3 sm:px-6 sm:py-4 text-[8.5px] sm:text-[10px] font-black uppercase tracking-[0.2em] transition-all border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] sm:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[1px] active:translate-y-[1px] cursor-pointer ${activeTab === 'external' ? 'bg-indigo-600 text-white' : 'bg-white text-charcoal hover:bg-charcoal/5'}`}
-                    >
-                        <span className="material-symbols-outlined text-base sm:text-lg">webhook</span>
-                        Project Source
-                    </button>
-                </div>
-
-                {/* Content Area */}
-                <div className="flex-1 bg-white border-2 border-black p-4 sm:p-8 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
-                    {activeTab === 'call' && (
-                        <div className="animate-fade-in">
-                            <div className="flex items-center gap-2.5 sm:gap-4 mb-4 sm:mb-8">
-                                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-primary flex items-center justify-center text-white shrink-0">
-                                    <span className="material-symbols-outlined text-xl sm:text-2xl">settings_voice</span>
-                                </div>
-                                <div>
-                                    <h2 className="text-lg sm:text-xl font-black uppercase tracking-tight text-charcoal">Aguken Voice</h2>
-                                    <p className="text-[8px] sm:text-[10px] font-black uppercase tracking-widest text-charcoal/40">Automated voice assistant</p>
-                                </div>
-                            </div>
-
-                            {loading ? (
-                                <div className="py-12 flex justify-center">
-                                    <div className="w-6 h-6 border-2 border-black border-t-transparent animate-spin"></div>
-                                </div>
-                            ) : (
-                                <form onSubmit={handleSaveAguken} className="space-y-4 sm:space-y-6 text-left">
-                                    <div>
-                                        <label className="block text-[8.5px] sm:text-[10px] font-black uppercase tracking-widest text-charcoal/60 mb-1 sm:mb-2">Aguken Agent ID</label>
-                                        <div className="relative">
-                                            <input 
-                                                type={showAgukenAgentSecret ? "text" : "password"}
-                                                value={agukenSettings.agentId || ''}
-                                                onChange={(e) => setAgukenSettings({...agukenSettings, agentId: e.target.value})}
-                                                className="w-full bg-slate-50 border-2 border-black/5 p-3 sm:p-4 text-[13px] sm:text-sm font-medium focus:outline-none focus:border-black transition-all pr-12"
-                                                placeholder="e.g. agent_abc123"
-                                            />
-                                            <button 
-                                                type="button" 
-                                                onClick={() => setShowAgukenAgentSecret(!showAgukenAgentSecret)}
-                                                className="absolute right-4 top-1/2 -translate-y-1/2 text-charcoal/40 hover:text-charcoal transition-colors cursor-pointer"
-                                            >
-                                                <span className="material-symbols-outlined text-lg">
-                                                    {showAgukenAgentSecret ? 'visibility_off' : 'visibility'}
-                                                </span>
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label className="block text-[8.5px] sm:text-[10px] font-black uppercase tracking-widest text-charcoal/60 mb-1 sm:mb-2">Aguken Client ID</label>
-                                        <div className="relative">
-                                            <input 
-                                                type={showAgukenSecret ? "text" : "password"}
-                                                value={agukenSettings.clientId || ''}
-                                                onChange={(e) => setAgukenSettings({...agukenSettings, clientId: e.target.value})}
-                                                className="w-full bg-slate-50 border-2 border-black/5 p-3 sm:p-4 text-[13px] sm:text-sm font-medium focus:outline-none focus:border-black transition-all pr-12"
-                                                placeholder="e.g. client_xyz789"
-                                            />
-                                            <button 
-                                                type="button" 
-                                                onClick={() => setShowAgukenSecret(!showAgukenSecret)}
-                                                className="absolute right-4 top-1/2 -translate-y-1/2 text-charcoal/40 hover:text-charcoal transition-colors cursor-pointer"
-                                            >
-                                                <span className="material-symbols-outlined text-lg">
-                                                    {showAgukenSecret ? 'visibility_off' : 'visibility'}
-                                                </span>
-                                            </button>
-                                        </div>
-                                    </div>
-                                    
-                                    <div className="pt-2 sm:pt-4">
-                                        <button 
-                                            type="submit"
-                                            disabled={saving}
-                                            className="bg-black text-white px-6 py-3 sm:px-8 sm:py-4 text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] shadow-[3px_3px_0px_0px_rgba(37,211,102,1)] sm:shadow-[4px_4px_0px_0px_rgba(37,211,102,1)] hover:shadow-[5px_5px_0px_0px_rgba(37,211,102,1)] sm:hover:shadow-[6px_6px_0px_0px_rgba(37,211,102,1)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                                        >
-                                            {saving ? 'Saving...' : 'Save Aguken Settings'}
-                                        </button>
-                                    </div>
-                                </form>
-                            )}
-                        </div>
-                    )}
-
-                    {activeTab === 'whatsapp' && (
-                        <div className="animate-fade-in">
-                            <div className="flex items-center gap-2.5 sm:gap-4 mb-4 sm:mb-8">
-                                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-[#25D366] flex items-center justify-center text-white shrink-0">
-                                    <span className="material-symbols-outlined text-xl sm:text-2xl">chat</span>
-                                </div>
-                                <div>
-                                    <h2 className="text-lg sm:text-xl font-black uppercase tracking-tight text-charcoal">WhatsApp Integration</h2>
-                                    <p className="text-[8px] sm:text-[10px] font-black uppercase tracking-widest text-charcoal/40">Connect via wa.homeintown.in</p>
-                                </div>
-                            </div>
-
-                            {loading ? (
-                                <div className="py-12 flex justify-center">
-                                    <div className="w-6 h-6 border-2 border-black border-t-transparent animate-spin"></div>
-                                </div>
-                            ) : (
-                                <form onSubmit={handleSaveWhatsapp} className="space-y-4 sm:space-y-6 text-left">
-                                    <div>
-                                        <label className="block text-[8.5px] sm:text-[10px] font-black uppercase tracking-widest text-charcoal/60 mb-1 sm:mb-2">Vendor UID</label>
-                                        <div className="relative">
-                                            <input 
-                                                type={showWhatsappVendorSecret ? "text" : "password"}
-                                                value={whatsappSettings.vendorUid || ''}
-                                                onChange={(e) => setWhatsappSettings({...whatsappSettings, vendorUid: e.target.value})}
-                                                className="w-full bg-slate-50 border-2 border-black/5 p-3 sm:p-4 text-[13px] sm:text-sm font-medium focus:outline-none focus:border-black transition-all pr-12"
-                                                placeholder="Your Vendor UID"
-                                            />
-                                            <button 
-                                                type="button" 
-                                                onClick={() => setShowWhatsappVendorSecret(!showWhatsappVendorSecret)}
-                                                className="absolute right-4 top-1/2 -translate-y-1/2 text-charcoal/40 hover:text-charcoal transition-colors cursor-pointer"
-                                            >
-                                                <span className="material-symbols-outlined text-lg">
-                                                    {showWhatsappVendorSecret ? 'visibility_off' : 'visibility'}
-                                                </span>
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label className="block text-[8.5px] sm:text-[10px] font-black uppercase tracking-widest text-charcoal/60 mb-1 sm:mb-2">API Key</label>
-                                        <div className="relative">
-                                            <input 
-                                                type={showWhatsappSecret ? "text" : "password"}
-                                                value={whatsappSettings.apiKey || ''}
-                                                onChange={(e) => setWhatsappSettings({...whatsappSettings, apiKey: e.target.value})}
-                                                className="w-full bg-slate-50 border-2 border-black/5 p-3 sm:p-4 text-[13px] sm:text-sm font-medium focus:outline-none focus:border-black transition-all pr-12"
-                                                placeholder="Your API Key"
-                                            />
-                                            <button 
-                                                type="button" 
-                                                onClick={() => setShowWhatsappSecret(!showWhatsappSecret)}
-                                                className="absolute right-4 top-1/2 -translate-y-1/2 text-charcoal/40 hover:text-charcoal transition-colors cursor-pointer"
-                                            >
-                                                <span className="material-symbols-outlined text-lg">
-                                                    {showWhatsappSecret ? 'visibility_off' : 'visibility'}
-                                                </span>
-                                            </button>
-                                        </div>
-                                    </div>
-                                    
-                                    <div className="pt-2 sm:pt-4">
-                                        <button 
-                                            type="submit"
-                                            disabled={saving}
-                                            className="bg-black text-white px-6 py-3 sm:px-8 sm:py-4 text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] shadow-[3px_3px_0px_0px_rgba(37,211,102,1)] sm:shadow-[4px_4px_0px_0px_rgba(37,211,102,1)] hover:shadow-[5px_5px_0px_0px_rgba(37,211,102,1)] sm:hover:shadow-[6px_6px_0px_0px_rgba(37,211,102,1)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                                        >
-                                            {saving ? 'Saving...' : 'Save WhatsApp Settings'}
-                                        </button>
-                                    </div>
-                                </form>
-                            )}
-                        </div>
-                    )}
-
-                    {activeTab === 'external' && (
-                        <div className="animate-fade-in">
-                            <div className="flex items-center gap-2.5 sm:gap-4 mb-4 sm:mb-8">
-                                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-indigo-600 flex items-center justify-center text-white shrink-0">
-                                    <span className="material-symbols-outlined text-xl sm:text-2xl">webhook</span>
-                                </div>
-                                <div>
-                                    <h2 className="text-lg sm:text-xl font-black uppercase tracking-tight text-charcoal">Project Source Webhook</h2>
-                                    <p className="text-[8px] sm:text-[10px] font-black uppercase tracking-widest text-charcoal/40">External lead & project bridge</p>
-                                </div>
-                            </div>
-
-                            {loading ? (
-                                <div className="py-12 flex justify-center">
-                                    <div className="w-6 h-6 border-2 border-black border-t-transparent animate-spin"></div>
-                                </div>
-                            ) : (
-                                <form onSubmit={handleSaveExternalSource} className="space-y-4 sm:space-y-6 text-left">
-                                    <div className="flex items-center gap-2 sm:gap-3 mb-2 p-2 sm:p-3 bg-indigo-50 border-2 border-indigo-200">
-                                        <input
-                                            type="checkbox"
-                                            id="isActive"
-                                            checked={externalSource.isActive}
-                                            onChange={(e) => setExternalSource({...externalSource, isActive: e.target.checked})}
-                                            className="w-3.5 h-3.5 cursor-pointer accent-indigo-600"
-                                        />
-                                        <label htmlFor="isActive" className="text-[8.5px] sm:text-[10px] font-black uppercase tracking-widest text-indigo-900 cursor-pointer">
-                                            Enable External Project Source
-                                        </label>
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-[8.5px] sm:text-[10px] font-black uppercase tracking-widest text-charcoal/60 mb-1 sm:mb-2">Sales Website URL</label>
-                                        <input
-                                            type="url"
-                                            value={projectSettings.salesWebsiteUrl || ''}
-                                            onChange={(e) => setProjectSettings({...projectSettings, salesWebsiteUrl: e.target.value})}
-                                            className="w-full bg-slate-50 border-2 border-black/5 p-3 sm:p-4 text-[13px] sm:text-sm font-medium focus:outline-none focus:border-black transition-all"
-                                            placeholder="https://www.yoursite.com"
-                                        />
-                                        <p className="mt-1.5 text-[8px] sm:text-[9px] font-bold text-charcoal/30 uppercase tracking-wide">
-                                            Leads get redirected here when they click their tracking link
-                                        </p>
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-[8.5px] sm:text-[10px] font-black uppercase tracking-widest text-charcoal/60 mb-1 sm:mb-2">Source URL (GET for projects, POST for leads)</label>
-                                        <input
-                                            type="url"
-                                            value={externalSource.sourceUrl || ''}
-                                            onChange={(e) => setExternalSource({...externalSource, sourceUrl: e.target.value})}
-                                            className="w-full bg-slate-50 border-2 border-black/5 p-3 sm:p-4 text-[13px] sm:text-sm font-medium focus:outline-none focus:border-black transition-all"
-                                            placeholder="https://site.com/webhook"
-                                            required={externalSource.isActive}
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-[8.5px] sm:text-[10px] font-black uppercase tracking-widest text-charcoal/60 mb-1 sm:mb-2">Webhook Secret / API Key</label>
-                                        <div className="relative">
-                                            <input
-                                                type={showExternalSecret ? "text" : "password"}
-                                                value={externalSource.webhookSecret || ''}
-                                                onChange={(e) => setExternalSource({...externalSource, webhookSecret: e.target.value})}
-                                                className="w-full bg-slate-50 border-2 border-black/5 p-3 sm:p-4 text-[13px] sm:text-sm font-medium focus:outline-none focus:border-black transition-all pr-12"
-                                                placeholder="Enter secret key"
-                                            />
-                                            <button
-                                                type="button"
-                                                onClick={() => setShowExternalSecret(!showExternalSecret)}
-                                                className="absolute right-4 top-1/2 -translate-y-1/2 text-charcoal/40 hover:text-charcoal transition-colors cursor-pointer"
-                                            >
-                                                <span className="material-symbols-outlined text-lg">
-                                                    {showExternalSecret ? 'visibility_off' : 'visibility'}
-                                                </span>
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    <div className="pt-2 sm:pt-4 flex flex-wrap gap-2.5 sm:gap-4">
-                                        <button
-                                            type="submit"
-                                            disabled={saving}
-                                            className="bg-black text-white px-6 py-3 sm:px-8 sm:py-4 text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] shadow-[3px_3px_0px_0px_rgba(99,102,241,1)] sm:shadow-[4px_4px_0px_0px_rgba(99,102,241,1)] hover:shadow-[5px_5px_0px_0px_rgba(99,102,241,1)] sm:hover:shadow-[6px_6px_0px_0px_rgba(99,102,241,1)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all cursor-pointer disabled:opacity-50"
-                                        >
-                                            {saving ? 'Saving...' : 'Save Settings'}
-                                        </button>
-
-                                        <button
-                                            type="button"
-                                            onClick={handleTestConnection}
-                                            disabled={testing || !externalSource.sourceUrl}
-                                            className="bg-white text-indigo-600 border-2 border-indigo-600 px-4 py-3 sm:px-6 sm:py-4 text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] hover:bg-indigo-50 transition-all cursor-pointer disabled:opacity-50"
-                                        >
-                                            {testing ? 'Testing...' : 'Test Connection'}
-                                        </button>
-                                    </div>
-                                </form>
-                            )}
-                        </div>
-                    )}
-
-                </div>
-            </div>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">
+            Loading Integrations
+          </p>
         </div>
+      </div>
     );
+  }
+
+  /* ---------------------------------- */
+  /* RENDER */
+  /* ---------------------------------- */
+
+  return (
+    <div className="animate-fade-in pb-10">
+      <div className="mx-auto max-w-7xl px-4">
+
+        {/* HEADER */}
+
+        <div className={`${cardClass} mb-8 p-6 md:p-8`}>
+
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+
+            <div>
+
+              <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-2">
+
+                <span className="h-2 w-2 animate-pulse rounded-full bg-primary" />
+
+                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">
+                  System Integrations
+                </span>
+
+              </div>
+
+              <h1 className="text-3xl font-black tracking-tight text-slate-900 dark:text-white md:text-4xl">
+                Integrations
+              </h1>
+
+              <p className="mt-2 text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400">
+                Manage all external services & automation providers
+              </p>
+
+            </div>
+
+          </div>
+
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-[260px_1fr]">
+
+          {/* SIDEBAR */}
+
+          <div className={`${cardClass} h-fit p-4`}>
+
+            <div className="space-y-3">
+
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() =>
+                    setActiveTab(tab.id)
+                  }
+                  className={`flex w-full items-center gap-3 rounded-2xl border px-5 py-4 text-left transition-all ${
+                    activeTab === tab.id
+                      ? `${tab.activeClass} border-transparent shadow-lg`
+                      : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
+                  }`}
+                >
+
+                  <span className="material-symbols-outlined text-xl">
+                    {tab.icon}
+                  </span>
+
+                  <div>
+
+                    <div className="text-[10px] font-black uppercase tracking-[0.25em]">
+                      {tab.title}
+                    </div>
+
+                  </div>
+
+                </button>
+              ))}
+
+            </div>
+
+          </div>
+
+          {/* CONTENT */}
+
+          <div className={`${cardClass} p-6 md:p-8`}>
+
+            {/* AGUKEN */}
+
+            {activeTab === 'call' && (
+              <div className="animate-fade-in">
+
+                <div className="mb-8 flex items-center gap-4">
+
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-white shadow-lg">
+                    <span className="material-symbols-outlined text-2xl">
+                      settings_voice
+                    </span>
+                  </div>
+
+                  <div>
+
+                    <h2 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white">
+                      Aguken Voice
+                    </h2>
+
+                    <p className="mt-1 text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400">
+                      AI Voice Automation
+                    </p>
+
+                  </div>
+
+                </div>
+
+                <form
+                  onSubmit={handleSaveAguken}
+                  className="space-y-6"
+                >
+
+                  {renderPasswordField({
+                    label: 'Aguken Agent ID',
+                    value: agukenSettings.agentId,
+                    placeholder:
+                      'e.g. agent_abc123',
+
+                    visible:
+                      visibility.agukenAgent,
+
+                    onToggle: () =>
+                      toggleVisibility(
+                        'agukenAgent'
+                      ),
+
+                    onChange: (e) =>
+                      setAgukenSettings({
+                        ...agukenSettings,
+                        agentId:
+                          e.target.value,
+                      }),
+                  })}
+
+                  {renderPasswordField({
+                    label: 'Aguken Client ID',
+                    value: agukenSettings.clientId,
+                    placeholder:
+                      'e.g. client_xyz789',
+
+                    visible:
+                      visibility.agukenClient,
+
+                    onToggle: () =>
+                      toggleVisibility(
+                        'agukenClient'
+                      ),
+
+                    onChange: (e) =>
+                      setAgukenSettings({
+                        ...agukenSettings,
+                        clientId:
+                          e.target.value,
+                      }),
+                  })}
+
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className={primaryButton}
+                  >
+                    {saving
+                      ? 'Saving...'
+                      : 'Save Aguken Settings'}
+                  </button>
+
+                </form>
+
+              </div>
+            )}
+
+            {/* WHATSAPP */}
+
+            {activeTab === 'whatsapp' && (
+              <div className="animate-fade-in">
+
+                <div className="mb-8 flex items-center gap-4">
+
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#25D366] text-white shadow-lg">
+                    <span className="material-symbols-outlined text-2xl">
+                      chat
+                    </span>
+                  </div>
+
+                  <div>
+
+                    <h2 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white">
+                      WhatsApp Integration
+                    </h2>
+
+                    <p className="mt-1 text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400">
+                      Connect via wa.homeintown.in
+                    </p>
+
+                  </div>
+
+                </div>
+
+                <form
+                  onSubmit={handleSaveWhatsapp}
+                  className="space-y-6"
+                >
+
+                  {renderPasswordField({
+                    label: 'Vendor UID',
+                    value:
+                      whatsappSettings.vendorUid,
+
+                    placeholder:
+                      'Your Vendor UID',
+
+                    visible:
+                      visibility.whatsappVendor,
+
+                    onToggle: () =>
+                      toggleVisibility(
+                        'whatsappVendor'
+                      ),
+
+                    onChange: (e) =>
+                      setWhatsappSettings({
+                        ...whatsappSettings,
+                        vendorUid:
+                          e.target.value,
+                      }),
+                  })}
+
+                  {renderPasswordField({
+                    label: 'API Key',
+                    value:
+                      whatsappSettings.apiKey,
+
+                    placeholder:
+                      'Your API Key',
+
+                    visible:
+                      visibility.whatsappApi,
+
+                    onToggle: () =>
+                      toggleVisibility(
+                        'whatsappApi'
+                      ),
+
+                    onChange: (e) =>
+                      setWhatsappSettings({
+                        ...whatsappSettings,
+                        apiKey:
+                          e.target.value,
+                      }),
+                  })}
+
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className={primaryButton}
+                  >
+                    {saving
+                      ? 'Saving...'
+                      : 'Save WhatsApp Settings'}
+                  </button>
+
+                </form>
+
+              </div>
+            )}
+
+            {/* EXTERNAL */}
+
+            {activeTab === 'external' && (
+              <div className="animate-fade-in">
+
+                <div className="mb-8 flex items-center gap-4">
+
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-lg">
+                    <span className="material-symbols-outlined text-2xl">
+                      webhook
+                    </span>
+                  </div>
+
+                  <div>
+
+                    <h2 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white">
+                      Project Source Webhook
+                    </h2>
+
+                    <p className="mt-1 text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400">
+                      External lead & project bridge
+                    </p>
+
+                  </div>
+
+                </div>
+
+                <form
+                  onSubmit={handleSaveExternal}
+                  className="space-y-6"
+                >
+
+                  <div className="flex items-center gap-3 rounded-2xl border border-indigo-200 bg-indigo-50 px-4 py-4">
+
+                    <input
+                      type="checkbox"
+                      checked={
+                        externalSource.isActive
+                      }
+                      onChange={(e) =>
+                        setExternalSource({
+                          ...externalSource,
+                          isActive:
+                            e.target.checked,
+                        })
+                      }
+                      className="h-4 w-4 accent-indigo-600"
+                    />
+
+                    <span className="text-[10px] font-black uppercase tracking-[0.25em] text-indigo-700">
+                      Enable External Project Source
+                    </span>
+
+                  </div>
+
+                  <div>
+
+                    <label className={labelClass}>
+                      Sales Website URL
+                    </label>
+
+                    <input
+                      type="url"
+                      value={
+                        projectSettings.salesWebsiteUrl ||
+                        ''
+                      }
+                      onChange={(e) =>
+                        setProjectSettings({
+                          ...projectSettings,
+                          salesWebsiteUrl:
+                            e.target.value,
+                        })
+                      }
+                      placeholder="https://www.yoursite.com"
+                      className={inputClass}
+                    />
+
+                  </div>
+
+                  <div>
+
+                    <label className={labelClass}>
+                      Source URL
+                    </label>
+
+                    <input
+                      type="url"
+                      value={
+                        externalSource.sourceUrl ||
+                        ''
+                      }
+                      onChange={(e) =>
+                        setExternalSource({
+                          ...externalSource,
+                          sourceUrl:
+                            e.target.value,
+                        })
+                      }
+                      placeholder="https://site.com/webhook"
+                      className={inputClass}
+                    />
+
+                  </div>
+
+                  {renderPasswordField({
+                    label:
+                      'Webhook Secret / API Key',
+
+                    value:
+                      externalSource.webhookSecret,
+
+                    placeholder:
+                      'Enter secret key',
+
+                    visible:
+                      visibility.externalSecret,
+
+                    onToggle: () =>
+                      toggleVisibility(
+                        'externalSecret'
+                      ),
+
+                    onChange: (e) =>
+                      setExternalSource({
+                        ...externalSource,
+                        webhookSecret:
+                          e.target.value,
+                      }),
+                  })}
+
+                  <div className="flex flex-wrap gap-4">
+
+                    <button
+                      type="submit"
+                      disabled={saving}
+                      className={primaryButton}
+                    >
+                      {saving
+                        ? 'Saving...'
+                        : 'Save Settings'}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={
+                        handleTestConnection
+                      }
+                      disabled={
+                        testing ||
+                        !externalSource.sourceUrl
+                      }
+                      className={secondaryButton}
+                    >
+                      {testing
+                        ? 'Testing...'
+                        : 'Test Connection'}
+                    </button>
+
+                  </div>
+
+                </form>
+
+              </div>
+            )}
+
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+  );
 };
 
 export default IntegrationsPage;
+
