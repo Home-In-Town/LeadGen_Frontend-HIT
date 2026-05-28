@@ -18,23 +18,16 @@ const IntegrationsPage = () => {
   /* STATE */
   /* ---------------------------------- */
 
-  const [activeTab, setActiveTab] = useState('call');
+  const [activeTab, setActiveTab] = useState('whatsapp');
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
 
   const [visibility, setVisibility] = useState({
-    agukenAgent: false,
-    agukenClient: false,
     whatsappVendor: false,
     whatsappApi: false,
     externalSecret: false,
-  });
-
-  const [agukenSettings, setAgukenSettings] = useState({
-    agentId: '',
-    clientId: '',
   });
 
   const [whatsappSettings, setWhatsappSettings] = useState({
@@ -85,7 +78,6 @@ const IntegrationsPage = () => {
 
       const response = await ownersApi.get('/integrations');
 
-      setAgukenSettings(response.data.aguken || {});
       setWhatsappSettings(response.data.whatsapp || {});
 
       if (response.data.externalSource) {
@@ -110,33 +102,6 @@ const IntegrationsPage = () => {
   /* ---------------------------------- */
   /* SAVE */
   /* ---------------------------------- */
-
-  const handleSaveAguken = async (e) => {
-    e.preventDefault();
-
-    try {
-      setSaving(true);
-
-      await ownersApi.put(
-        '/integrations/aguken',
-        agukenSettings
-      );
-
-      addToast(
-        'Aguken settings saved successfully',
-        'success'
-      );
-    } catch (error) {
-      console.error(error);
-
-      addToast(
-        'Failed to save Aguken settings',
-        'error'
-      );
-    } finally {
-      setSaving(false);
-    }
-  };
 
   const handleSaveWhatsapp = async (e) => {
     e.preventDefault();
@@ -271,13 +236,6 @@ const IntegrationsPage = () => {
 
   const tabs = useMemo(
     () => [
-      {
-        id: 'call',
-        title: 'Aguken Voice',
-        icon: 'settings_voice',
-        activeClass: 'bg-black text-white',
-      },
-
       {
         id: 'whatsapp',
         title: 'WhatsApp',
@@ -433,97 +391,6 @@ const IntegrationsPage = () => {
           {/* CONTENT */}
 
           <div className={`${cardClass} p-6 md:p-8`}>
-
-            {/* AGUKEN */}
-
-            {activeTab === 'call' && (
-              <div className="animate-fade-in">
-
-                <div className="mb-8 flex items-center gap-4">
-
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-white shadow-lg">
-                    <span className="material-symbols-outlined text-2xl">
-                      settings_voice
-                    </span>
-                  </div>
-
-                  <div>
-
-                    <h2 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white">
-                      Aguken Voice
-                    </h2>
-
-                    <p className="mt-1 text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400">
-                      AI Voice Automation
-                    </p>
-
-                  </div>
-
-                </div>
-
-                <form
-                  onSubmit={handleSaveAguken}
-                  className="space-y-6"
-                >
-
-                  {renderPasswordField({
-                    label: 'Aguken Agent ID',
-                    value: agukenSettings.agentId,
-                    placeholder:
-                      'e.g. agent_abc123',
-
-                    visible:
-                      visibility.agukenAgent,
-
-                    onToggle: () =>
-                      toggleVisibility(
-                        'agukenAgent'
-                      ),
-
-                    onChange: (e) =>
-                      setAgukenSettings({
-                        ...agukenSettings,
-                        agentId:
-                          e.target.value,
-                      }),
-                  })}
-
-                  {renderPasswordField({
-                    label: 'Aguken Client ID',
-                    value: agukenSettings.clientId,
-                    placeholder:
-                      'e.g. client_xyz789',
-
-                    visible:
-                      visibility.agukenClient,
-
-                    onToggle: () =>
-                      toggleVisibility(
-                        'agukenClient'
-                      ),
-
-                    onChange: (e) =>
-                      setAgukenSettings({
-                        ...agukenSettings,
-                        clientId:
-                          e.target.value,
-                      }),
-                  })}
-
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    className={primaryButton}
-                  >
-                    {saving
-                      ? 'Saving...'
-                      : 'Save Aguken Settings'}
-                  </button>
-
-                </form>
-
-              </div>
-            )}
 
             {/* WHATSAPP */}
 
