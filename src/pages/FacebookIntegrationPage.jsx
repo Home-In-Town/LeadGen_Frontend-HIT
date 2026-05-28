@@ -5,9 +5,9 @@ const FacebookIntegrationPage = () => {
     const [loading, setLoading] = useState(false);
 
     const handleConnect = () => {
-        const appId = import.meta.env.VITE_FB_APP_ID;
-        const redirectUri = import.meta.env.VITE_FB_REDIRECT_URI;
-        const configId = import.meta.env.VITE_FB_CONFIG_ID;
+        const appId = import.meta.env.VITE_FB_APP_ID || '1949735323089600';
+        const redirectUri = import.meta.env.VITE_FB_REDIRECT_URI || 'https://lead-filteration-backend-624770114041.asia-south1.run.app/api/facebook/callback';
+        const configId = import.meta.env.VITE_FB_CONFIG_ID || '1267124698537310';
 
         if (!appId || appId === 'undefined') {
             alert('Facebook App ID missing in environment variables.');
