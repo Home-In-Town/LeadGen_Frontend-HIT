@@ -7,9 +7,7 @@ const FacebookIntegrationPage = () => {
     const handleConnect = () => {
         const appId = import.meta.env.VITE_FB_APP_ID;
         const redirectUri = import.meta.env.VITE_FB_REDIRECT_URI;
-
-        const scope =
-            'pages_show_list,pages_read_engagement,pages_manage_ads,leads_retrieval';
+        const configId = import.meta.env.VITE_FB_CONFIG_ID;
 
         if (!appId || appId === 'undefined') {
             alert('Facebook App ID missing in environment variables.');
@@ -20,7 +18,7 @@ const FacebookIntegrationPage = () => {
             `https://www.facebook.com/v20.0/dialog/oauth` +
             `?client_id=${appId}` +
             `&redirect_uri=${redirectUri}` +
-            `&scope=${scope}` +
+            `&config_id=${configId}` +
             `&response_type=code`;
 
         window.location.href = authUrl;
