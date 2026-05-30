@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { getCallLogs } from '../api';
+import VoiceSettingsPanel from '../components/VoiceSettingsPanel';
 
 const STATUS_STYLES = {
   completed:
@@ -95,6 +96,8 @@ const PaginationButton = ({
 );
 
 const CallLogsPage = () => {
+  const [activeView, setActiveView] = useState('logs');
+
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -253,37 +256,85 @@ const CallLogsPage = () => {
           </div>
 
           {/* Search */}
-          <div className="relative w-full lg:w-[320px]">
-            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
-              search
-            </span>
+          <div className="flex items-center gap-3">
+            {/* View Toggle Tabs */}
+            <div className="flex items-center rounded-[14px] border border-slate-200/70 dark:border-white/10 bg-slate-50/70 dark:bg-white/[0.03] p-1">
+              <button
+                onClick={() => setActiveView('logs')}
+                className={`
+                  flex items-center gap-2 rounded-[10px] px-4 py-2
+                  text-[10px] font-black uppercase tracking-[0.15em]
+                  transition-all duration-200
+                  ${
+                    activeView === 'logs'
+                      ? 'bg-white dark:bg-white/[0.08] text-primary shadow-sm'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                  }
+                `}
+              >
+                <span className="material-symbols-outlined text-[18px]">call</span>
+                Call Logs
+              </button>
 
-            <input
-              type="text"
-              placeholder="Search customer or phone..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="
-                h-14 w-full rounded-[16px]
-                border border-slate-200 dark:border-white/10
-                bg-white dark:bg-white/[0.04]
-                pl-12 pr-4
-                text-sm font-semibold
-                text-slate-900 dark:text-white
-                placeholder:text-slate-400
-                outline-none
-                transition-all
-                focus:border-primary
-                focus:ring-4
-                focus:ring-primary/10
-              "
-            />
+              <button
+                onClick={() => setActiveView('settings')}
+                className={`
+                  flex items-center gap-2 rounded-[10px] px-4 py-2
+                  text-[10px] font-black uppercase tracking-[0.15em]
+                  transition-all duration-200
+                  ${
+                    activeView === 'settings'
+                      ? 'bg-white dark:bg-white/[0.08] text-primary shadow-sm'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                  }
+                `}
+              >
+                <span className="material-symbols-outlined text-[18px]">settings_voice</span>
+                Voice Settings
+              </button>
+            </div>
+
+            {/* Search (only visible in logs view) */}
+            {activeView === 'logs' && (
+              <div className="relative w-full lg:w-[320px]">
+                <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                  search
+                </span>
+
+                <input
+                  type="text"
+                  placeholder="Search customer or phone..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="
+                    h-14 w-full rounded-[16px]
+                    border border-slate-200 dark:border-white/10
+                    bg-white dark:bg-white/[0.04]
+                    pl-12 pr-4
+                    text-sm font-semibold
+                    text-slate-900 dark:text-white
+                    placeholder:text-slate-400
+                    outline-none
+                    transition-all
+                    focus:border-primary
+                    focus:ring-4
+                    focus:ring-primary/10
+                  "
+                />
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      {/* Voice Settings View */}
+      {activeView === 'settings' && <VoiceSettingsPanel />}
+
+      {/* Call Logs View */}
+      {activeView === 'logs' && (
+        <>
+          {/* Stats */}
+          <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           title="Total Records"
           value={total}
@@ -501,6 +552,8 @@ const CallLogsPage = () => {
             Next
           </PaginationButton>
         </div>
+      )}
+        </>
       )}
     </div>
   );

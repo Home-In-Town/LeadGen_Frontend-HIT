@@ -65,6 +65,22 @@ export const deleteLead = (id) => leadsApi.delete(`/${id}`);
 export const getCallStatus = (leadId) => voiceApi.get(`/status/${leadId}`);
 export const getCallLogs = (params) => voiceApi.get('/call-logs', { params });
 
+// ====== VOICE SETTINGS ENDPOINTS ======
+export const getVoiceSettings = () => voiceApi.get('/settings');
+export const updateVoiceSettings = (data) => voiceApi.put('/settings', data);
+export const resetVoiceSettings = () => voiceApi.delete('/settings');
+
+// ====== VOICE DOCUMENTS ENDPOINTS ======
+export const uploadVoiceDocument = (file) => {
+    const formData = new FormData();
+    formData.append('document', file);
+    return voiceApi.post('/documents', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+    });
+};
+export const listVoiceDocuments = () => voiceApi.get('/documents');
+export const deleteVoiceDocument = (docId) => voiceApi.delete(`/documents/${docId}`);
+
 // ====== LEAD AUTOMATION ENDPOINTS ======
 export const getWhatsappTemplates = () => automationApi.get(`/templates`);
 export const getLeadAutomations = (leadId) => automationApi.get(`/lead/${leadId}`);
