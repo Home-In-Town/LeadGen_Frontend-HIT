@@ -10,6 +10,7 @@ const AddUserPage = () => {
   const [manualForm, setManualForm] = useState({
     name: '',
     phone: '',
+    email: '',
   });
 
   const [file, setFile] = useState(null);
@@ -248,6 +249,39 @@ const AddUserPage = () => {
                     })
                   }
                   required
+                  className="
+                    w-full p-4
+                    bg-white/80 dark:bg-white/[0.03]
+                    border border-slate-200 dark:border-white/10
+                    rounded-[16px]
+                    text-slate-900 dark:text-slate-100
+                    placeholder:text-slate-400 dark:placeholder:text-slate-500
+                    focus:border-primary
+                    focus:ring-4
+                    focus:ring-primary/10
+                    focus:outline-none
+                    transition-all
+                    font-mono text-sm
+                  "
+                />
+              </div>
+
+              {/* Email (Optional) */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-600 dark:text-slate-400">
+                  Email (Optional)
+                </label>
+
+                <input
+                  type="email"
+                  placeholder="Enter email address"
+                  value={manualForm.email}
+                  onChange={(e) =>
+                    setManualForm({
+                      ...manualForm,
+                      email: e.target.value,
+                    })
+                  }
                   className="
                     w-full p-4
                     bg-white/80 dark:bg-white/[0.03]
