@@ -9,6 +9,51 @@ import {
 } from '../api';
 
 const VOICE_OPTIONS = ['Aoede', 'Puck', 'Charon', 'Kore', 'Fenrir', 'Leda'];
+const LANGUAGE_OPTIONS = [
+  { value: 'default', label: 'Default (Auto-detect)' },
+  { value: 'hinglish', label: 'Hinglish (Hindi + English)' },
+  { value: 'hindi', label: 'Hindi Only' },
+  { value: 'english', label: 'English Only' },
+];
+
+const DYNAMIC_VARIABLES = [
+  { token: '{customerName}', label: 'Customer Name', icon: 'person' },
+  { token: '{agentName}', label: 'Agent Name', icon: 'support_agent' },
+  { token: '{companyName}', label: 'Company Name', icon: 'business' },
+  { token: '{projectData}', label: 'Project Data', icon: 'apartment' },
+  { token: '{customerLocation}', label: 'Location', icon: 'location_on' },
+];
+
+const DEFAULT_PROMPT = `You are {agentName}, a friendly Indian real estate sales executive calling on behalf of {companyName}.
+
+PERSONALITY:
+- Warm, polite, professional
+- Speak naturally like a real phone call
+- Use "ji" respectfully
+- Never pushy — build trust naturally through conversation
+
+SALES OBJECTIVE:
+1. Pitch the properties with real details (price, location, BHK, amenities)
+2. Ask about their budget, preferred BHK, and location preference
+3. Highlight USPs: location advantages, amenities, pricing, possession timeline
+4. Push for site visit: "Kya aap is weekend site visit ke liye free hain?"
+5. If they agree, note their preferred date and time
+6. Be persuasive but respectful — if they say no, thank them politely
+
+STRICT DATA RULE:
+ONLY discuss properties from {projectData}. Share specific details — prices, BHK options, amenities, location.
+Never invent projects or details not in the data.
+
+RESPONSE STYLE:
+- 2 to 4 sentences per response. Natural conversation flow.
+- Each sentence ends with . or ? or !
+- NO bullet points, markdown, formatting, URLs.
+- Speak like a real phone call — warm, natural, helpful.
+- Never start with "Certainly!", "Of course!" — just respond naturally.
+
+CALL TERMINATION:
+When customer says bye/not interested OR appointment is booked, end with [TERMINATE].
+Never say TERMINATE aloud.`;
 
 const SuccessToast = ({ message, onClose }) => (
   <div className="fixed top-6 right-6 z-50 animate-fade-in">
@@ -29,6 +74,7 @@ const VoiceSettingsPanel = () => {
   const [greetingLine, setGreetingLine] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [agentName, setAgentName] = useState('');
+  const [language, setLanguage] = useState('default');
 
   // Documents state
   const [documents, setDocuments] = useState([]);
@@ -43,6 +89,30 @@ const VoiceSettingsPanel = () => {
   const [deletingDocId, setDeletingDocId] = useState(null);
 
   const fileInputRef = useRef(null);
+  const promptRef = useRef(null);
+
+  // Insert dynamic variable at cursor position in prompt textarea
+  const insertVariable = (token) => {
+    const textarea = promptRef.current;
+    if (!textarea) {
+      setCustomPrompt((prev) => prev + token);
+      return;
+    }
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const newValue = customPrompt.substring(0, start) + token + customPrompt.substring(end);
+    setCustomPrompt(newValue);
+    // Restore cursor position after the inserted token
+    setTimeout(() => {
+      textarea.focus();
+      textarea.selectionStart = textarea.selectionEnd = start + token.length;
+    }, 0);
+  };
+
+  // Load default prompt into textarea
+  const loadDefaultPrompt = () => {
+    setCustomPrompt(DEFAULT_PROMPT);
+  };
 
   // Fetch settings on mount
   useEffect(() => {
@@ -67,6 +137,7 @@ const VoiceSettingsPanel = () => {
       setGreetingLine(data.greetingLine || '');
       setCompanyName(data.companyName || '');
       setAgentName(data.agentName || '');
+      setLanguage(data.language || 'default');
     } catch (err) {
       console.error('Failed to fetch voice settings:', err);
     } finally {
@@ -94,6 +165,7 @@ const VoiceSettingsPanel = () => {
         greetingLine,
         companyName,
         agentName,
+        language,
       });
       setSuccessMessage('Settings saved successfully!');
     } catch (err) {
@@ -124,6 +196,7 @@ const VoiceSettingsPanel = () => {
       setGreetingLine('');
       setCompanyName('');
       setAgentName('');
+      setLanguage('default');
       setSuccessMessage('Settings reset to defaults!');
     } catch (err) {
       setErrors({ general: 'Failed to reset settings. Please try again.' });
@@ -208,16 +281,44 @@ const VoiceSettingsPanel = () => {
 
       {/* Custom Prompt */}
       <div className="rounded-[18px] border border-slate-200/70 dark:border-white/10 bg-white/70 dark:bg-white/[0.04] backdrop-blur-xl p-6 shadow-sm">
-        <label className="mb-3 block text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400">
-          Custom System Prompt
-        </label>
+        <div className="mb-3 flex items-center justify-between">
+          <label className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400">
+            Custom System Prompt
+          </label>
+          <button
+            onClick={loadDefaultPrompt}
+            className="flex items-center gap-1 rounded-[10px] border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.03] px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.15em] text-slate-600 dark:text-slate-300 transition-all hover:border-primary hover:text-primary"
+          >
+            <span className="material-symbols-outlined text-[14px]">content_copy</span>
+            Load Default Prompt
+          </button>
+        </div>
+
+        {/* Dynamic Variable Chips */}
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">
+            Insert:
+          </span>
+          {DYNAMIC_VARIABLES.map((v) => (
+            <button
+              key={v.token}
+              onClick={() => insertVariable(v.token)}
+              className="flex items-center gap-1 rounded-[8px] border border-primary/20 bg-primary/5 px-2.5 py-1 text-[10px] font-bold text-primary transition-all hover:bg-primary/10 hover:border-primary/40"
+            >
+              <span className="material-symbols-outlined text-[13px]">{v.icon}</span>
+              {v.label}
+            </button>
+          ))}
+        </div>
+
         <textarea
+          ref={promptRef}
           value={customPrompt}
           onChange={(e) => setCustomPrompt(e.target.value)}
-          placeholder="Enter your custom AI agent prompt... (max 5000 characters)"
-          rows={6}
+          placeholder={DEFAULT_PROMPT}
+          rows={10}
           maxLength={5000}
-          className="w-full rounded-[14px] border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.04] px-4 py-3 text-sm font-medium text-slate-900 dark:text-white placeholder:text-slate-400 outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10 resize-y"
+          className="w-full rounded-[14px] border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.04] px-4 py-3 text-sm font-medium text-slate-900 dark:text-white placeholder:text-slate-400/60 placeholder:text-[11px] outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10 resize-y font-mono"
         />
         <div className="mt-2 flex items-center justify-between">
           <span className="text-[10px] font-bold text-slate-400">
@@ -227,10 +328,27 @@ const VoiceSettingsPanel = () => {
             <span className="text-[11px] font-bold text-red-500">{errors.customPrompt}</span>
           )}
         </div>
+
+        {/* Auto-appended sections info */}
+        <div className="mt-3 rounded-[10px] border border-amber-500/20 bg-amber-500/5 px-4 py-3">
+          <div className="flex items-start gap-2">
+            <span className="material-symbols-outlined text-amber-500 text-[16px] mt-0.5">info</span>
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.15em] text-amber-700 dark:text-amber-400">
+                Auto-appended to your prompt
+              </p>
+              <p className="mt-1 text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                The system automatically adds: language instructions, customer context ({'{customerName}'}, location), 
+                call history with this customer, project data (prices, BHK, amenities), and your uploaded knowledge base documents. 
+                You don't need to include these in your prompt.
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Voice Selection & Greeting */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      {/* Voice Selection, Language & Greeting */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Voice Selection */}
         <div className="rounded-[18px] border border-slate-200/70 dark:border-white/10 bg-white/70 dark:bg-white/[0.04] backdrop-blur-xl p-6 shadow-sm">
           <label className="mb-3 block text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400">
@@ -250,6 +368,27 @@ const VoiceSettingsPanel = () => {
           {errors.selectedVoice && (
             <p className="mt-2 text-[11px] font-bold text-red-500">{errors.selectedVoice}</p>
           )}
+        </div>
+
+        {/* Language Preference */}
+        <div className="rounded-[18px] border border-slate-200/70 dark:border-white/10 bg-white/70 dark:bg-white/[0.04] backdrop-blur-xl p-6 shadow-sm">
+          <label className="mb-3 block text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400">
+            Language
+          </label>
+          <select
+            value={language}
+            onChange={(e) => setLanguage(e.target.value)}
+            className="w-full rounded-[14px] border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.04] px-4 py-3 text-sm font-medium text-slate-900 dark:text-white outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10 appearance-none cursor-pointer"
+          >
+            {LANGUAGE_OPTIONS.map((lang) => (
+              <option key={lang.value} value={lang.value}>
+                {lang.label}
+              </option>
+            ))}
+          </select>
+          <p className="mt-2 text-[10px] font-bold text-slate-400">
+            Controls the AI agent's response language
+          </p>
         </div>
 
         {/* Greeting Line */}
