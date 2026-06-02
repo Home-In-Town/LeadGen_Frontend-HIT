@@ -91,7 +91,6 @@ export default function AuthPage() {
                 tokenAuth: import.meta.env.VITE_MSG91_TOKEN_AUTH,
                 exposeMethods: true,
                 success: (data) => {
-                    // This global callback may not always be used since we use per-call callbacks
                     console.log('[MSG91] Global success:', data);
                 },
                 failure: (error) => {
@@ -104,14 +103,44 @@ export default function AuthPage() {
                 window.initSendOTP(configuration);
             }
 
-            // Wait a moment for methods to be exposed
-            setTimeout(() => {
-                setWidgetReady(true);
-            }, 500);
+            // Poll for sendOtp to be available (MSG91 takes time to expose methods)
+            let attempts = 0;
+            const checkReady = setInterval(() => {
+                attempts++;
+                if (window.sendOtp) {
+                    clearInterval(checkReady);
+                    setWidgetReady(true);
+                    console.log('[MSG91] Widget ready after', attempts * 200, 'ms');
+                } else if (attempts > 25) { // 5 seconds max
+                    clearInterval(checkReady);
+                    // Still set ready and let sendOtp handle the error gracefully
+                    setWidgetReady(true);
+                    console.warn('[MSG91] Widget methods not exposed after 5s, proceeding anyway');
+                }
+            }, 200);
         };
         script.onerror = () => {
-            console.error('[MSG91] Failed to load OTP widget script');
-            setError('Failed to load authentication service. Please refresh.');
+            // Try fallback URL
+            console.warn('[MSG91] Primary script failed, trying fallback...');
+            const fallback = document.createElement('script');
+            fallback.src = 'https://verify.phone91.com/otp-provider.js';
+            fallback.async = true;
+            fallback.onload = () => {
+                const configuration = {
+                    widgetId: import.meta.env.VITE_MSG91_WIDGET_ID,
+                    tokenAuth: import.meta.env.VITE_MSG91_TOKEN_AUTH,
+                    exposeMethods: true,
+                    success: (data) => console.log('[MSG91] Global success:', data),
+                    failure: (error) => console.error('[MSG91] Global failure:', error)
+                };
+                if (window.initSendOTP) window.initSendOTP(configuration);
+                setTimeout(() => setWidgetReady(true), 1000);
+            };
+            fallback.onerror = () => {
+                console.error('[MSG91] Both scripts failed to load');
+                setError('Failed to load authentication service. Please refresh the page.');
+            };
+            document.body.appendChild(fallback);
         };
 
         document.body.appendChild(script);
@@ -140,8 +169,23 @@ export default function AuthPage() {
         }
 
         if (!widgetReady || !window.sendOtp) {
-            setError('Authentication service is loading. Please wait and try again.');
-            return;
+            // Try one more time to initialize if widget script is loaded but methods aren't exposed
+            if (window.initSendOTP) {
+                const configuration = {
+                    widgetId: import.meta.env.VITE_MSG91_WIDGET_ID,
+                    tokenAuth: import.meta.env.VITE_MSG91_TOKEN_AUTH,
+                    exposeMethods: true,
+                    success: (data) => console.log('[MSG91] success:', data),
+                    failure: (error) => console.error('[MSG91] failure:', error)
+                };
+                window.initSendOTP(configuration);
+                await new Promise(r => setTimeout(r, 1000));
+            }
+
+            if (!window.sendOtp) {
+                setError('Authentication service is still loading. Please wait a moment and try again.');
+                return;
+            }
         }
 
         setLoading(true);
