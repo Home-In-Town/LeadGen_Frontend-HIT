@@ -135,6 +135,8 @@ export const authApi = {
     forgotMpin: (phone) => _authAxios.post('/forgot-mpin', { phone }),
     resetMpin: (phone, code, newMpin) => _authAxios.post('/reset-mpin', { phone, code, newMpin }),
     verifyEmailOtp: (accessToken, name) => _authAxios.post('/verify-email-otp', { accessToken, name }),
+    sendEmailOtp: (email) => _authAxios.post('/send-email-otp', { email }),
+    verifyEmailOtpCode: (email, otp, reqId, name) => _authAxios.post('/verify-email-otp-code', { email, otp, reqId, name }),
     getSession: () => _authAxios.get('/session'),
     logout: () => _authAxios.post('/logout'),
 };

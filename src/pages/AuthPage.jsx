@@ -43,8 +43,8 @@ export default function AuthPage() {
     const [name, setName] = useState('');
     const [otpCode, setOtpCode] = useState('');
 
-    // MSG91 widget loaded state
-    const [widgetReady, setWidgetReady] = useState(false);
+    // Server-side OTP request ID
+    const [reqId, setReqId] = useState('');
 
     const [theme, setTheme] = useState(getInitialTheme);
 
@@ -73,87 +73,7 @@ export default function AuthPage() {
         }
     }, [status, navigate]);
 
-    // Load MSG91 OTP Widget script
-    useEffect(() => {
-        // Check if already loaded
-        if (window.sendOtp && window.verifyOtp) {
-            setWidgetReady(true);
-            return;
-        }
-
-        const script = document.createElement('script');
-        script.src = 'https://verify.msg91.com/otp-provider.js';
-        script.async = true;
-        script.onload = () => {
-            // Initialize the widget configuration
-            const configuration = {
-                widgetId: import.meta.env.VITE_MSG91_WIDGET_ID,
-                tokenAuth: import.meta.env.VITE_MSG91_TOKEN_AUTH,
-                exposeMethods: true,
-                success: (data) => {
-                    console.log('[MSG91] Global success:', data);
-                },
-                failure: (error) => {
-                    console.error('[MSG91] Global failure:', error);
-                }
-            };
-
-            // Initialize widget - MSG91 exposes initSendOTP after script loads
-            if (window.initSendOTP) {
-                window.initSendOTP(configuration);
-            }
-
-            // Poll for sendOtp to be available (MSG91 takes time to expose methods)
-            let attempts = 0;
-            const checkReady = setInterval(() => {
-                attempts++;
-                if (window.sendOtp) {
-                    clearInterval(checkReady);
-                    setWidgetReady(true);
-                    console.log('[MSG91] Widget ready after', attempts * 200, 'ms');
-                } else if (attempts > 25) { // 5 seconds max
-                    clearInterval(checkReady);
-                    // Still set ready and let sendOtp handle the error gracefully
-                    setWidgetReady(true);
-                    console.warn('[MSG91] Widget methods not exposed after 5s, proceeding anyway');
-                }
-            }, 200);
-        };
-        script.onerror = () => {
-            // Try fallback URL
-            console.warn('[MSG91] Primary script failed, trying fallback...');
-            const fallback = document.createElement('script');
-            fallback.src = 'https://verify.phone91.com/otp-provider.js';
-            fallback.async = true;
-            fallback.onload = () => {
-                const configuration = {
-                    widgetId: import.meta.env.VITE_MSG91_WIDGET_ID,
-                    tokenAuth: import.meta.env.VITE_MSG91_TOKEN_AUTH,
-                    exposeMethods: true,
-                    success: (data) => console.log('[MSG91] Global success:', data),
-                    failure: (error) => console.error('[MSG91] Global failure:', error)
-                };
-                if (window.initSendOTP) window.initSendOTP(configuration);
-                setTimeout(() => setWidgetReady(true), 1000);
-            };
-            fallback.onerror = () => {
-                console.error('[MSG91] Both scripts failed to load');
-                setError('Failed to load authentication service. Please refresh the page.');
-            };
-            document.body.appendChild(fallback);
-        };
-
-        document.body.appendChild(script);
-
-        return () => {
-            // Cleanup if component unmounts
-            if (document.body.contains(script)) {
-                document.body.removeChild(script);
-            }
-        };
-    }, []);
-
-    // ─── Send OTP ───
+    // ─── Send OTP (server-side) ───
     const handleSendOtp = useCallback(async () => {
         setError('');
         setSuccess('');
@@ -168,52 +88,28 @@ export default function AuthPage() {
             return;
         }
 
-        if (!widgetReady || !window.sendOtp) {
-            // Try one more time to initialize if widget script is loaded but methods aren't exposed
-            if (window.initSendOTP) {
-                const configuration = {
-                    widgetId: import.meta.env.VITE_MSG91_WIDGET_ID,
-                    tokenAuth: import.meta.env.VITE_MSG91_TOKEN_AUTH,
-                    exposeMethods: true,
-                    success: (data) => console.log('[MSG91] success:', data),
-                    failure: (error) => console.error('[MSG91] failure:', error)
-                };
-                window.initSendOTP(configuration);
-                await new Promise(r => setTimeout(r, 1000));
-            }
-
-            if (!window.sendOtp) {
-                setError('Authentication service is still loading. Please wait a moment and try again.');
-                return;
-            }
-        }
-
         setLoading(true);
 
         try {
-            window.sendOtp(
-                email,
-                (data) => {
-                    // OTP sent successfully
-                    console.log('[MSG91] OTP sent:', data);
-                    setSuccess('OTP sent to your email');
-                    setStep('otp');
-                    setLoading(false);
-                },
-                (error) => {
-                    console.error('[MSG91] Send OTP failed:', error);
-                    setError(error?.message || 'Failed to send OTP. Please try again.');
-                    setLoading(false);
-                }
-            );
+            const response = await authApi.sendEmailOtp(email);
+            const data = response.data;
+
+            if (data.success && data.reqId) {
+                setReqId(data.reqId);
+                setSuccess('OTP sent to your email');
+                setStep('otp');
+            } else {
+                setError(data.error || 'Failed to send OTP. Please try again.');
+            }
         } catch (err) {
-            console.error('[MSG91] sendOtp exception:', err);
-            setError('Failed to send OTP. Please try again.');
+            console.error('[AuthPage] sendEmailOtp error:', err);
+            setError(err.response?.data?.error || 'Failed to send OTP. Please try again.');
+        } finally {
             setLoading(false);
         }
-    }, [email, name, screen, widgetReady]);
+    }, [email, name, screen]);
 
-    // ─── Verify OTP ───
+    // ─── Verify OTP (server-side) ───
     const handleVerifyOtp = useCallback(async () => {
         setError('');
         setSuccess('');
@@ -223,63 +119,34 @@ export default function AuthPage() {
             return;
         }
 
-        if (!window.verifyOtp) {
-            setError('Authentication service not ready. Please refresh.');
-            return;
-        }
-
         setLoading(true);
         setStep('verifying');
 
         try {
-            window.verifyOtp(
-                otpCode,
-                async (data) => {
-                    // OTP verified, we get access token from MSG91
-                    console.log('[MSG91] OTP verified:', data);
-                    const accessToken = data?.message || data?.access_token || data;
+            const response = await authApi.verifyEmailOtpCode(email, otpCode, reqId, name || '');
 
-                    try {
-                        // Send to backend for verification and login
-                        const response = await authApi.verifyEmailOtp(
-                            typeof accessToken === 'string' ? accessToken : JSON.stringify(accessToken),
-                            name || ''
-                        );
-
-                        await checkAuth();
-                        playChime();
-                        addToast(
-                            `Welcome${response.data?.user?.name ? ', ' + response.data.user.name : ''}!`,
-                            'success',
-                            'Login Successful'
-                        );
-                    } catch (backendErr) {
-                        console.error('[Backend] verify-email-otp failed:', backendErr);
-                        setError(backendErr.response?.data?.error || 'Login failed. Please try again.');
-                        setStep('otp');
-                    }
-                    setLoading(false);
-                },
-                (error) => {
-                    console.error('[MSG91] Verify OTP failed:', error);
-                    setError(error?.message || 'Invalid OTP. Please try again.');
-                    setStep('otp');
-                    setLoading(false);
-                }
+            await checkAuth();
+            playChime();
+            addToast(
+                `Welcome${response.data?.user?.name ? ', ' + response.data.user.name : ''}!`,
+                'success',
+                'Login Successful'
             );
         } catch (err) {
-            console.error('[MSG91] verifyOtp exception:', err);
-            setError('Verification failed. Please try again.');
+            console.error('[AuthPage] verifyEmailOtpCode error:', err);
+            setError(err.response?.data?.error || 'Verification failed. Please try again.');
             setStep('otp');
+        } finally {
             setLoading(false);
         }
-    }, [otpCode, name, checkAuth, playChime, addToast]);
+    }, [otpCode, email, reqId, name, checkAuth, playChime, addToast]);
 
     // ─── Reset form ───
     const resetFields = () => {
         setEmail('');
         setName('');
         setOtpCode('');
+        setReqId('');
         setError('');
         setSuccess('');
         setStep('email');
@@ -487,7 +354,7 @@ export default function AuthPage() {
                                         </div>
 
                                         <button
-                                            disabled={loading || !widgetReady}
+                                            disabled={loading}
                                             type="submit"
                                             className={buttonBase}
                                         >
@@ -495,11 +362,6 @@ export default function AuthPage() {
                                                 <span className="flex items-center gap-2">
                                                     <span className="material-symbols-outlined animate-spin text-xl">progress_activity</span>
                                                     Sending OTP…
-                                                </span>
-                                            ) : !widgetReady ? (
-                                                <span className="flex items-center gap-2">
-                                                    <span className="material-symbols-outlined animate-spin text-xl">progress_activity</span>
-                                                    Loading…
                                                 </span>
                                             ) : (
                                                 <>
@@ -573,6 +435,7 @@ export default function AuthPage() {
                                                 onClick={() => {
                                                     setStep('email');
                                                     setOtpCode('');
+                                                    setReqId('');
                                                     setError('');
                                                     setSuccess('');
                                                 }}
