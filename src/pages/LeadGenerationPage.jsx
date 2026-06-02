@@ -6,6 +6,7 @@ import * as api from "../api";
 import WhatsAppSection from "../components/lead/WhatsAppSection";
 import VoiceCallSection from "../components/lead/VoiceCallSection";
 import LinkActivitySection from "../components/lead/LinkActivitySection";
+import CallHistorySection from "../components/CallHistorySection";
 import { getChatMessages } from "../api";
 
 const LeadGenerationPage = () => {
@@ -794,6 +795,13 @@ const LeadGenerationPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Call History Section */}
+      {!isAutomation && id && (
+        <div className="mt-6">
+          <CallHistorySection leadId={id} />
+        </div>
+      )}
 
       {/* Footer */}
       <div className="mt-20 pt-10 border-t border-slate-200 dark:border-white/10 text-center">

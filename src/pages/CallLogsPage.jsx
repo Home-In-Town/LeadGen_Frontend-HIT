@@ -208,13 +208,18 @@ const CallLogsPage = () => {
     return STATUS_STYLES[normalized] || STATUS_STYLES.default;
   };
 
-  const completedCalls = useMemo(() => {
-    return logs.filter(
-      (log) =>
-        log.status?.toLowerCase() === 'completed' ||
-        log.status?.toLowerCase() === 'analytics'
-    ).length;
+  /* ---------------------------------- */
+  /* Computed Stats */
+  /* ---------------------------------- */
+
+  const totalDuration = useMemo(() => {
+    return logs.reduce((sum, log) => sum + (log.duration || 0), 0);
   }, [logs]);
+
+  const averageDuration = useMemo(() => {
+    if (logs.length === 0) return 0;
+    return Math.round(totalDuration / logs.length);
+  }, [logs, totalDuration]);
 
   /* ---------------------------------- */
   /* Loading State */
@@ -335,224 +340,234 @@ const CallLogsPage = () => {
         <>
           {/* Stats */}
           <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          title="Total Records"
-          value={total}
-          icon="call"
-        />
+            <StatCard
+              title="Total Calls"
+              value={total}
+              icon="call"
+            />
 
-        <StatCard
-          title="Completed"
-          value={completedCalls}
-          icon="verified"
-        />
+            <StatCard
+              title="Total Duration"
+              value={formatDuration(totalDuration)}
+              icon="timer"
+            />
 
-        <StatCard
-          title="Current Page"
-          value={currentPage}
-          icon="dashboard"
-        />
+            <StatCard
+              title="Avg Duration"
+              value={formatDuration(averageDuration)}
+              icon="avg_pace"
+            />
 
-        <StatCard
-          title="Pages"
-          value={totalPages}
-          icon="stacked_bar_chart"
-        />
-      </div>
-
-      {/* Empty State */}
-      {!loading && logs.length === 0 ? (
-        <EmptyState />
-      ) : (
-        <div className="overflow-hidden rounded-[24px] border border-slate-200/70 bg-white/70 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.03]">
-          {/* Desktop Header */}
-          <div className="hidden grid-cols-[1.5fr_1fr_0.7fr_2fr_0.8fr_1fr] gap-4 border-b border-slate-200/70 bg-slate-50/70 px-6 py-4 dark:border-white/10 dark:bg-white/[0.03] lg:grid">
-            {[
-              'Customer',
-              'Phone',
-              'Duration',
-              'Summary',
-              'Status',
-              'Time',
-            ].map((heading) => (
-              <span
-                key={heading}
-                className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400"
-              >
-                {heading}
-              </span>
-            ))}
+            <StatCard
+              title="Pages"
+              value={totalPages}
+              icon="stacked_bar_chart"
+            />
           </div>
 
-          {/* Rows */}
-          <div className="divide-y divide-slate-200/70 dark:divide-white/5">
-            {logs.map((log) => {
-              const rowKey = log.leadId || log._id;
-
-              const isExpanded = expandedRow === rowKey;
-
-              return (
-                <div key={rowKey}>
-                  {/* Row */}
-                  <div
-                    onClick={() =>
-                      setExpandedRow(isExpanded ? null : rowKey)
-                    }
-                    className={`
-                      grid cursor-pointer grid-cols-1 gap-4 px-5 py-5
-                      transition-all duration-200 hover:bg-slate-50/80
-                      dark:hover:bg-white/[0.03]
-                      lg:grid-cols-[1.5fr_1fr_0.7fr_2fr_0.8fr_1fr]
-                      ${isExpanded ? 'bg-slate-50/80 dark:bg-white/[0.03]' : ''}
-                    `}
+          {/* Empty State */}
+          {!loading && logs.length === 0 ? (
+            <EmptyState />
+          ) : (
+            <div className="overflow-hidden rounded-[24px] border border-slate-200/70 bg-white/70 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.03]">
+              {/* Desktop Header */}
+              <div className="hidden grid-cols-[0.5fr_1.5fr_1fr_0.7fr_2fr_0.8fr_1fr] gap-4 border-b border-slate-200/70 bg-slate-50/70 px-6 py-4 dark:border-white/10 dark:bg-white/[0.03] lg:grid">
+                {[
+                  'Call #',
+                  'Customer',
+                  'Phone',
+                  'Duration',
+                  'Summary',
+                  'Status',
+                  'Time',
+                ].map((heading) => (
+                  <span
+                    key={heading}
+                    className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400"
                   >
-                    {/* Customer */}
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-[12px] bg-primary/10 text-primary">
-                        <span className="material-symbols-outlined text-[18px]">
-                          person
-                        </span>
-                      </div>
+                    {heading}
+                  </span>
+                ))}
+              </div>
 
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <h3 className="truncate text-sm font-black uppercase tracking-tight text-slate-900 dark:text-white">
-                            {log.customerName || 'Unknown'}
-                          </h3>
+              {/* Rows */}
+              <div className="divide-y divide-slate-200/70 dark:divide-white/5">
+                {logs.map((log, index) => {
+                  const rowKey = log.callId || log.leadId || log._id || index;
 
-                          <span className="material-symbols-outlined text-slate-400">
-                            {isExpanded
-                              ? 'keyboard_arrow_up'
-                              : 'keyboard_arrow_down'}
+                  const isExpanded = expandedRow === rowKey;
+
+                  return (
+                    <div key={rowKey}>
+                      {/* Row */}
+                      <div
+                        onClick={() =>
+                          setExpandedRow(isExpanded ? null : rowKey)
+                        }
+                        className={`
+                          grid cursor-pointer grid-cols-1 gap-4 px-5 py-5
+                          transition-all duration-200 hover:bg-slate-50/80
+                          dark:hover:bg-white/[0.03]
+                          lg:grid-cols-[0.5fr_1.5fr_1fr_0.7fr_2fr_0.8fr_1fr]
+                          ${isExpanded ? 'bg-slate-50/80 dark:bg-white/[0.03]' : ''}
+                        `}
+                      >
+                        {/* Call Number Badge */}
+                        <div className="flex items-center">
+                          {log.callNumber && (
+                            <span className="bg-primary/10 text-primary text-[9px] font-black rounded-full px-2 py-0.5">
+                              Call #{log.callNumber}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Customer */}
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-[12px] bg-primary/10 text-primary">
+                            <span className="material-symbols-outlined text-[18px]">
+                              person
+                            </span>
+                          </div>
+
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <h3 className="truncate text-sm font-black uppercase tracking-tight text-slate-900 dark:text-white">
+                                {log.customerName || 'Unknown'}
+                              </h3>
+
+                              <span className="material-symbols-outlined text-slate-400">
+                                {isExpanded
+                                  ? 'keyboard_arrow_up'
+                                  : 'keyboard_arrow_down'}
+                              </span>
+                            </div>
+
+                            <p className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.15em] text-slate-500 dark:text-slate-400 lg:hidden">
+                              {log.phoneNumber || '—'}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Phone */}
+                        <div className="hidden items-center lg:flex">
+                          <span className="font-mono text-[11px] font-bold text-slate-600 dark:text-slate-300">
+                            {log.phoneNumber || '—'}
                           </span>
                         </div>
 
-                        <p className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.15em] text-slate-500 dark:text-slate-400 lg:hidden">
-                          {log.phoneNumber || '—'}
-                        </p>
-                      </div>
-                    </div>
+                        {/* Duration */}
+                        <div className="flex items-center">
+                          <span className="rounded-[10px] bg-slate-100 px-3 py-1 font-mono text-[11px] font-black text-slate-700 dark:bg-white/[0.05] dark:text-slate-200">
+                            {formatDuration(log.duration)}
+                          </span>
+                        </div>
 
-                    {/* Phone */}
-                    <div className="hidden items-center lg:flex">
-                      <span className="font-mono text-[11px] font-bold text-slate-600 dark:text-slate-300">
-                        {log.phoneNumber || '—'}
-                      </span>
-                    </div>
+                        {/* Summary */}
+                        <div className="flex items-center">
+                          <p className="line-clamp-2 text-[11px] leading-relaxed text-slate-600 dark:text-slate-300">
+                            {log.summary || 'No summary available'}
+                          </p>
+                        </div>
 
-                    {/* Duration */}
-                    <div className="flex items-center">
-                      <span className="rounded-[10px] bg-slate-100 px-3 py-1 font-mono text-[11px] font-black text-slate-700 dark:bg-white/[0.05] dark:text-slate-200">
-                        {formatDuration(log.duration)}
-                      </span>
-                    </div>
+                        {/* Status */}
+                        <div className="flex items-center">
+                          <span
+                            className={`
+                              rounded-full px-3 py-1
+                              text-[9px] font-black uppercase tracking-[0.2em]
+                              ${getStatusStyle(log.status)}
+                            `}
+                          >
+                            {log.status || 'unknown'}
+                          </span>
+                        </div>
 
-                    {/* Summary */}
-                    <div className="flex items-center">
-                      <p className="line-clamp-2 text-[11px] leading-relaxed text-slate-600 dark:text-slate-300">
-                        {log.summary || 'No summary available'}
-                      </p>
-                    </div>
-
-                    {/* Status */}
-                    <div className="flex items-center">
-                      <span
-                        className={`
-                          rounded-full px-3 py-1
-                          text-[9px] font-black uppercase tracking-[0.2em]
-                          ${getStatusStyle(log.status)}
-                        `}
-                      >
-                        {log.status || 'unknown'}
-                      </span>
-                    </div>
-
-                    {/* Time */}
-                    <div className="flex items-center">
-                      <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
-                        {formatTimestamp(log.calledAt)}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Expanded Transcript */}
-                  {isExpanded && log.transcript && (
-                    <div className="border-t border-slate-200/70 bg-slate-50/60 px-6 py-5 dark:border-white/10 dark:bg-white/[0.02]">
-                      <div className="mb-4 flex items-center gap-2">
-                        <span className="material-symbols-outlined text-primary">
-                          description
-                        </span>
-
-                        <span className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-600 dark:text-slate-300">
-                          Full Transcript
-                        </span>
+                        {/* Time */}
+                        <div className="flex items-center">
+                          <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
+                            {formatTimestamp(log.calledAt)}
+                          </span>
+                        </div>
                       </div>
 
-                      <div className="rounded-[18px] border border-slate-200/70 bg-white/80 p-5 dark:border-white/10 dark:bg-white/[0.03]">
-                        <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-slate-700 dark:text-slate-300">
-                          {log.transcript}
-                        </p>
-                      </div>
+                      {/* Expanded Transcript */}
+                      {isExpanded && log.transcript && (
+                        <div className="border-t border-slate-200/70 bg-slate-50/60 px-6 py-5 dark:border-white/10 dark:bg-white/[0.02]">
+                          <div className="mb-4 flex items-center gap-2">
+                            <span className="material-symbols-outlined text-primary">
+                              description
+                            </span>
+
+                            <span className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-600 dark:text-slate-300">
+                              Full Transcript
+                            </span>
+                          </div>
+
+                          <div className="rounded-[18px] border border-slate-200/70 bg-white/80 p-5 dark:border-white/10 dark:bg-white/[0.03]">
+                            <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-slate-700 dark:text-slate-300">
+                              {log.transcript}
+                            </p>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="mt-8 flex flex-wrap items-center justify-center gap-2">
-          <PaginationButton
-            disabled={currentPage === 1}
-            onClick={() =>
-              setCurrentPage((prev) => Math.max(prev - 1, 1))
-            }
-          >
-            Prev
-          </PaginationButton>
-
-          {Array.from(
-            { length: Math.min(totalPages, 5) },
-            (_, i) => {
-              let page;
-
-              if (totalPages <= 5) {
-                page = i + 1;
-              } else if (currentPage <= 3) {
-                page = i + 1;
-              } else if (currentPage >= totalPages - 2) {
-                page = totalPages - 4 + i;
-              } else {
-                page = currentPage - 2 + i;
-              }
-
-              return (
-                <PaginationButton
-                  key={page}
-                  active={currentPage === page}
-                  onClick={() => setCurrentPage(page)}
-                >
-                  {page}
-                </PaginationButton>
-              );
-            }
+                  );
+                })}
+              </div>
+            </div>
           )}
 
-          <PaginationButton
-            disabled={currentPage === totalPages}
-            onClick={() =>
-              setCurrentPage((prev) =>
-                Math.min(prev + 1, totalPages)
-              )
-            }
-          >
-            Next
-          </PaginationButton>
-        </div>
-      )}
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-2">
+              <PaginationButton
+                disabled={currentPage === 1}
+                onClick={() =>
+                  setCurrentPage((prev) => Math.max(prev - 1, 1))
+                }
+              >
+                Prev
+              </PaginationButton>
+
+              {Array.from(
+                { length: Math.min(totalPages, 5) },
+                (_, i) => {
+                  let page;
+
+                  if (totalPages <= 5) {
+                    page = i + 1;
+                  } else if (currentPage <= 3) {
+                    page = i + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    page = totalPages - 4 + i;
+                  } else {
+                    page = currentPage - 2 + i;
+                  }
+
+                  return (
+                    <PaginationButton
+                      key={page}
+                      active={currentPage === page}
+                      onClick={() => setCurrentPage(page)}
+                    >
+                      {page}
+                    </PaginationButton>
+                  );
+                }
+              )}
+
+              <PaginationButton
+                disabled={currentPage === totalPages}
+                onClick={() =>
+                  setCurrentPage((prev) =>
+                    Math.min(prev + 1, totalPages)
+                  )
+                }
+              >
+                Next
+              </PaginationButton>
+            </div>
+          )}
         </>
       )}
     </div>

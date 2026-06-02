@@ -64,6 +64,7 @@ export const deleteLead = (id) => leadsApi.delete(`/${id}`);
 // ====== VOICE CALL ENDPOINTS ======
 export const getCallStatus = (leadId) => voiceApi.get(`/status/${leadId}`);
 export const getCallLogs = (params) => voiceApi.get('/call-logs', { params });
+export const getLeadCallHistory = (leadId) => voiceApi.get(`/leads/${leadId}/calls`);
 
 // ====== VOICE SETTINGS ENDPOINTS ======
 export const getVoiceSettings = () => voiceApi.get('/settings');
@@ -133,6 +134,7 @@ export const authApi = {
     login: (phone, mpin) => _authAxios.post('/login', { phone, mpin }),
     forgotMpin: (phone) => _authAxios.post('/forgot-mpin', { phone }),
     resetMpin: (phone, code, newMpin) => _authAxios.post('/reset-mpin', { phone, code, newMpin }),
+    verifyEmailOtp: (accessToken, name) => _authAxios.post('/verify-email-otp', { accessToken, name }),
     getSession: () => _authAxios.get('/session'),
     logout: () => _authAxios.post('/logout'),
 };

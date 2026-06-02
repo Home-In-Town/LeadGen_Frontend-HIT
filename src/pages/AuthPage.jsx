@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { authApi } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
@@ -18,40 +18,33 @@ function getInitialTheme() {
 }
 
 // ── Icons (SVG) ──
-const PhoneIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-phone-call"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/><path d="m14.05 2 .23 2"/><path d="M15 5.4V6"/><path d="m19.3 2.05-.2.23"/><path d="M18 5V4"/></svg>
-);
-const LockIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-lock"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+const MailIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-mail"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
 );
 const UserIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-user"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
 );
-const MailIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-mail"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-);
 const ArrowRightIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-arrow-right"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
 );
+const KeyIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-key-round"><path d="M2 18v3c0 .6.4 1 1 1h4v-3h3v-3h2l1.4-1.4a6.5 6.5 0 1 0-4-4Z"/><circle cx="16.5" cy="7.5" r=".5" fill="currentColor"/></svg>
+);
 
 export default function AuthPage() {
-    const [screen, setScreen] = useState('login'); // 'login' | 'register' | 'forgot-phone' | 'otp' | 'reset-mpin'
+    const [screen, setScreen] = useState('login'); // 'login' | 'register'
+    const [step, setStep] = useState('email'); // 'email' | 'otp' | 'verifying'
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
-    
+
     // Form fields
-    const [phone, setPhone] = useState('');
-    const [name, setName] = useState('');
     const [email, setEmail] = useState('');
-    const [mpin, setMpin] = useState('');
-    const [confirmMpin, setConfirmMpin] = useState('');
+    const [name, setName] = useState('');
     const [otpCode, setOtpCode] = useState('');
-    const [role, setRole] = useState('service_user');
-    
-    // Flow tracking
-    const [isResetFlow, setIsResetFlow] = useState(false);
-    const [forgotPhone, setForgotPhone] = useState('');
+
+    // MSG91 widget loaded state
+    const [widgetReady, setWidgetReady] = useState(false);
 
     const [theme, setTheme] = useState(getInitialTheme);
 
@@ -80,200 +73,194 @@ export default function AuthPage() {
         }
     }, [status, navigate]);
 
-    // Cleanup state on mount
+    // Load MSG91 OTP Widget script
     useEffect(() => {
-        setError('');
-        setLoading(false);
+        // Check if already loaded
+        if (window.sendOtp && window.verifyOtp) {
+            setWidgetReady(true);
+            return;
+        }
+
+        const script = document.createElement('script');
+        script.src = 'https://verify.msg91.com/otp-provider.js';
+        script.async = true;
+        script.onload = () => {
+            // Initialize the widget configuration
+            const configuration = {
+                widgetId: import.meta.env.VITE_MSG91_WIDGET_ID,
+                tokenAuth: import.meta.env.VITE_MSG91_TOKEN_AUTH,
+                exposeMethods: true,
+                success: (data) => {
+                    // This global callback may not always be used since we use per-call callbacks
+                    console.log('[MSG91] Global success:', data);
+                },
+                failure: (error) => {
+                    console.error('[MSG91] Global failure:', error);
+                }
+            };
+
+            // Initialize widget - MSG91 exposes initSendOTP after script loads
+            if (window.initSendOTP) {
+                window.initSendOTP(configuration);
+            }
+
+            // Wait a moment for methods to be exposed
+            setTimeout(() => {
+                setWidgetReady(true);
+            }, 500);
+        };
+        script.onerror = () => {
+            console.error('[MSG91] Failed to load OTP widget script');
+            setError('Failed to load authentication service. Please refresh.');
+        };
+
+        document.body.appendChild(script);
+
+        return () => {
+            // Cleanup if component unmounts
+            if (document.body.contains(script)) {
+                document.body.removeChild(script);
+            }
+        };
     }, []);
 
-    // ─── Helpers ───
-    const formatPhone = (p) => p.startsWith('+') ? p : `+91${p}`;
-    const validatePhone = (p) => /^(?:\+91)?[6-9]\d{9}$/.test(p);
-    const validateMpin = (m) => /^\d{4,6}$/.test(m);
-
-    const resetFields = () => {
-        setMpin('');
-        setConfirmMpin('');
-        setOtpCode('');
-        setName('');
-        setEmail('');
+    // ─── Send OTP ───
+    const handleSendOtp = useCallback(async () => {
         setError('');
         setSuccess('');
-    };
 
-    // ========================================
-    // LOGIC: LOGIN
-    // ========================================
-    const onLoginSubmit = async (e) => {
-        e.preventDefault();
-        setError('');
-        
-        if (!validatePhone(phone)) return setError('Please enter a valid 10-digit number');
-        if (!mpin || mpin.length < 4) return setError('Please enter your 4+ digit MPIN');
+        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            setError('Please enter a valid email address');
+            return;
+        }
+
+        if (screen === 'register' && !name.trim()) {
+            setError('Name is required for registration');
+            return;
+        }
+
+        if (!widgetReady || !window.sendOtp) {
+            setError('Authentication service is loading. Please wait and try again.');
+            return;
+        }
+
+        setLoading(true);
 
         try {
-            setLoading(true);
-            const formattedPhone = formatPhone(phone);
-            
-            const { data } = await authApi.login(formattedPhone, mpin);
-            await checkAuth();
-            
-            // Chime and Toast
-            playChime();
-            addToast(`Welcome back, ${data.user?.name || 'User'}!`, 'success', 'Login Successful');
-            
-            // Redirect is now handled by the status useEffect
-            
+            window.sendOtp(
+                email,
+                (data) => {
+                    // OTP sent successfully
+                    console.log('[MSG91] OTP sent:', data);
+                    setSuccess('OTP sent to your email');
+                    setStep('otp');
+                    setLoading(false);
+                },
+                (error) => {
+                    console.error('[MSG91] Send OTP failed:', error);
+                    setError(error?.message || 'Failed to send OTP. Please try again.');
+                    setLoading(false);
+                }
+            );
         } catch (err) {
-            console.error('Login error detail:', err);
-            setError(err.response?.data?.error || "Invalid phone or MPIN");
-        } finally {
+            console.error('[MSG91] sendOtp exception:', err);
+            setError('Failed to send OTP. Please try again.');
             setLoading(false);
         }
-    };
+    }, [email, name, screen, widgetReady]);
 
-    // ========================================
-    // LOGIC: REGISTER
-    // ========================================
-    const onRegisterSubmit = async (e) => {
-        e.preventDefault();
+    // ─── Verify OTP ───
+    const handleVerifyOtp = useCallback(async () => {
         setError('');
-        if (!name.trim()) return setError("Name is required");
-        if (!validatePhone(phone)) return setError('Invalid phone number');
-        if (!validateMpin(mpin)) return setError("MPIN should be 4-6 digits");
-        if (mpin !== confirmMpin) return setError("MPINs do not match");
-        
-        try {
-            setLoading(true);
-            const formattedPhone = formatPhone(phone);
-            setPhone(formattedPhone);
-            await authApi.register({ name, phone: formattedPhone, mpin, email, role });
-            
-            // Bypass Transition: login and redirect immediately
-            await checkAuth();
-            playChime();
-            addToast(`Welcome to Lead Filtration, ${name}!`, 'success', 'Registration Successful');
-            navigate('/dashboard');
-            
-        } catch (err) {
-            setError(err.response?.data?.error || "Registration failed");
-        } finally {
-            setLoading(false);
+        setSuccess('');
+
+        if (!otpCode || otpCode.length < 4) {
+            setError('Please enter a valid OTP');
+            return;
         }
-    };
 
-    // ========================================
-    // LOGIC: FORGOT MPIN
-    // ========================================
-    const onForgotPhoneSubmit = async (e) => {
-        e.preventDefault();
-        setError('');
-        if (!validatePhone(forgotPhone)) return setError('Enter your registered phone number');
+        if (!window.verifyOtp) {
+            setError('Authentication service not ready. Please refresh.');
+            return;
+        }
+
+        setLoading(true);
+        setStep('verifying');
 
         try {
-            setLoading(true);
-            const formattedPhone = formatPhone(forgotPhone);
-            setForgotPhone(formattedPhone);
-            await authApi.forgotMpin(formattedPhone);
-            setIsResetFlow(true);
-            setScreen('otp');
-            setSuccess("OTP sent for verification");
+            window.verifyOtp(
+                otpCode,
+                async (data) => {
+                    // OTP verified, we get access token from MSG91
+                    console.log('[MSG91] OTP verified:', data);
+                    const accessToken = data?.message || data?.access_token || data;
+
+                    try {
+                        // Send to backend for verification and login
+                        const response = await authApi.verifyEmailOtp(
+                            typeof accessToken === 'string' ? accessToken : JSON.stringify(accessToken),
+                            name || ''
+                        );
+
+                        await checkAuth();
+                        playChime();
+                        addToast(
+                            `Welcome${response.data?.user?.name ? ', ' + response.data.user.name : ''}!`,
+                            'success',
+                            'Login Successful'
+                        );
+                    } catch (backendErr) {
+                        console.error('[Backend] verify-email-otp failed:', backendErr);
+                        setError(backendErr.response?.data?.error || 'Login failed. Please try again.');
+                        setStep('otp');
+                    }
+                    setLoading(false);
+                },
+                (error) => {
+                    console.error('[MSG91] Verify OTP failed:', error);
+                    setError(error?.message || 'Invalid OTP. Please try again.');
+                    setStep('otp');
+                    setLoading(false);
+                }
+            );
         } catch (err) {
-            setError(err.response?.data?.error || "Failed to send OTP");
-        } finally {
+            console.error('[MSG91] verifyOtp exception:', err);
+            setError('Verification failed. Please try again.');
+            setStep('otp');
             setLoading(false);
         }
-    };
+    }, [otpCode, name, checkAuth, playChime, addToast]);
 
-    // ========================================
-    // LOGIC: OTP VERIFY
-    // ========================================
-    const onOtpSubmit = async (e) => {
-        e.preventDefault();
+    // ─── Reset form ───
+    const resetFields = () => {
+        setEmail('');
+        setName('');
+        setOtpCode('');
         setError('');
-        if (otpCode.length < 6) return setError("Enter 6-digit OTP");
-
-        try {
-            setLoading(true);
-            if (isResetFlow) {
-                setScreen('reset-mpin');
-            } else {
-                await authApi.verifyOtp(phone, otpCode);
-                await checkAuth();
-                playChime();
-                addToast('Account Initialized', 'success', 'Verification Success');
-                navigate('/dashboard');
-            }
-        } catch (err) {
-            setError(err.response?.data?.error || "Invalid OTP");
-        } finally {
-            setLoading(false);
-        }
+        setSuccess('');
+        setStep('email');
     };
 
-    // ========================================
-    // LOGIC: RESET MPIN
-    // ========================================
-    const onResetMpinSubmit = async (e) => {
-        e.preventDefault();
-        setError('');
-        if (!validateMpin(mpin)) return setError("New MPIN should be 4-6 digits");
-        if (mpin !== confirmMpin) return setError("MPINs do not match");
-
-        try {
-            setLoading(true);
-            await authApi.resetMpin(forgotPhone, otpCode, mpin);
-            setSuccess("MPIN reset successful! Please login.");
-            resetFields();
-            setForgotPhone('');
-            setIsResetFlow(false);
-            setScreen('login');
-        } catch (err) {
-            setError(err.response?.data?.error || "Reset failed");
-        } finally {
-            setLoading(false);
-        }
-    };
-
+    // ─── Styles ───
     const inputBase =
         'w-full rounded-xl bg-white/90 dark:bg-white/[0.06] border border-slate-200/90 dark:border-white/10 py-3.5 pl-11 pr-4 text-sm font-semibold text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 placeholder:font-medium shadow-[inset_0_1px_0_rgba(255,255,255,0.6)] dark:shadow-none focus:outline-none focus:ring-2 focus:ring-primary/35 focus:border-primary transition-all duration-200';
     const buttonBase =
         'w-full rounded-xl bg-gradient-to-r from-primary to-emerald-600 text-white font-semibold tracking-wide py-3.5 px-4 shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 hover:brightness-[1.03] active:scale-[0.99] transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:pointer-events-none disabled:shadow-none cursor-pointer';
-    const linkBase =
-        'text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-primary text-[11px] font-semibold uppercase tracking-wider transition-colors duration-200 cursor-pointer';
+    const buttonSecondary =
+        'w-full rounded-xl border border-slate-200/80 dark:border-white/10 bg-white/60 dark:bg-white/[0.04] text-slate-700 dark:text-slate-300 font-medium py-3 px-4 hover:bg-white/90 dark:hover:bg-white/[0.08] transition-all duration-200 text-sm cursor-pointer';
 
     const screenTitle = () => {
-        switch (screen) {
-            case 'login':
-                return 'Sign in';
-            case 'register':
-                return 'Create account';
-            case 'otp':
-                return 'Verify code';
-            case 'reset-mpin':
-                return 'New MPIN';
-            case 'forgot-phone':
-                return 'Recover access';
-            default:
-                return 'Welcome';
-        }
+        if (step === 'otp') return 'Enter verification code';
+        if (step === 'verifying') return 'Verifying...';
+        return screen === 'login' ? 'Sign in' : 'Create account';
     };
 
     const screenSubtitle = () => {
-        switch (screen) {
-            case 'login':
-                return 'Welcome back to your CRM workspace.';
-            case 'register':
-                return 'Start automating leads in minutes.';
-            case 'otp':
-                return 'Enter the code we sent to your phone.';
-            case 'reset-mpin':
-                return 'Choose a new secure MPIN.';
-            case 'forgot-phone':
-                return 'We’ll send a verification code.';
-            default:
-                return '';
-        }
+        if (step === 'otp') return `We sent a code to ${email}`;
+        if (step === 'verifying') return 'Please wait while we verify your identity.';
+        return screen === 'login'
+            ? 'Welcome back to your CRM workspace.'
+            : 'Start automating leads in minutes.';
     };
 
     const highlights = [
@@ -317,7 +304,7 @@ export default function AuthPage() {
                                 </div>
                             </div>
                             <p className="mt-6 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
-                                Run voice, WhatsApp, and ads-led workflows from one premium workspace-built for teams who
+                                Run voice, WhatsApp, and ads-led workflows from one premium workspace—built for teams who
                                 live in real-time pipeline.
                             </p>
                             <ul className="mt-6 space-y-3">
@@ -350,8 +337,8 @@ export default function AuthPage() {
                     {/* Right: auth card */}
                     <main className="flex flex-1 flex-col justify-center lg:min-w-0 lg:py-4">
                         <div className="rounded-2xl border border-slate-200/80 bg-white/75 p-6 shadow-2xl shadow-slate-900/10 backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.06] dark:shadow-black/50 sm:p-8 lg:p-10">
-                            {/* Login / Register toggle — only when those screens */}
-                            {(screen === 'login' || screen === 'register') && (
+                            {/* Login / Register toggle */}
+                            {step === 'email' && (
                                 <div className="mb-8 flex rounded-xl border border-slate-200/80 bg-slate-100/80 p-1 dark:border-white/10 dark:bg-white/[0.06]">
                                     <button
                                         type="button"
@@ -409,309 +396,156 @@ export default function AuthPage() {
                             )}
 
                             <div
-                                key={screen}
+                                key={`${screen}-${step}`}
                                 className="animate-fade-in transition-opacity duration-300 ease-out"
                             >
-                                {/* Screen: LOGIN */}
-                                {screen === 'login' && (
-                                    <form onSubmit={onLoginSubmit} className="space-y-6">
+                                {/* Step: EMAIL INPUT */}
+                                {step === 'email' && (
+                                    <form
+                                        onSubmit={(e) => {
+                                            e.preventDefault();
+                                            handleSendOtp();
+                                        }}
+                                        className="space-y-5"
+                                    >
                                         <div className="space-y-4">
+                                            {/* Name field - only for register */}
+                                            {screen === 'register' && (
+                                                <div className="relative group">
+                                                    <i className="absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-primary dark:text-slate-500">
+                                                        <UserIcon />
+                                                    </i>
+                                                    <input
+                                                        type="text"
+                                                        autoComplete="name"
+                                                        placeholder="Full name"
+                                                        value={name}
+                                                        onChange={(e) => setName(e.target.value)}
+                                                        className={inputBase}
+                                                    />
+                                                </div>
+                                            )}
+
+                                            {/* Email field */}
                                             <div className="relative group">
                                                 <i className="absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-primary dark:text-slate-500">
-                                                    <PhoneIcon />
-                                                </i>
-                                                <input
-                                                    type="tel"
-                                                    autoComplete="tel"
-                                                    placeholder="Mobile number"
-                                                    value={phone}
-                                                    onChange={(e) => setPhone(e.target.value)}
-                                                    className={`${inputBase} font-mono`}
-                                                />
-                                            </div>
-                                            <div className="relative group">
-                                                <i className="absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-primary dark:text-slate-500">
-                                                    <LockIcon />
-                                                </i>
-                                                <input
-                                                    type="password"
-                                                    autoComplete="current-password"
-                                                    placeholder="MPIN"
-                                                    maxLength={6}
-                                                    value={mpin}
-                                                    onChange={(e) => setMpin(e.target.value)}
-                                                    className={`${inputBase} text-xl ${mpin ? 'tracking-[0.45em]' : 'tracking-normal'} placeholder:text-xs placeholder:tracking-normal placeholder:font-semibold`}
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div className="space-y-4">
-                                            <button disabled={loading} type="submit" className={buttonBase}>
-                                                {loading ? (
-                                                    <span className="flex items-center gap-2">
-                                                        <span className="material-symbols-outlined animate-spin text-xl">progress_activity</span>
-                                                        Signing in…
-                                                    </span>
-                                                ) : (
-                                                    <>
-                                                        Continue
-                                                        <ArrowRightIcon />
-                                                    </>
-                                                )}
-                                            </button>
-                                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => {
-                                                        resetFields();
-                                                        setScreen('forgot-phone');
-                                                    }}
-                                                    className={linkBase}
-                                                >
-                                                    Forgot access?
-                                                </button>
-                                                {/* <button
-                                                    type="button"
-                                                    onClick={() => {
-                                                        resetFields();
-                                                        setScreen('register');
-                                                    }}
-                                                    className={`${linkBase} text-primary`}
-                                                >
-                                                    New registration
-                                                </button> */}
-                                            </div>
-                                        </div>
-                                    </form>
-                                )}
-
-                                {/* Screen: REGISTER */}
-                                {screen === 'register' && (
-                                    <form onSubmit={onRegisterSubmit} className="space-y-5">
-                                        <div className="space-y-3">
-                                            <div className="relative group">
-                                                <i className="absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-slate-400 group-focus-within:text-primary dark:text-slate-500">
-                                                    <UserIcon />
-                                                </i>
-                                                <input
-                                                    type="text"
-                                                    autoComplete="name"
-                                                    placeholder="Full name"
-                                                    value={name}
-                                                    onChange={(e) => setName(e.target.value)}
-                                                    className={inputBase}
-                                                />
-                                            </div>
-                                            <div className="relative group">
-                                                <i className="absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-slate-400 group-focus-within:text-primary dark:text-slate-500">
-                                                    <PhoneIcon />
-                                                </i>
-                                                <input
-                                                    type="tel"
-                                                    autoComplete="tel"
-                                                    placeholder="Mobile number"
-                                                    value={phone}
-                                                    onChange={(e) => setPhone(e.target.value)}
-                                                    className={`${inputBase} font-mono`}
-                                                />
-                                            </div>
-                                            <div className="relative group">
-                                                <i className="absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-slate-400 group-focus-within:text-primary dark:text-slate-500">
                                                     <MailIcon />
                                                 </i>
                                                 <input
                                                     type="email"
                                                     autoComplete="email"
-                                                    placeholder="Email"
+                                                    placeholder="Email address"
                                                     value={email}
                                                     onChange={(e) => setEmail(e.target.value)}
                                                     className={inputBase}
                                                 />
                                             </div>
-
-                                            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                                                <div className="relative group">
-                                                    <i className="absolute left-3 top-1/2 z-10 -translate-y-1/2 scale-90 text-slate-400 group-focus-within:text-primary dark:text-slate-500">
-                                                        <LockIcon />
-                                                    </i>
-                                                    <input
-                                                        type="password"
-                                                        placeholder="MPIN"
-                                                        maxLength={6}
-                                                        value={mpin}
-                                                        onChange={(e) => setMpin(e.target.value)}
-                                                        className={`${inputBase} pl-10 text-lg tracking-[0.15em]`}
-                                                    />
-                                                </div>
-                                                <div className="relative group">
-                                                    <i className="absolute left-3 top-1/2 z-10 -translate-y-1/2 scale-90 text-slate-400 group-focus-within:text-primary dark:text-slate-500">
-                                                        <LockIcon />
-                                                    </i>
-                                                    <input
-                                                        type="password"
-                                                        placeholder="Confirm MPIN"
-                                                        maxLength={6}
-                                                        value={confirmMpin}
-                                                        onChange={(e) => setConfirmMpin(e.target.value)}
-                                                        className={`${inputBase} pl-10 text-lg tracking-[0.15em]`}
-                                                    />
-                                                </div>
-                                            </div>
                                         </div>
 
-                                        <div className="space-y-3">
-                                            <button disabled={loading} type="submit" className={buttonBase}>
-                                                {loading ? (
-                                                    <span className="flex items-center gap-2">
-                                                        <span className="material-symbols-outlined animate-spin text-xl">progress_activity</span>
-                                                        Creating account…
-                                                    </span>
-                                                ) : (
-                                                    'Complete registration'
-                                                )}
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => setScreen('login')}
-                                                className="w-full rounded-xl py-2 text-center text-sm font-medium text-slate-500 transition-colors hover:text-slate-800 dark:text-slate-400 dark:hover:text-white"
-                                            >
-                                                Back to <span className="font-semibold text-primary">sign in</span>
-                                            </button>
-                                        </div>
+                                        <button
+                                            disabled={loading || !widgetReady}
+                                            type="submit"
+                                            className={buttonBase}
+                                        >
+                                            {loading ? (
+                                                <span className="flex items-center gap-2">
+                                                    <span className="material-symbols-outlined animate-spin text-xl">progress_activity</span>
+                                                    Sending OTP…
+                                                </span>
+                                            ) : !widgetReady ? (
+                                                <span className="flex items-center gap-2">
+                                                    <span className="material-symbols-outlined animate-spin text-xl">progress_activity</span>
+                                                    Loading…
+                                                </span>
+                                            ) : (
+                                                <>
+                                                    Send OTP
+                                                    <ArrowRightIcon />
+                                                </>
+                                            )}
+                                        </button>
+
+                                        <p className="text-center text-xs text-slate-500 dark:text-slate-400">
+                                            We'll send a one-time verification code to your email
+                                        </p>
                                     </form>
                                 )}
 
-                                {/* Screen: OTP */}
-                                {screen === 'otp' && (
-                                    <form onSubmit={onOtpSubmit} className="space-y-8 text-center">
-                                        <p className="text-sm text-slate-600 dark:text-slate-400">
-                                            Code sent to{' '}
-                                            <span className="font-mono font-semibold text-slate-900 dark:text-white">
-                                                {isResetFlow ? forgotPhone : phone}
-                                            </span>
-                                        </p>
+                                {/* Step: OTP INPUT */}
+                                {step === 'otp' && (
+                                    <form
+                                        onSubmit={(e) => {
+                                            e.preventDefault();
+                                            handleVerifyOtp();
+                                        }}
+                                        className="space-y-6"
+                                    >
+                                        <div className="relative group">
+                                            <i className="absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-primary dark:text-slate-500">
+                                                <KeyIcon />
+                                            </i>
+                                            <input
+                                                type="text"
+                                                inputMode="numeric"
+                                                autoComplete="one-time-code"
+                                                maxLength={6}
+                                                placeholder="Enter OTP"
+                                                value={otpCode}
+                                                onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                                                className={`${inputBase} font-mono text-lg tracking-[0.2em] text-center`}
+                                                autoFocus
+                                            />
+                                        </div>
 
-                                        <input
-                                            type="text"
-                                            inputMode="numeric"
-                                            autoComplete="one-time-code"
-                                            maxLength={6}
-                                            placeholder="• • • • • •"
-                                            value={otpCode}
-                                            onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
-                                            className="w-full rounded-xl border border-slate-200/90 bg-slate-50/90 py-6 text-center font-mono text-3xl font-bold tracking-[0.35em] text-primary placeholder:text-slate-300 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/35 dark:border-white/10 dark:bg-white/[0.06] dark:text-primary dark:placeholder:text-slate-600 sm:text-4xl"
-                                        />
+                                        <button
+                                            disabled={loading}
+                                            type="submit"
+                                            className={buttonBase}
+                                        >
+                                            {loading ? (
+                                                <span className="flex items-center gap-2">
+                                                    <span className="material-symbols-outlined animate-spin text-xl">progress_activity</span>
+                                                    Verifying…
+                                                </span>
+                                            ) : (
+                                                <>
+                                                    Verify & Login
+                                                    <ArrowRightIcon />
+                                                </>
+                                            )}
+                                        </button>
 
-                                        <div className="space-y-4">
-                                            <button disabled={loading} type="submit" className={buttonBase}>
-                                                {loading ? (
-                                                    <span className="flex items-center gap-2">
-                                                        <span className="material-symbols-outlined animate-spin text-xl">progress_activity</span>
-                                                        Verifying…
-                                                    </span>
-                                                ) : (
-                                                    'Verify'
-                                                )}
+                                        <div className="flex flex-col items-center gap-3">
+                                            <button
+                                                type="button"
+                                                onClick={() => handleSendOtp()}
+                                                disabled={loading}
+                                                className={buttonSecondary}
+                                            >
+                                                Resend OTP
                                             </button>
                                             <button
                                                 type="button"
                                                 onClick={() => {
-                                                    setIsResetFlow(false);
-                                                    setScreen('login');
+                                                    setStep('email');
+                                                    setOtpCode('');
+                                                    setError('');
+                                                    setSuccess('');
                                                 }}
-                                                className={linkBase}
+                                                className="text-xs font-semibold text-slate-500 hover:text-primary dark:text-slate-400 dark:hover:text-primary transition-colors cursor-pointer"
                                             >
-                                                Back to sign in
+                                                ← Change email
                                             </button>
                                         </div>
                                     </form>
                                 )}
 
-                                {/* Screen: RESET MPIN */}
-                                {screen === 'reset-mpin' && (
-                                    <form onSubmit={onResetMpinSubmit} className="space-y-6">
-                                        <div className="space-y-4">
-                                            <div className="relative group">
-                                                <i className="absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-slate-400 group-focus-within:text-primary dark:text-slate-500">
-                                                    <LockIcon />
-                                                </i>
-                                                <input
-                                                    type="password"
-                                                    placeholder="New MPIN"
-                                                    maxLength={6}
-                                                    value={mpin}
-                                                    onChange={(e) => setMpin(e.target.value)}
-                                                    className={`${inputBase} text-xl tracking-[0.35em]`}
-                                                />
-                                            </div>
-                                            <div className="relative group">
-                                                <i className="absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-slate-400 group-focus-within:text-primary dark:text-slate-500">
-                                                    <LockIcon />
-                                                </i>
-                                                <input
-                                                    type="password"
-                                                    placeholder="Confirm new MPIN"
-                                                    maxLength={6}
-                                                    value={confirmMpin}
-                                                    onChange={(e) => setConfirmMpin(e.target.value)}
-                                                    className={`${inputBase} text-xl tracking-[0.35em]`}
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <button disabled={loading} type="submit" className={buttonBase}>
-                                            {loading ? (
-                                                <span className="flex items-center gap-2">
-                                                    <span className="material-symbols-outlined animate-spin text-xl">progress_activity</span>
-                                                    Updating…
-                                                </span>
-                                            ) : (
-                                                'Save MPIN'
-                                            )}
-                                        </button>
-                                    </form>
-                                )}
-
-                                {/* Screen: FORGOT PHONE */}
-                                {screen === 'forgot-phone' && (
-                                    <form onSubmit={onForgotPhoneSubmit} className="space-y-8">
-                                        <div className="relative group">
-                                            <i className="absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-slate-400 group-focus-within:text-primary dark:text-slate-500">
-                                                <PhoneIcon />
-                                            </i>
-                                            <input
-                                                type="tel"
-                                                autoComplete="tel"
-                                                placeholder="Registered mobile number"
-                                                value={forgotPhone}
-                                                onChange={(e) => setForgotPhone(e.target.value)}
-                                                className={`${inputBase} font-mono text-base`}
-                                            />
-                                        </div>
-
-                                        <div className="space-y-4">
-                                            <button disabled={loading} type="submit" className={buttonBase}>
-                                                {loading ? (
-                                                    <span className="flex items-center gap-2">
-                                                        <span className="material-symbols-outlined animate-spin text-xl">progress_activity</span>
-                                                        Sending…
-                                                    </span>
-                                                ) : (
-                                                    <>
-                                                        Send OTP
-                                                        <ArrowRightIcon />
-                                                    </>
-                                                )}
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => setScreen('login')}
-                                                className="w-full rounded-xl py-2 text-center text-sm font-medium text-slate-500 underline-offset-4 hover:text-slate-800 hover:underline dark:text-slate-400 dark:hover:text-white"
-                                            >
-                                                Back to sign in
-                                            </button>
-                                        </div>
-                                    </form>
+                                {/* Step: VERIFYING (loading state) */}
+                                {step === 'verifying' && (
+                                    <div className="flex flex-col items-center gap-4 py-8">
+                                        <span className="material-symbols-outlined animate-spin text-4xl text-primary">progress_activity</span>
+                                        <p className="text-sm text-slate-600 dark:text-slate-400">Verifying your identity...</p>
+                                    </div>
                                 )}
                             </div>
                         </div>
