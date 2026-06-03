@@ -140,4 +140,10 @@ export const authApi = {
     verifyEmailOtpCode: (email, otp, reqId, name) => _authAxios.post('/verify-email-otp-code', { email, otp, reqId, name }),
     getSession: () => _authAxios.get('/session'),
     logout: () => _authAxios.post('/logout'),
+    // New PIN-based auth flow
+    setupPin: (tempToken, pin, name, mobile) => _authAxios.post('/setup-pin', { tempToken, pin, name, mobile }),
+    loginWithPin: (email, pin) => _authAxios.post('/login-pin', { email, pin }),
+    forgotPin: (email) => _authAxios.post('/forgot-pin', { email }),
+    verifyResetOtp: (accessToken) => _authAxios.post('/verify-reset-otp', { accessToken }),
+    resetPin: (tempToken, newPin) => _authAxios.post('/reset-pin', { tempToken, newPin }),
 };
