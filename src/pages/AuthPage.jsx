@@ -17,12 +17,14 @@ function getInitialTheme() {
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
 
-// ── Icons (SVG) ──
 const MailIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
 );
 const UserIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+);
+const PhoneIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.63 3.18 2 2 0 0 1 3.6 1h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 8.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
 );
 const ArrowRightIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
@@ -39,6 +41,7 @@ export default function AuthPage() {
     const [success, setSuccess] = useState('');
     const [email, setEmail] = useState('');
     const [name, setName] = useState('');
+    const [mobile, setMobile] = useState('');
     const [otpCode, setOtpCode] = useState('');
     const [widgetReady, setWidgetReady] = useState(false);
     const [theme, setTheme] = useState(getInitialTheme);
@@ -63,10 +66,8 @@ export default function AuthPage() {
         }
     }, [status, navigate]);
 
-    // Initialize MSG91 widget
     const initWidget = useCallback(() => {
         if (widgetInitialized.current) return;
-
         const configuration = {
             widgetId: WIDGET_ID,
             tokenAuth: TOKEN_AUTH,
@@ -74,78 +75,82 @@ export default function AuthPage() {
             success: (data) => console.log('[MSG91] success:', data),
             failure: (error) => console.error('[MSG91] failure:', error),
         };
-
         if (typeof window.initSendOTP === 'function') {
             window.initSendOTP(configuration);
             widgetInitialized.current = true;
-            console.log('[MSG91] Widget initialized');
         }
-
-        // Poll for sendOtp to be available
         let attempts = 0;
         const poll = setInterval(() => {
             attempts++;
             if (typeof window.sendOtp === 'function') {
                 clearInterval(poll);
                 setWidgetReady(true);
-                console.log('[MSG91] sendOtp ready after', attempts * 300, 'ms');
             } else if (attempts > 30) {
                 clearInterval(poll);
-                console.warn('[MSG91] sendOtp not available after 9s');
-                // Still allow button clicks — handle gracefully in send
                 setWidgetReady(true);
             }
         }, 300);
     }, []);
 
-    // Load MSG91 script
     useEffect(() => {
-        // Script already loaded
-        if (typeof window.initSendOTP === 'function') {
-            initWidget();
-            return;
-        }
-        if (typeof window.sendOtp === 'function') {
-            setWidgetReady(true);
-            return;
-        }
-
+        if (typeof window.initSendOTP === 'function') { initWidget(); return; }
+        if (typeof window.sendOtp === 'function') { setWidgetReady(true); return; }
         const script = document.createElement('script');
         script.src = 'https://verify.msg91.com/otp-provider.js';
         script.async = true;
-        script.onload = () => {
-            console.log('[MSG91] Script loaded');
-            initWidget();
-        };
+        script.onload = () => initWidget();
         script.onerror = () => {
-            // Try fallback CDN
             const fallback = document.createElement('script');
             fallback.src = 'https://verify.phone91.com/otp-provider.js';
             fallback.async = true;
-            fallback.onload = () => {
-                console.log('[MSG91] Fallback script loaded');
-                initWidget();
-            };
-            fallback.onerror = () => {
-                setError('Failed to load authentication service. Please refresh the page.');
-            };
+            fallback.onload = () => initWidget();
+            fallback.onerror = () => setError('Failed to load authentication service. Please refresh.');
             document.body.appendChild(fallback);
         };
         document.body.appendChild(script);
     }, [initWidget]);
 
+    // Validate email format client-side
+    const isValidEmail = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+    // Validate Indian mobile (10 digits)
+    const isValidMobile = (m) => /^[6-9]\d{9}$/.test(m.replace(/\D/g, ''));
+
     const handleSendOtp = useCallback(async () => {
         setError('');
         setSuccess('');
 
-        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-            setError('Please enter a valid email address');
+        // Validate email format
+        if (!email || !isValidEmail(email)) {
+            setError('Please enter a valid email address.');
             return;
         }
-        if (screen === 'register' && !name.trim()) {
-            setError('Name is required for registration');
+        // Validate mobile if provided (required for register, optional for login)
+        if (screen === 'register') {
+            if (!name.trim()) { setError('Full name is required.'); return; }
+            if (!mobile || !isValidMobile(mobile)) { setError('Please enter a valid 10-digit mobile number.'); return; }
+        }
+        if (mobile && !isValidMobile(mobile)) {
+            setError('Please enter a valid 10-digit mobile number.');
             return;
         }
+
+        // Pre-OTP validation: check if email exists
+        try {
+            const checkRes = await authApi.checkEmail(email.toLowerCase().trim());
+            const { exists } = checkRes.data;
+            if (screen === 'register' && exists) {
+                setError('An account with this email already exists. Please login instead.');
+                return;
+            }
+            if (screen === 'login' && !exists) {
+                setError('No account found with this email. Please register first.');
+                return;
+            }
+        } catch (err) {
+            // If check-email fails, proceed anyway (don't block login)
+            console.warn('[AuthPage] checkEmail failed, proceeding:', err.message);
+        }
+
         if (typeof window.sendOtp !== 'function') {
             setError('Authentication service is loading. Please wait a moment and try again.');
             return;
@@ -155,36 +160,28 @@ export default function AuthPage() {
         try {
             await new Promise((resolve, reject) => {
                 window.sendOtp(
-                    email,
+                    email.toLowerCase().trim(),
                     (data) => { console.log('[MSG91] OTP sent:', data); resolve(data); },
                     (err) => { console.error('[MSG91] Send failed:', err); reject(err); }
                 );
             });
-            setSuccess(`OTP sent to ${email}`);
+            setSuccess(`Verification code sent to ${email}`);
             setStep('otp');
         } catch (err) {
             setError(err?.message || 'Failed to send OTP. Please try again.');
         } finally {
             setLoading(false);
         }
-    }, [email, name, screen]);
+    }, [email, name, mobile, screen]);
 
     const handleVerifyOtp = useCallback(async () => {
         setError('');
         setSuccess('');
-
-        if (!otpCode || otpCode.length < 4) {
-            setError('Please enter a valid OTP');
-            return;
-        }
-        if (typeof window.verifyOtp !== 'function') {
-            setError('Authentication service not ready. Please refresh.');
-            return;
-        }
+        if (!otpCode || otpCode.length < 4) { setError('Please enter a valid OTP.'); return; }
+        if (typeof window.verifyOtp !== 'function') { setError('Authentication service not ready. Please refresh.'); return; }
 
         setLoading(true);
         setStep('verifying');
-
         try {
             const data = await new Promise((resolve, reject) => {
                 window.verifyOtp(
@@ -193,26 +190,22 @@ export default function AuthPage() {
                     (err) => { console.error('[MSG91] Verify failed:', err); reject(err); }
                 );
             });
-
-            // Extract JWT access token from MSG91 response
             const accessToken = data?.message || data?.access_token || (typeof data === 'string' ? data : JSON.stringify(data));
-
-            // Send to backend for verification and login
-            const response = await authApi.verifyEmailOtp(accessToken, name || '');
+            const cleanMobile = mobile ? mobile.replace(/\D/g, '').slice(-10) : '';
+            const response = await authApi.verifyEmailOtp(accessToken, name?.trim() || '', cleanMobile || undefined);
             await checkAuth();
             playChime();
             addToast(`Welcome${response.data?.user?.name ? ', ' + response.data.user.name : ''}!`, 'success', 'Login Successful');
         } catch (err) {
-            console.error('[AuthPage] verify error:', err);
             setError(err?.response?.data?.error || err?.message || 'Verification failed. Please try again.');
             setStep('otp');
         } finally {
             setLoading(false);
         }
-    }, [otpCode, name, checkAuth, playChime, addToast]);
+    }, [otpCode, name, mobile, checkAuth, playChime, addToast]);
 
     const resetFields = () => {
-        setEmail(''); setName(''); setOtpCode('');
+        setEmail(''); setName(''); setMobile(''); setOtpCode('');
         setError(''); setSuccess(''); setStep('email');
     };
 
@@ -242,14 +235,13 @@ export default function AuthPage() {
             <div className="relative min-h-screen bg-slate-50 text-slate-900 transition-colors duration-300 dark:bg-[#07080c] dark:text-slate-100">
                 <div className="pointer-events-none absolute inset-0 landing-gradient-mesh opacity-80 dark:opacity-100" aria-hidden />
                 <div className="pointer-events-none absolute inset-0 landing-grid-bg opacity-25 dark:opacity-35" aria-hidden />
-
                 <button type="button" onClick={toggleTheme} aria-label="Toggle theme"
                     className="fixed right-4 top-4 z-50 inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200/80 bg-white/80 text-slate-700 shadow-sm backdrop-blur-md transition-all hover:border-primary/40 hover:text-primary dark:border-white/10 dark:bg-white/10 dark:text-slate-200">
                     <span className="material-symbols-outlined text-[22px]">{isDark ? 'light_mode' : 'dark_mode'}</span>
                 </button>
 
                 <div className="relative z-10 mx-auto flex min-h-screen max-w-6xl flex-col px-4 py-8 sm:px-6 lg:flex-row lg:items-stretch lg:gap-10 lg:px-10 lg:py-12">
-                    {/* Left: branding */}
+                    {/* Left branding */}
                     <aside className="mb-8 flex flex-col justify-center lg:mb-0 lg:w-[42%] lg:max-w-xl lg:py-4">
                         <div className="rounded-2xl border border-slate-200/70 bg-white/60 p-6 shadow-xl shadow-slate-900/5 backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.06] dark:shadow-black/40 sm:p-8">
                             <div className="flex items-center gap-3">
@@ -285,7 +277,7 @@ export default function AuthPage() {
                         </div>
                     </aside>
 
-                    {/* Right: auth card */}
+                    {/* Right auth card */}
                     <main className="flex flex-1 flex-col justify-center lg:min-w-0 lg:py-4">
                         <div className="rounded-2xl border border-slate-200/80 bg-white/75 p-6 shadow-2xl shadow-slate-900/10 backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.06] dark:shadow-black/50 sm:p-8 lg:p-10">
 
@@ -318,25 +310,37 @@ export default function AuthPage() {
                             )}
 
                             <div key={`${screen}-${step}`} className="animate-fade-in transition-opacity duration-300 ease-out">
+                                {/* EMAIL STEP */}
                                 {step === 'email' && (
-                                    <form onSubmit={(e) => { e.preventDefault(); handleSendOtp(); }} className="space-y-5">
-                                        <div className="space-y-4">
-                                            {screen === 'register' && (
-                                                <div className="relative group">
-                                                    <i className="absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-primary dark:text-slate-500"><UserIcon /></i>
-                                                    <input type="text" autoComplete="name" placeholder="Full name" value={name} onChange={(e) => setName(e.target.value)} className={inputBase} />
-                                                </div>
-                                            )}
+                                    <form onSubmit={(e) => { e.preventDefault(); handleSendOtp(); }} className="space-y-4">
+                                        {/* Name — register only */}
+                                        {screen === 'register' && (
                                             <div className="relative group">
-                                                <i className="absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-primary dark:text-slate-500"><MailIcon /></i>
-                                                <input type="email" autoComplete="email" placeholder="Email address" value={email} onChange={(e) => setEmail(e.target.value)} className={inputBase} />
+                                                <i className="absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-primary dark:text-slate-500"><UserIcon /></i>
+                                                <input type="text" autoComplete="name" placeholder="Full name *" value={name} onChange={(e) => setName(e.target.value)} className={inputBase} />
                                             </div>
+                                        )}
+
+                                        {/* Email */}
+                                        <div className="relative group">
+                                            <i className="absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-primary dark:text-slate-500"><MailIcon /></i>
+                                            <input type="email" autoComplete="email" placeholder="Email address *" value={email} onChange={(e) => setEmail(e.target.value)} className={inputBase} />
                                         </div>
-                                        <button disabled={loading || !widgetReady} type="submit" className={buttonBase}>
+
+                                        {/* Mobile — always shown, required for register, optional for login */}
+                                        <div className="relative group">
+                                            <i className="absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-primary dark:text-slate-500"><PhoneIcon /></i>
+                                            <input type="tel" autoComplete="tel" inputMode="numeric" maxLength={10}
+                                                placeholder={screen === 'register' ? 'Mobile number * (10 digits)' : 'Mobile number (optional)'}
+                                                value={mobile} onChange={(e) => setMobile(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                                                className={inputBase} />
+                                        </div>
+
+                                        <button disabled={loading || !widgetReady} type="submit" className={`${buttonBase} mt-2`}>
                                             {loading ? (
                                                 <span className="flex items-center gap-2">
                                                     <span className="material-symbols-outlined animate-spin text-xl">progress_activity</span>
-                                                    Sending OTP…
+                                                    {loading && !widgetReady ? 'Loading...' : 'Sending OTP…'}
                                                 </span>
                                             ) : !widgetReady ? (
                                                 <span className="flex items-center gap-2">
@@ -351,8 +355,9 @@ export default function AuthPage() {
                                     </form>
                                 )}
 
+                                {/* OTP STEP */}
                                 {step === 'otp' && (
-                                    <form onSubmit={(e) => { e.preventDefault(); handleVerifyOtp(); }} className="space-y-6">
+                                    <form onSubmit={(e) => { e.preventDefault(); handleVerifyOtp(); }} className="space-y-5">
                                         <div className="relative group">
                                             <i className="absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-primary dark:text-slate-500"><KeyIcon /></i>
                                             <input type="text" inputMode="numeric" autoComplete="one-time-code" maxLength={6} placeholder="Enter 6-digit OTP"
@@ -365,7 +370,7 @@ export default function AuthPage() {
                                                     <span className="material-symbols-outlined animate-spin text-xl">progress_activity</span>
                                                     Verifying…
                                                 </span>
-                                            ) : (<>Verify & Login <ArrowRightIcon /></>)}
+                                            ) : (<>Verify &amp; Login <ArrowRightIcon /></>)}
                                         </button>
                                         <div className="flex flex-col items-center gap-3">
                                             <button type="button" onClick={() => handleSendOtp()} disabled={loading} className={buttonSecondary}>Resend OTP</button>
@@ -377,6 +382,7 @@ export default function AuthPage() {
                                     </form>
                                 )}
 
+                                {/* VERIFYING STEP */}
                                 {step === 'verifying' && (
                                     <div className="flex flex-col items-center gap-4 py-8">
                                         <span className="material-symbols-outlined animate-spin text-4xl text-primary">progress_activity</span>
