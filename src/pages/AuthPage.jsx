@@ -477,7 +477,7 @@ export default function AuthPage() {
                                     <div className="relative group">
                                         <i className="absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-primary dark:text-slate-500"><KeyIcon /></i>
                                         <input type="password" inputMode="numeric" autoComplete="current-password"
-                                            placeholder="6-digit PIN *" maxLength={4}
+                                            placeholder="6-digit PIN *" maxLength={6}
                                             value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
                                             className={`${inputBase} tracking-widest`} />
                                     </div>
@@ -560,11 +560,11 @@ export default function AuthPage() {
                             {screen === 'pin-setup' && (
                                 <form onSubmit={handleSetupPin} className="space-y-4">
                                     <input type="password" inputMode="numeric" autoComplete="new-password"
-                                        placeholder="Choose 6-digit PIN *" maxLength={4}
+                                        placeholder="Choose 6-digit PIN *" maxLength={6}
                                         value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
                                         className={`${inputNoIcon} tracking-widest`} autoFocus />
                                     <input type="password" inputMode="numeric" autoComplete="new-password"
-                                        placeholder="Confirm PIN *" maxLength={4}
+                                        placeholder="Confirm PIN *" maxLength={6}
                                         value={confirmPin} onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
                                         className={`${inputNoIcon} tracking-widest`} />
                                     <button type="submit" disabled={loading} className={`${buttonBase} mt-2`}>
@@ -632,11 +632,11 @@ export default function AuthPage() {
                             {screen === 'pin-reset' && (
                                 <form onSubmit={handleResetPin} className="space-y-4">
                                     <input type="password" inputMode="numeric" autoComplete="new-password"
-                                        placeholder="New 6-digit PIN *" maxLength={4}
+                                        placeholder="New 6-digit PIN *" maxLength={6}
                                         value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
                                         className={`${inputNoIcon} tracking-widest`} autoFocus />
                                     <input type="password" inputMode="numeric" autoComplete="new-password"
-                                        placeholder="Confirm new PIN *" maxLength={4}
+                                        placeholder="Confirm new PIN *" maxLength={6}
                                         value={confirmPin} onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
                                         className={`${inputNoIcon} tracking-widest`} />
                                     <button type="submit" disabled={loading} className={`${buttonBase} mt-2`}>
