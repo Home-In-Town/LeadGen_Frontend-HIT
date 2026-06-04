@@ -286,7 +286,7 @@ export default function AuthPage() {
             }
             console.log('[AuthPage] Access token extracted, length:', accessToken.length);
             const cleanMobile = mobile ? mobile.replace(/\D/g, '').slice(-10) : '';
-            const res = await authApi.verifyEmailOtp(accessToken, name.trim(), cleanMobile || undefined);
+            const res = await authApi.verifyEmailOtp(accessToken, name.trim(), cleanMobile || undefined, email.toLowerCase().trim());
             setTempToken(res.data.tempToken);
             setSuccess('');
             goTo('pin-setup');
@@ -343,7 +343,7 @@ export default function AuthPage() {
         setLoading(true);
         try {
             const accessToken = await triggerVerifyOtp(otpCode);
-            const res = await authApi.verifyResetOtp(accessToken);
+            const res = await authApi.verifyResetOtp(accessToken, email.toLowerCase().trim());
             setTempToken(res.data.tempToken);
             setSuccess('');
             goTo('pin-reset');

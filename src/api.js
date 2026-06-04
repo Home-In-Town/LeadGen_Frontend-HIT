@@ -135,7 +135,7 @@ export const authApi = {
     forgotMpin: (phone) => _authAxios.post('/forgot-mpin', { phone }),
     resetMpin: (phone, code, newMpin) => _authAxios.post('/reset-mpin', { phone, code, newMpin }),
     checkEmail: (email) => _authAxios.post('/check-email', { email }),
-    verifyEmailOtp: (accessToken, name, mobile) => _authAxios.post('/verify-email-otp', { accessToken, name, mobile }),
+    verifyEmailOtp: (accessToken, name, mobile, email) => _authAxios.post('/verify-email-otp', { accessToken, name, mobile, email }),
     sendEmailOtp: (email) => _authAxios.post('/send-email-otp', { email }),
     verifyEmailOtpCode: (email, otp, reqId, name) => _authAxios.post('/verify-email-otp-code', { email, otp, reqId, name }),
     getSession: () => _authAxios.get('/session'),
@@ -144,6 +144,6 @@ export const authApi = {
     setupPin: (tempToken, pin, name, mobile) => _authAxios.post('/setup-pin', { tempToken, pin, name, mobile }),
     loginWithPin: (email, pin) => _authAxios.post('/login-pin', { email, pin }),
     forgotPin: (email) => _authAxios.post('/forgot-pin', { email }),
-    verifyResetOtp: (accessToken) => _authAxios.post('/verify-reset-otp', { accessToken }),
+    verifyResetOtp: (accessToken, email) => _authAxios.post('/verify-reset-otp', { accessToken, email }),
     resetPin: (tempToken, newPin) => _authAxios.post('/reset-pin', { tempToken, newPin }),
 };
