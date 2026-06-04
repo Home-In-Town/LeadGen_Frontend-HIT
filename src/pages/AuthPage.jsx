@@ -231,7 +231,7 @@ export default function AuthPage() {
         e.preventDefault();
         clearMsg();
         if (!email || !isValidEmail(email)) { setError('Please enter a valid email address.'); return; }
-        if (!pin || pin.length !== 6 || !/^\d{6}$/.test(pin)) { setError('PIN must be exactly 6 digits.'); return; }
+        if (!pin || !/^\d{6}$/.test(pin)) { setError('PIN must be exactly 6 digits.'); return; }
         setLoading(true);
         try {
             const res = await authApi.loginWithPin(email.toLowerCase().trim(), pin);
@@ -280,7 +280,6 @@ export default function AuthPage() {
         try {
             const accessToken = await triggerVerifyOtp(otpCode);
             if (!accessToken) {
-                setError('Could not get verification token. Please resend OTP and try again.');
                 setLoading(false);
                 return;
             }
