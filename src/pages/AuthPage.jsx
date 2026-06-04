@@ -47,8 +47,18 @@ const KeyIcon = () => (
 // ── Helpers ─────────────────────────────────────────────────────────────────
 const isValidEmail = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
 const isValidMobile = (m) => /^[6-9]\d{9}$/.test(m.replace(/\D/g, ''));
-const extractAccessToken = (data) =>
-    data?.message || data?.access_token || (typeof data === 'string' ? data : JSON.stringify(data));
+const extractAccessToken = (data) => {
+    // MSG91 verifyOtp success callback returns: { message: 'jwt_token_here', ... }
+    // The JWT access token is in data.message
+    if (data && typeof data === 'object') {
+        if (typeof data.message === 'string' && data.message.length > 10) return data.message;
+        if (typeof data.access_token === 'string') return data.access_token;
+        if (typeof data.token === 'string') return data.token;
+        if (typeof data.data === 'string') return data.data;
+    }
+    if (typeof data === 'string' && data.length > 10) return data;
+    return null;
+};
 
 export default function AuthPage() {
     // screen drives which form is rendered
@@ -170,10 +180,27 @@ export default function AuthPage() {
             reject(new Error('Authentication service not ready. Please refresh.'));
             return;
         }
+        let settled = false;
         window.verifyOtp(
             code,
-            (data) => { console.log('[MSG91] OTP verified:', data); resolve(extractAccessToken(data)); },
-            (err) => { console.error('[MSG91] Verify failed:', err); reject(err); }
+            (data) => {
+                if (settled) return;
+                settled = true;
+                console.log('[MSG91] OTP verified (success callback):', data);
+                const token = extractAccessToken(data);
+                if (token) {
+                    resolve(token);
+                } else {
+                    console.error('[MSG91] No access token in success data:', data);
+                    reject(new Error('Verification succeeded but no access token received. Please try again.'));
+                }
+            },
+            (err) => {
+                if (settled) return; // Ignore if already resolved via success callback
+                settled = true;
+                console.error('[MSG91] Verify failed:', err);
+                reject(new Error(err?.message || 'Invalid OTP. Please try again.'));
+            }
         );
     });
 
@@ -252,6 +279,12 @@ export default function AuthPage() {
         setLoading(true);
         try {
             const accessToken = await triggerVerifyOtp(otpCode);
+            if (!accessToken) {
+                setError('Could not get verification token. Please resend OTP and try again.');
+                setLoading(false);
+                return;
+            }
+            console.log('[AuthPage] Access token extracted, length:', accessToken.length);
             const cleanMobile = mobile ? mobile.replace(/\D/g, '').slice(-10) : '';
             const res = await authApi.verifyEmailOtp(accessToken, name.trim(), cleanMobile || undefined);
             setTempToken(res.data.tempToken);
@@ -444,7 +477,7 @@ export default function AuthPage() {
                                     <div className="relative group">
                                         <i className="absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-primary dark:text-slate-500"><KeyIcon /></i>
                                         <input type="password" inputMode="numeric" autoComplete="current-password"
-                                            placeholder="6-digit PIN *" maxLength={6}
+                                            placeholder="6-digit PIN *" maxLength={4}
                                             value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
                                             className={`${inputBase} tracking-widest`} />
                                     </div>
@@ -502,8 +535,8 @@ export default function AuthPage() {
                                 <form onSubmit={handleRegisterVerifyOtp} className="space-y-5">
                                     <div className="relative group">
                                         <i className="absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-primary dark:text-slate-500"><KeyIcon /></i>
-                                        <input type="text" inputMode="numeric" autoComplete="one-time-code" maxLength={6}
-                                            placeholder="Enter 6-digit OTP"
+                                        <input type="text" inputMode="numeric" autoComplete="one-time-code" maxLength={4}
+                                            placeholder="Enter 4-digit OTP"
                                             value={otpCode} onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
                                             className={`${inputBase} font-mono text-lg tracking-[0.2em] text-center`} autoFocus />
                                     </div>
@@ -527,11 +560,11 @@ export default function AuthPage() {
                             {screen === 'pin-setup' && (
                                 <form onSubmit={handleSetupPin} className="space-y-4">
                                     <input type="password" inputMode="numeric" autoComplete="new-password"
-                                        placeholder="Choose 6-digit PIN *" maxLength={6}
+                                        placeholder="Choose 6-digit PIN *" maxLength={4}
                                         value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
                                         className={`${inputNoIcon} tracking-widest`} autoFocus />
                                     <input type="password" inputMode="numeric" autoComplete="new-password"
-                                        placeholder="Confirm PIN *" maxLength={6}
+                                        placeholder="Confirm PIN *" maxLength={4}
                                         value={confirmPin} onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
                                         className={`${inputNoIcon} tracking-widest`} />
                                     <button type="submit" disabled={loading} className={`${buttonBase} mt-2`}>
@@ -574,8 +607,8 @@ export default function AuthPage() {
                                 <form onSubmit={handleResetVerifyOtp} className="space-y-5">
                                     <div className="relative group">
                                         <i className="absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-primary dark:text-slate-500"><KeyIcon /></i>
-                                        <input type="text" inputMode="numeric" autoComplete="one-time-code" maxLength={6}
-                                            placeholder="Enter 6-digit OTP"
+                                        <input type="text" inputMode="numeric" autoComplete="one-time-code" maxLength={4}
+                                            placeholder="Enter 4-digit OTP"
                                             value={otpCode} onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
                                             className={`${inputBase} font-mono text-lg tracking-[0.2em] text-center`} autoFocus />
                                     </div>
@@ -599,11 +632,11 @@ export default function AuthPage() {
                             {screen === 'pin-reset' && (
                                 <form onSubmit={handleResetPin} className="space-y-4">
                                     <input type="password" inputMode="numeric" autoComplete="new-password"
-                                        placeholder="New 6-digit PIN *" maxLength={6}
+                                        placeholder="New 6-digit PIN *" maxLength={4}
                                         value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
                                         className={`${inputNoIcon} tracking-widest`} autoFocus />
                                     <input type="password" inputMode="numeric" autoComplete="new-password"
-                                        placeholder="Confirm new PIN *" maxLength={6}
+                                        placeholder="Confirm new PIN *" maxLength={4}
                                         value={confirmPin} onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
                                         className={`${inputNoIcon} tracking-widest`} />
                                     <button type="submit" disabled={loading} className={`${buttonBase} mt-2`}>
