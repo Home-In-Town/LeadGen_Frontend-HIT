@@ -256,7 +256,8 @@ export default function AuthPage() {
         clearMsg();
         if (!name.trim()) { setError('Full name is required.'); return; }
         if (!email || !isValidEmail(email)) { setError('Please enter a valid email address.'); return; }
-        if (!mobile || !isValidMobile(mobile)) { setError('Please enter a valid 10-digit mobile number.'); return; }
+        // Mobile is optional — validate format only if provided
+        if (mobile && !isValidMobile(mobile)) { setError('Please enter a valid 10-digit mobile number (or leave it blank).'); return; }
 
         setLoading(true);
         try {
@@ -535,7 +536,7 @@ export default function AuthPage() {
                                     <div className="relative group">
                                         <i className="absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-primary dark:text-slate-500"><PhoneIcon /></i>
                                         <input type="tel" autoComplete="tel" inputMode="numeric" maxLength={10}
-                                            placeholder="Mobile number * (10 digits)"
+                                            placeholder="Mobile number (optional)"
                                             value={mobile} onChange={(e) => setMobile(e.target.value.replace(/\D/g, '').slice(0, 10))}
                                             className={inputBase} />
                                     </div>
