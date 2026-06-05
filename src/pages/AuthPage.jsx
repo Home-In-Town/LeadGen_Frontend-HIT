@@ -296,7 +296,15 @@ export default function AuthPage() {
             setSuccess('');
             goTo('pin-setup');
         } catch (err) {
-            setError(err?.response?.data?.error || err?.message || 'Verification failed. Please try again.');
+            const serverError = err?.response?.data?.error || err?.message || 'Verification failed. Please try again.';
+            const status = err?.response?.status;
+            // 409 = account already exists — redirect to login with a clear message
+            if (status === 409) {
+                setError('An account with this email already exists. Please login instead.');
+                setTimeout(() => { resetAll(); setEmail(email); setScreen('login'); }, 2000);
+            } else {
+                setError(serverError);
+            }
         } finally {
             setLoading(false);
         }
