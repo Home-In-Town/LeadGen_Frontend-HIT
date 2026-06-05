@@ -476,7 +476,6 @@ export default function AuthPage() {
                             {screen === 'login' && (
                                 <form onSubmit={handleLogin} className="space-y-4">
                                     <div className="relative group">
-<<<<<<< HEAD
                                         <i className="absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-primary dark:text-slate-500">
                                             {identifierIsPhone(email) ? <PhoneIcon /> : <MailIcon />}
                                         </i>
@@ -490,12 +489,6 @@ export default function AuthPage() {
                                             className={inputBase}
                                             autoFocus
                                         />
-=======
-                                        <i className="absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-primary dark:text-slate-500"><MailIcon /></i>
-                                        <input type="email" autoComplete="email" placeholder="Email address or Mobile Number*"
-                                            value={email} onChange={(e) => setEmail(e.target.value)}
-                                            className={inputBase} autoFocus />
->>>>>>> f6c3d55 (Improve landing page messaging and branding)
                                     </div>
                                     <div className="relative group">
                                         <i className="absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-primary dark:text-slate-500"><KeyIcon /></i>
