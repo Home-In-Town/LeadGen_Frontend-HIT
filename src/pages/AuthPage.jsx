@@ -250,7 +250,7 @@ export default function AuthPage() {
         }
     };
 
-    /** REGISTER screen: validate → checkEmail → sendOtp → go to register-otp */
+    /** REGISTER screen: validate → checkEmail+mobile → sendOtp → go to register-otp */
     const handleRegisterSendOtp = async (e) => {
         e.preventDefault();
         clearMsg();
@@ -261,12 +261,20 @@ export default function AuthPage() {
 
         setLoading(true);
         try {
-            const checkRes = await authApi.checkEmail(email.toLowerCase().trim());
+            // Check both email AND mobile before sending OTP — no partial registrations
+            const cleanMobile = mobile ? mobile.replace(/\D/g, '').slice(-10) : undefined;
+            const checkRes = await authApi.checkEmail(email.toLowerCase().trim(), cleanMobile);
+
             if (checkRes.data?.exists && checkRes.data?.hasMpin) {
-                setError('An account with this email already exists. Please login instead.');
+                const byMobile = checkRes.data?.existsBy === 'mobile';
+                setError(byMobile
+                    ? 'This mobile number is already registered. Please login instead.'
+                    : 'An account with this email already exists. Please login instead.'
+                );
                 setLoading(false);
                 return;
             }
+
             await triggerSendOtp(email.toLowerCase().trim());
             setSuccess(`Verification code sent to ${email}`);
             goTo('register-otp');
