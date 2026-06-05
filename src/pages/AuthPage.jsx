@@ -250,26 +250,23 @@ export default function AuthPage() {
         }
     };
 
-    /** REGISTER screen: validate → checkEmail (with mobile) → sendOtp → go to register-otp */
+    /** REGISTER screen: validate → checkEmail → sendOtp → go to register-otp */
     const handleRegisterSendOtp = async (e) => {
         e.preventDefault();
         clearMsg();
         if (!name.trim()) { setError('Full name is required.'); return; }
         if (!email || !isValidEmail(email)) { setError('Please enter a valid email address.'); return; }
-        // Mobile is optional — validate format only if provided
-        if (mobile && !isValidMobile(mobile)) { setError('Please enter a valid 10-digit mobile number (or leave it blank).'); return; }
+        // Mobile is optional — only validate format if provided
+        if (mobile && !isValidMobile(mobile)) { setError('Please enter a valid 10-digit mobile number.'); return; }
 
         setLoading(true);
         try {
-            // Pre-OTP check: validate email exists + mobile conflict BEFORE sending OTP
-            const cleanMobile = mobile ? mobile.replace(/\D/g, '').slice(-10) : undefined;
-            const checkRes = await authApi.checkEmail(email.toLowerCase().trim(), cleanMobile);
+            const checkRes = await authApi.checkEmail(email.toLowerCase().trim());
             if (checkRes.data?.exists && checkRes.data?.hasMpin) {
                 setError('An account with this email already exists. Please login instead.');
                 setLoading(false);
                 return;
             }
-            // mobile conflict is returned as 409 — caught in catch block below
             await triggerSendOtp(email.toLowerCase().trim());
             setSuccess(`Verification code sent to ${email}`);
             goTo('register-otp');
@@ -406,16 +403,14 @@ export default function AuthPage() {
                     <aside className="mb-8 flex flex-col justify-center lg:mb-0 lg:w-[42%] lg:max-w-xl lg:py-4">
                         <div className="rounded-2xl border border-slate-200/70 bg-white/60 p-6 shadow-xl shadow-slate-900/5 backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.06] dark:shadow-black/40 sm:p-8">
                             <div className="flex items-center gap-3">
-                                <span className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-gradient-to-br from-primary to-emerald-600 text-white shadow-lg shadow-primary/25">
-                                    <span className="material-symbols-outlined text-[20px]">hub</span>
-                                </span>
+                                <img src="/vite.svg" alt="OneEmployee Logo" className="h-10 w-10 object-contain" />
                                 <div>
                                     <p className="text-lg font-bold tracking-tight text-slate-900 dark:text-white">OneEmployee<span className="text-primary">®</span></p>
                                     <p className="text-xs font-medium text-slate-500 dark:text-slate-400">AI-powered CRM · Lead automation</p>
                                 </div>
                             </div>
                             <p className="mt-6 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
-                                Run voice, WhatsApp, and ads-led workflows from one premium workspace-built for teams who live in real-time pipeline.
+                                Run voice, WhatsApp, and ads-led workflows from one premium workspace—built for teams who live in real-time pipeline.
                             </p>
                             <ul className="mt-6 space-y-3">
                                 {highlights.map((h) => (
