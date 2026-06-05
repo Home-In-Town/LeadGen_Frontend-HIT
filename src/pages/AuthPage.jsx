@@ -47,6 +47,8 @@ const KeyIcon = () => (
 // ── Helpers ─────────────────────────────────────────────────────────────────
 const isValidEmail = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
 const isValidMobile = (m) => /^[6-9]\d{9}$/.test(m.replace(/\D/g, ''));
+const isValidIdentifier = (v) => isValidEmail(v) || isValidMobile(v);
+const identifierIsPhone = (v) => /^\d{10}$/.test(v.replace(/\D/g, '')) && /^[6-9]/.test(v.replace(/\D/g, ''));
 const extractAccessToken = (data) => {
     // MSG91 verifyOtp success callback returns: { message: 'jwt_token_here', ... }
     // The JWT access token is in data.message
@@ -217,7 +219,7 @@ export default function AuthPage() {
         'register':     { title: 'Create account',           subtitle: 'Start automating leads in minutes.' },
         'register-otp': { title: 'Enter verification code',  subtitle: `We sent a code to ${email}` },
         'pin-setup':    { title: 'Set your 6-digit PIN',     subtitle: 'You\'ll use this PIN to log in every time.' },
-        'forgot-pin':   { title: 'Reset your PIN',           subtitle: 'Enter your email and we\'ll send a verification code.' },
+        'forgot-pin':   { title: 'Reset your PIN',           subtitle: 'Enter your email or mobile number to receive a reset code.' },
         'reset-otp':    { title: 'Enter verification code',  subtitle: `We sent a reset code to ${email}` },
         'pin-reset':    { title: 'Set new PIN',              subtitle: 'Choose a new 6-digit PIN for your account.' },
     };
@@ -226,20 +228,23 @@ export default function AuthPage() {
 
     // ── Handlers ──────────────────────────────────────────────────────────────
 
-    /** LOGIN screen: Email + PIN → loginWithPin */
+    /** LOGIN screen: Email or Phone + PIN → loginWithPin */
     const handleLogin = async (e) => {
         e.preventDefault();
         clearMsg();
-        if (!email || !isValidEmail(email)) { setError('Please enter a valid email address.'); return; }
+        if (!email || !isValidIdentifier(email.trim())) {
+            setError('Please enter a valid email address or 10-digit mobile number.');
+            return;
+        }
         if (!pin || !/^\d{6}$/.test(pin)) { setError('PIN must be exactly 6 digits.'); return; }
         setLoading(true);
         try {
-            const res = await authApi.loginWithPin(email.toLowerCase().trim(), pin);
+            const res = await authApi.loginWithPin(email.trim(), pin);
             await checkAuth();
             playChime();
             addToast(`Welcome back${res.data?.user?.name ? ', ' + res.data.user.name : ''}!`, 'success', 'Login Successful');
         } catch (err) {
-            setError(err?.response?.data?.error || 'Invalid email or PIN. Please try again.');
+            setError(err?.response?.data?.error || 'Invalid credentials. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -468,10 +473,19 @@ export default function AuthPage() {
                             {screen === 'login' && (
                                 <form onSubmit={handleLogin} className="space-y-4">
                                     <div className="relative group">
-                                        <i className="absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-primary dark:text-slate-500"><MailIcon /></i>
-                                        <input type="email" autoComplete="email" placeholder="Email address *"
-                                            value={email} onChange={(e) => setEmail(e.target.value)}
-                                            className={inputBase} autoFocus />
+                                        <i className="absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-primary dark:text-slate-500">
+                                            {identifierIsPhone(email) ? <PhoneIcon /> : <MailIcon />}
+                                        </i>
+                                        <input
+                                            type="text"
+                                            autoComplete="username"
+                                            inputMode={identifierIsPhone(email) ? 'numeric' : 'email'}
+                                            placeholder="Email or mobile number *"
+                                            value={email}
+                                            onChange={(e) => setEmail(e.target.value)}
+                                            className={inputBase}
+                                            autoFocus
+                                        />
                                     </div>
                                     <div className="relative group">
                                         <i className="absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-primary dark:text-slate-500"><KeyIcon /></i>
