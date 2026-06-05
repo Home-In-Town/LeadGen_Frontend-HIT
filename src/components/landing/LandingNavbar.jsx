@@ -20,11 +20,9 @@ const LandingNavbar = ({ theme, onThemeChange, onLogin }) => {
           to="/"
           className="flex items-center gap-3 font-semibold tracking-tight text-slate-900 transition-colors dark:text-white"
         >
-          <img
-            src="/vite.svg"
-            alt="OneEmployee Logo"
-            className="h-10 w-10 object-contain"
-          />
+          <span className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-gradient-to-br from-primary to-emerald-600 text-white shadow-lg shadow-primary/25">
+                    <span className="material-symbols-outlined text-[20px]">hub</span>
+                  </span>
 
           <span className="text-lg font-bold tracking-tight sm:text-xl">
             OneEmployee

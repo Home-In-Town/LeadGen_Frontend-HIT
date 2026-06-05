@@ -402,14 +402,16 @@ export default function AuthPage() {
                     <aside className="mb-8 flex flex-col justify-center lg:mb-0 lg:w-[42%] lg:max-w-xl lg:py-4">
                         <div className="rounded-2xl border border-slate-200/70 bg-white/60 p-6 shadow-xl shadow-slate-900/5 backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.06] dark:shadow-black/40 sm:p-8">
                             <div className="flex items-center gap-3">
-                                <img src="/vite.svg" alt="OneEmployee Logo" className="h-10 w-10 object-contain" />
+                                <span className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-gradient-to-br from-primary to-emerald-600 text-white shadow-lg shadow-primary/25">
+                                    <span className="material-symbols-outlined text-[20px]">hub</span>
+                                </span>
                                 <div>
                                     <p className="text-lg font-bold tracking-tight text-slate-900 dark:text-white">OneEmployee<span className="text-primary">®</span></p>
                                     <p className="text-xs font-medium text-slate-500 dark:text-slate-400">AI-powered CRM · Lead automation</p>
                                 </div>
                             </div>
                             <p className="mt-6 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
-                                Run voice, WhatsApp, and ads-led workflows from one premium workspace—built for teams who live in real-time pipeline.
+                                Run voice, WhatsApp, and ads-led workflows from one premium workspace-built for teams who live in real-time pipeline.
                             </p>
                             <ul className="mt-6 space-y-3">
                                 {highlights.map((h) => (
@@ -473,6 +475,7 @@ export default function AuthPage() {
                             {screen === 'login' && (
                                 <form onSubmit={handleLogin} className="space-y-4">
                                     <div className="relative group">
+<<<<<<< HEAD
                                         <i className="absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-primary dark:text-slate-500">
                                             {identifierIsPhone(email) ? <PhoneIcon /> : <MailIcon />}
                                         </i>
@@ -486,6 +489,12 @@ export default function AuthPage() {
                                             className={inputBase}
                                             autoFocus
                                         />
+=======
+                                        <i className="absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-primary dark:text-slate-500"><MailIcon /></i>
+                                        <input type="email" autoComplete="email" placeholder="Email address or Mobile Number*"
+                                            value={email} onChange={(e) => setEmail(e.target.value)}
+                                            className={inputBase} autoFocus />
+>>>>>>> f6c3d55 (Improve landing page messaging and branding)
                                     </div>
                                     <div className="relative group">
                                         <i className="absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-primary dark:text-slate-500"><KeyIcon /></i>

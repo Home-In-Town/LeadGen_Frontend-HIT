@@ -96,19 +96,19 @@ const integrations = [
 const workflowSteps = [
   {
     step: '01',
-    title: 'Capture',
+    title: 'Capture Leads',
     body: 'Ads, forms, and inbound WhatsApp flow into one deduplicated record.',
     icon: 'filter_alt',
   },
   {
     step: '02',
-    title: 'Qualify',
+    title: 'Engage Customers',
     body: 'AI voice and chat qualify intent while rules route by territory or SLA.',
     icon: 'psychology',
   },
   {
     step: '03',
-    title: 'Activate',
+    title: 'Grow Revenue',
     body: 'Triggers notify owners, update stages, and launch the next best action.',
     icon: 'rocket_launch',
   },
@@ -176,20 +176,18 @@ const LandingPage = () => {
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary/60 opacity-75" />
                   <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
                 </span>
-                AI-powered CRM · Lead automation · Omnichannel
+                AI Employees • Sales Automation • Customer Engagement
               </div>
 
               <div className="mt-8 max-w-3xl">
                 <h1 className="normal-case text-4xl font-semibold leading-[1.08] tracking-tight text-slate-900 sm:text-5xl lg:text-6xl dark:text-white">
-                  The operating system for{' '}
                   <span className="bg-gradient-to-r from-primary via-emerald-400 to-sky-400 bg-clip-text text-transparent animate-gradient-shift">
-                    revenue teams
+                    OneEmployee:
                   </span>{' '}
-                  who live in WhatsApp, voice, and ads.
+                  The Revenue Workforce for Modern Businesses.
                 </h1>
                 <p className="mt-6 max-w-2xl text-base leading-relaxed text-slate-600 sm:text-lg dark:text-slate-400">
-                  OneEmployee unifies lead capture, AI voice outreach, WhatsApp automation, and real-time CRM-so every
-                  rupee of ad spend turns into pipeline you can trust.
+                  OneEmployee helps businesses capture leads, engage customers, automate follow-ups, and grow revenue with AI-powered employees that work 24/7.
                 </p>
               </div>
 
@@ -199,14 +197,14 @@ const LandingPage = () => {
                   onClick={() => navigate('/login')}
                   className="inline-flex items-center justify-center rounded-[12px] bg-primary px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-primary/30 transition-all hover:bg-primary-hover hover:shadow-xl hover:shadow-primary/35"
                 >
-                  Start now
+                  Get Clients
                   <span className="material-symbols-outlined ml-2 text-[20px]">arrow_forward</span>
                 </button>
                 <a
                   href="#features"
                   className="inline-flex items-center justify-center rounded-[12px] border border-slate-200 bg-white/80 px-6 py-3.5 text-sm font-semibold text-slate-800 backdrop-blur-md transition-all hover:border-slate-300 hover:bg-white dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
                 >
-                  Explore platform
+                  See How It Works
                 </a>
               </div>
 
@@ -244,10 +242,10 @@ const LandingPage = () => {
               <div className="max-w-2xl">
                 <p className="text-sm font-semibold uppercase tracking-wider text-primary">Platform</p>
                 <h2 className="mt-2 normal-case text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl dark:text-white">
-                  Everything your CRM forgot about modern GTM
+                  Everything Your Business Needs to Convert More Customers
                 </h2>
                 <p className="mt-4 text-slate-600 dark:text-slate-400">
-                  Purpose-built blocks for teams who sell across ads, chat, and voice-without duct-taping spreadsheets.
+                  Manage leads, automate customer communication, track opportunities, and improve team productivity from one platform.
                 </p>
               </div>
 
@@ -278,7 +276,7 @@ const LandingPage = () => {
                     WhatsApp, voice, and paid media - wired in
                   </h2>
                   <p className="mt-4 text-slate-600 dark:text-slate-400">
-                    Meet buyers where they already are. Native connectors reduce latency and keep attribution honest.
+                    Bring your calls, WhatsApp, marketing campaigns, and customer data together in one connected system.
                   </p>
                 </div>
                 <button
@@ -318,10 +316,10 @@ const LandingPage = () => {
               <div className="max-w-2xl">
                 <p className="text-sm font-semibold uppercase tracking-wider text-primary">Automation</p>
                 <h2 className="mt-2 normal-case text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl dark:text-white">
-                  From click to conversation-without losing context
+                  From Lead to Customer in Three Simple Steps
                 </h2>
                 <p className="mt-4 text-slate-600 dark:text-slate-400">
-                  Orchestrate qualification across channels with guardrails your compliance team will actually approve.
+                  OneEmployee helps businesses capture opportunities, engage customers, and drive conversions automatically.
                 </p>
               </div>
 
@@ -360,11 +358,10 @@ const LandingPage = () => {
                 <div>
                   <p className="text-sm font-semibold uppercase tracking-wider text-primary">Analytics</p>
                   <h2 className="mt-2 normal-case text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl dark:text-white">
-                    Dashboards your exec team will actually open
+                    See What Drives Your Growth
                   </h2>
                   <p className="mt-4 text-slate-600 dark:text-slate-400">
-                    Live funnel health, channel mix, and SLA adherence-mirrored from the same real-time CRM your reps use
-                    in the field.
+                    Track customer engagement, sales performance, team productivity, and revenue opportunities in real time.
                   </p>
                   <ul className="mt-8 space-y-4 text-sm text-slate-700 dark:text-slate-300">
                     {[
@@ -435,7 +432,7 @@ const LandingPage = () => {
               <div className="max-w-2xl">
                 <p className="text-sm font-semibold uppercase tracking-wider text-primary">Customers</p>
                 <h2 className="mt-2 normal-case text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl dark:text-white">
-                  Trusted by teams who measure pipeline in real time
+                  Trusted by Businesses Focused on Growth
                 </h2>
               </div>
               <div className="mt-12 grid gap-6 lg:grid-cols-3">
@@ -470,11 +467,10 @@ const LandingPage = () => {
                 </div>
                 <div className="relative mx-auto max-w-2xl">
                   <h2 className="normal-case text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-                    Ready for a CRM that keeps pace with your campaigns?
+                    Ready to Build Your AI-Powered Revenue Workforce?
                   </h2>
                   <p className="mt-4 text-sm leading-relaxed text-slate-300 sm:text-base">
-                    Ship AI voice, WhatsApp automation, and real-time ops in one cohesive platform-without ripping out what
-                    already works.
+                    Capture more leads, engage customers faster, and grow revenue with AI employees that work around the clock.
                   </p>
                   <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
                     <button
@@ -507,8 +503,7 @@ const LandingPage = () => {
                   OneEmployee<span className="text-primary">®</span>
                 </div>
                 <p className="mt-4 max-w-sm text-sm text-slate-600 dark:text-slate-400">
-                  Enterprise-grade lead automation with WhatsApp, AI voice, and paid media integrations-built for teams who
-                  cannot afford blind spots.
+                  OneEmployee helps businesses automate customer engagement, streamline sales processes, and unlock new revenue opportunities with AI-powered workforce solutions.
                 </p>
               </div>
               <div className="grid grid-cols-2 gap-10 sm:grid-cols-3">
