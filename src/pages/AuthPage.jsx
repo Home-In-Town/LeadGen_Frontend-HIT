@@ -250,7 +250,7 @@ export default function AuthPage() {
         }
     };
 
-    /** REGISTER screen: validate → checkEmail → sendOtp → go to register-otp */
+    /** REGISTER screen: validate → checkEmail (with mobile) → sendOtp → go to register-otp */
     const handleRegisterSendOtp = async (e) => {
         e.preventDefault();
         clearMsg();
@@ -261,12 +261,15 @@ export default function AuthPage() {
 
         setLoading(true);
         try {
-            const checkRes = await authApi.checkEmail(email.toLowerCase().trim());
+            // Pre-OTP check: validate email exists + mobile conflict BEFORE sending OTP
+            const cleanMobile = mobile ? mobile.replace(/\D/g, '').slice(-10) : undefined;
+            const checkRes = await authApi.checkEmail(email.toLowerCase().trim(), cleanMobile);
             if (checkRes.data?.exists && checkRes.data?.hasMpin) {
                 setError('An account with this email already exists. Please login instead.');
                 setLoading(false);
                 return;
             }
+            // mobile conflict is returned as 409 — caught in catch block below
             await triggerSendOtp(email.toLowerCase().trim());
             setSuccess(`Verification code sent to ${email}`);
             goTo('register-otp');
