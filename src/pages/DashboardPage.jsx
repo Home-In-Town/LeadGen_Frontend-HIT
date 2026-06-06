@@ -391,74 +391,15 @@ const DashboardPage = () => {
           </div>
         </div>
 
-        {/* KPI Section */}
-        <section
-          aria-label="KPI overview"
-          className="mx-auto max-w-7xl mb-6 sm:mb-10 px-3 sm:px-0"
-        >
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-            <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary">
-                monitoring
-              </span>
-
-              <h2 className="text-[10px] sm:text-[11px] font-black uppercase tracking-[0.4em] text-slate-700/60 dark:text-slate-300/60 whitespace-nowrap">
-                Key metrics
-              </h2>
-            </div>
-          </div>
-
-          {isUsersLoading ? (
-            <KPISectionSkeleton />
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-              <KPIStatCard
-                title="Total Users"
-                value={users.length}
-                subtitle="Real-time roster"
-                icon="groups"
-                accent
-                onClick={() => navigate('/users')}
-              />
-
-              <KPIStatCard
-                title="System Status"
-                value="Active"
-                subtitle="Operational"
-                icon="check_circle"
-                accent
-              />
-
-              <KPIStatCard
-                title="Integrations"
-                value="2"
-                subtitle="Connected sources"
-                icon="integration_instructions"
-                accent
-                onClick={() => setIsIntegrationModalOpen(true)}
-              />
-
-              <KPIStatCard
-                title="Automation Health"
-                value={
-                  <>
-                    99.2
-                    <span className="text-[13px] font-black text-primary align-top">
-                      %
-                    </span>
-                  </>
-                }
-                subtitle="Smart rules stable"
-                icon="verified"
-                accent
-              />
-            </div>
-          )}
-        </section>
+        
 
         {/* Tools & Settings */}
         <section className="mx-auto max-w-7xl mb-10 sm:mb-12 px-3 sm:px-0">
-          <SectionHeading title="Tools & Settings" />
+          <SectionHeading title="Tools & Settings" icon={
+            <span className="material-symbols-outlined text-primary">
+              settings
+            </span>
+          } />
 
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6">
 
@@ -761,6 +702,71 @@ const DashboardPage = () => {
             onAddUser={() => navigate('/add-user')}
           />
         )}
+
+        {/* KPI Section */}
+        <section
+          aria-label="KPI overview"
+          className="mx-auto max-w-7xl mb-6 sm:mb-10 px-3 sm:px-0"
+        >
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary">
+                monitoring
+              </span>
+
+              <h2 className="text-[10px] sm:text-[11px] font-black uppercase tracking-[0.4em] text-slate-700/60 dark:text-slate-300/60 whitespace-nowrap">
+                Key metrics
+              </h2>
+            </div>
+          </div>
+
+          {isUsersLoading ? (
+            <KPISectionSkeleton />
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+              <KPIStatCard
+                title="Total Users"
+                value={users.length}
+                subtitle="Real-time roster"
+                icon="groups"
+                accent
+                onClick={() => navigate('/users')}
+              />
+
+              <KPIStatCard
+                title="System Status"
+                value="Active"
+                subtitle="Operational"
+                icon="check_circle"
+                accent
+              />
+
+              <KPIStatCard
+                title="Integrations"
+                value="2"
+                subtitle="Connected sources"
+                icon="integration_instructions"
+                accent
+                onClick={() => setIsIntegrationModalOpen(true)}
+              />
+
+              <KPIStatCard
+                title="Automation Health"
+                value={
+                  <>
+                    99.2
+                    <span className="text-[13px] font-black text-primary align-top">
+                      %
+                    </span>
+                  </>
+                }
+                subtitle="Smart rules stable"
+                icon="verified"
+                accent
+              />
+            </div>
+          )}
+        </section>
 
         {/* Modal */}
         <IntegrationSelectorModal

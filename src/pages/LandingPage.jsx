@@ -138,6 +138,8 @@ const testimonials = [
   },
 ];
 
+
+
 const LandingPage = () => {
   const navigate = useNavigate();
   const [theme, setTheme] = useState(getInitialTheme);
@@ -206,6 +208,50 @@ const LandingPage = () => {
                 >
                   See How It Works
                 </a>
+              </div>
+
+
+              {/* AI Capabilities Marquee */}
+              <div className="relative mt-12 overflow-hidden rounded-3xl border border-primary/20 bg-gradient-to-r from-primary/10 via-emerald-500/10 to-sky-500/10 p-1 shadow-[0_0_40px_rgba(59,130,246,0.15)]">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(59,130,246,0.12),transparent_70%)]" />
+
+                <div className="relative overflow-hidden rounded-[22px] bg-white/80 py-5 backdrop-blur-xl dark:bg-slate-900/70">
+                  <div className="marquee-track flex items-center gap-5 whitespace-nowrap">
+                    {[
+                      { label: 'AI Calling', icon: 'call', color: 'text-emerald-500' },
+                      { label: 'AI WhatsApp', icon: 'forum', color: 'text-green-500' },
+                      { label: 'Lead Scoring', icon: 'leaderboard', color: 'text-amber-500' },
+                      { label: 'CRM', icon: 'groups', color: 'text-blue-500' },
+                      { label: 'Automation', icon: 'settings_suggest', color: 'text-purple-500' },
+                      { label: 'Analytics', icon: 'analytics', color: 'text-cyan-500' },
+                      { label: 'Transcripts', icon: 'description', color: 'text-orange-500' },
+                      { label: 'Appointment Booking', icon: 'event_available', color: 'text-pink-500' },
+
+                      // Duplicate for seamless infinite scroll
+                      { label: 'AI Calling', icon: 'call', color: 'text-emerald-500' },
+                      { label: 'AI WhatsApp', icon: 'forum', color: 'text-green-500' },
+                      { label: 'Lead Scoring', icon: 'leaderboard', color: 'text-amber-500' },
+                      { label: 'CRM', icon: 'groups', color: 'text-blue-500' },
+                      { label: 'Automation', icon: 'settings_suggest', color: 'text-purple-500' },
+                      { label: 'Analytics', icon: 'analytics', color: 'text-cyan-500' },
+                      { label: 'Transcripts', icon: 'description', color: 'text-orange-500' },
+                      { label: 'Appointment Booking', icon: 'event_available', color: 'text-pink-500' },
+                    ].map((item, index) => (
+                      <div
+                        key={`${item.label}-${index}`}
+                        className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-gradient-to-r from-primary/10 to-emerald-500/10 px-5 py-2.5 text-sm font-semibold text-slate-800 shadow-sm transition-all duration-300 hover:scale-105 hover:border-primary/40 dark:text-white"
+                      >
+                        <span
+                          className={`material-symbols-outlined text-[18px] ${item.color}`}
+                        >
+                          {item.icon}
+                        </span>
+
+                        {item.label}
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
 
               <div className="mt-16 grid gap-4 sm:grid-cols-3">

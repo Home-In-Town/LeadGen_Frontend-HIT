@@ -60,11 +60,9 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
         {!isCollapsed ? (
           <>
             <Link to="/dashboard" className="no-underline flex items-center gap-2 overflow-hidden">
-              <img
-                src="/vite.svg"
-                alt="OneEmployee Logo"
-                className="h-10 w-10 object-contain"
-              />
+              <span className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-gradient-to-br from-primary to-emerald-600 text-white shadow-lg shadow-primary/25">
+                    <span className="material-symbols-outlined text-[20px]">hub</span>
+                  </span>
               <div className="flex flex-col">
                 <span className="text-sm font-semibold tracking-tight text-slate-900 dark:text-white whitespace-nowrap">
                   One Employee
