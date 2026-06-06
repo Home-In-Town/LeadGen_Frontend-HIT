@@ -419,7 +419,9 @@ export default function AuthPage() {
                     <aside className="mb-8 flex flex-col justify-center lg:mb-0 lg:w-[42%] lg:max-w-xl lg:py-4">
                         <div className="rounded-2xl border border-slate-200/70 bg-white/60 p-6 shadow-xl shadow-slate-900/5 backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.06] dark:shadow-black/40 sm:p-8">
                             <div className="flex items-center gap-3">
-                                <img src="/vite.svg" alt="OneEmployee Logo" className="h-10 w-10 object-contain" />
+                               <span className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-gradient-to-br from-primary to-emerald-600 text-white shadow-lg shadow-primary/25">
+                                    <span className="material-symbols-outlined text-[20px]">hub</span>
+                                </span>
                                 <div>
                                     <p className="text-lg font-bold tracking-tight text-slate-900 dark:text-white">OneEmployee<span className="text-primary">®</span></p>
                                     <p className="text-xs font-medium text-slate-500 dark:text-slate-400">AI-powered CRM · Lead automation</p>
