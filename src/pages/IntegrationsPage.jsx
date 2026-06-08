@@ -424,6 +424,27 @@ const IntegrationsPage = () => {
                   className="space-y-6"
                 >
 
+                  {/* ── Get Credentials Banner ─────────────────── */}
+                  <div className="rounded-2xl border border-[#25D366]/30 bg-[#25D366]/5 p-4 flex flex-col sm:flex-row sm:items-center gap-4">
+                    <div className="flex-1">
+                      <p className="text-[10px] font-black uppercase tracking-[0.25em] text-[#25D366] mb-1">
+                        Don't have credentials yet?
+                      </p>
+                      <p className="text-xs text-slate-600 dark:text-slate-400">
+                        Visit <span className="font-semibold">wa.homeintown.in</span> to generate your Vendor UID and API Key, then paste them below.
+                      </p>
+                    </div>
+                    <a
+                      href="https://wa.homeintown.in/auth/login"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 rounded-2xl bg-[#25D366] px-5 py-3 text-[10px] font-black uppercase tracking-[0.2em] text-white shadow-md hover:bg-[#20b858] transition-all whitespace-nowrap flex-shrink-0"
+                    >
+                      <span className="material-symbols-outlined text-base">open_in_new</span>
+                      Get Credentials
+                    </a>
+                  </div>
+
                   {renderPasswordField({
                     label: 'Vendor UID',
                     value:

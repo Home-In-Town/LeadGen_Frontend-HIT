@@ -29,6 +29,8 @@ const GoogleIntegrationPage = lazy(() => import('./pages/GoogleIntegrationPage')
 const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage'));
 const TermsOfServicePage = lazy(() => import('./pages/TermsOfServicePage'));
 const CallLogsPage = lazy(() => import('./pages/CallLogsPage'));
+const CampaignPage = lazy(() => import('./pages/CampaignPage'));
+const WhatsAppSetupPage = lazy(() => import('./pages/WhatsAppSetupPage'));
 
 function PageLoader() {
     return (
@@ -99,6 +101,8 @@ function App() {
                 <Route path="/integrations/facebook" element={<FacebookIntegrationPage />} />
                 <Route path="/integrations/google" element={<GoogleIntegrationPage />} />
                 <Route path="/call-logs" element={<CallLogsPage />} />
+                <Route path="/campaigns" element={<CampaignPage />} />
+                <Route path="/whatsapp-setup" element={<WhatsAppSetupPage />} />
               </Route>
 
               {/* Legacy redirects */}

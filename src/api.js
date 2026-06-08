@@ -124,6 +124,24 @@ export const getEmailConnectionStatus = () => emailApi.get('/connection-status')
 export const getGoogleAuthUrl = (ownerId) => `${BASE_URL}/api/auth/google/login?ownerId=${ownerId}`;
 export const getMicrosoftAuthUrl = (ownerId) => `${BASE_URL}/api/auth/microsoft/login?ownerId=${ownerId}`;
 
+// ====== CAMPAIGN ENDPOINTS ======
+const campaignApi = createApiInstance('/campaigns');
+export const uploadCampaign = (file, name) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (name) formData.append('name', name);
+    return campaignApi.post('/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+    });
+};
+export const listCampaigns = (params) => campaignApi.get('', { params });
+export const getCampaignProgress = (id) => campaignApi.get(`/${id}/progress`);
+export const getCampaignDeadLetters = (id) => campaignApi.get(`/${id}/dead-letters`);
+export const retryCampaign = (id) => campaignApi.post(`/${id}/retry`);
+export const pauseCampaign = (id) => campaignApi.post(`/${id}/pause`);
+export const resumeCampaign = (id) => campaignApi.post(`/${id}/resume`);
+export const deleteCampaign = (id) => campaignApi.delete(`/${id}`);
+
 // ====== AUTH API (cookie-based, no 401 redirect) ======
 // Uses a plain axios instance — 401 here means wrong credentials, not expired session
 const _authAxios = axios.create({ baseURL: `${BASE_URL}/api/auth`, withCredentials: true });

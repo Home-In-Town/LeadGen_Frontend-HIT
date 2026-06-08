@@ -27,6 +27,8 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
     { name: 'Automation', path: '/lead-automation', icon: 'settings_suggest' },
     { name: 'Integrations', path: '/integrations', icon: 'integration_instructions' },
     { name: 'Call Logs', path: '/call-logs', icon: 'record_voice_over'},
+    { name: 'Campaigns', path: '/campaigns', icon: 'campaign' },
+    { name: 'WhatsApp Setup', path: '/whatsapp-setup', icon: 'chat' },
   ];
 
 

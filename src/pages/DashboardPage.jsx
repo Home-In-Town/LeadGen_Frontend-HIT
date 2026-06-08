@@ -401,12 +401,51 @@ const DashboardPage = () => {
             </span>
           } />
 
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6">
 
             {/* Integrations */}
             <IntegrationsCard
               onClick={() => setIsIntegrationModalOpen(true)}
             />
+
+            {/* WhatsApp Quick Setup */}
+            <div
+              onClick={() => navigate('/whatsapp-setup')}
+              role="button"
+              tabIndex={0}
+              onKeyDown={e => e.key === 'Enter' && navigate('/whatsapp-setup')}
+              className="group bg-white/70 dark:bg-white/[0.04] border border-slate-200/80 dark:border-white/10 backdrop-blur-xl p-5 sm:p-6 hover:bg-white dark:hover:bg-white/[0.07] transition-all cursor-pointer relative overflow-hidden flex flex-col justify-between min-h-[140px] sm:min-h-[160px] rounded-[18px] shadow-sm hover:-translate-y-px hover:shadow-md"
+            >
+              <div className="relative z-10">
+                <div className="flex justify-between items-start mb-4">
+                  <span className="material-symbols-outlined text-[#25D366] text-2xl">chat</span>
+                  <span className="text-[9px] font-black uppercase tracking-widest text-[#25D366] bg-[#25D366]/10 px-2 py-1 rounded-full">
+                    WhatsApp
+                  </span>
+                </div>
+                <h3 className="text-sm font-black uppercase tracking-tight text-slate-900 group-hover:text-[#25D366] transition-colors mb-1 dark:text-white">
+                  Connect WhatsApp
+                </h3>
+                <p className="text-[10px] font-bold text-slate-700/40 group-hover:text-[#25D366]/70 transition-colors uppercase tracking-wider dark:text-slate-300/60">
+                  Get credentials from wa.homeintown.in
+                </p>
+              </div>
+              <div className="relative z-10 flex items-center justify-between mt-4">
+                <a
+                  href="https://wa.homeintown.in/auth/login"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={e => e.stopPropagation()}
+                  className="text-[9px] font-black uppercase tracking-widest text-[#25D366] underline underline-offset-2 hover:opacity-70 transition-opacity"
+                >
+                  Open Portal ↗
+                </a>
+                <span className="material-symbols-outlined text-slate-700/40 group-hover:text-[#25D366]/80 transition-colors">
+                  arrow_forward
+                </span>
+              </div>
+              <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-[#25D366]/5 group-hover:bg-[#25D366]/15 rotate-12 transition-all rounded-full" />
+            </div>
 
             {/* Manual User Entry */}
             <form
