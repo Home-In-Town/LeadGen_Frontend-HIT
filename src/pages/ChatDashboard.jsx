@@ -27,6 +27,7 @@ const SYSTEM_SENDERS = [
     'agent',
     'builder',
     'service_user',
+    'ai',
 ];
 
 
@@ -173,6 +174,13 @@ const ChatMessage = memo(({ msg }) => {
                         }
                     `}
                 >
+                    {msg.sender === 'ai' && (
+                        <div className="flex items-center gap-1 mb-1 opacity-60">
+                            <span className="material-symbols-outlined text-[12px]">smart_toy</span>
+                            <span className="text-[9px] uppercase tracking-widest font-black">AI</span>
+                        </div>
+                    )}
+
                     {msg.messageType === 'template' && (
                         <div
                             className="
@@ -230,19 +238,18 @@ const ChatMessage = memo(({ msg }) => {
                             {formatTime(msg.createdAt)}
                         </span>
 
-                        {isSystem &&
-                            msg.deliveryStatus ===
-                                'read' && (
-                                <span
-                                    className="
-                                        material-symbols-outlined
-                                        text-[14px]
-                                        text-blue-500
-                                    "
-                                >
-                                    done_all
-                                </span>
-                            )}
+                        {isSystem && msg.deliveryStatus === 'sent' && (
+                            <span className="material-symbols-outlined text-[14px] text-slate-400">check</span>
+                        )}
+                        {isSystem && msg.deliveryStatus === 'delivered' && (
+                            <span className="material-symbols-outlined text-[14px] text-slate-400">done_all</span>
+                        )}
+                        {isSystem && msg.deliveryStatus === 'read' && (
+                            <span className="material-symbols-outlined text-[14px] text-blue-500">done_all</span>
+                        )}
+                        {isSystem && msg.deliveryStatus === 'failed' && (
+                            <span className="material-symbols-outlined text-[14px] text-red-500">error</span>
+                        )}
                     </div>
                 </div>
             </div>
@@ -540,6 +547,8 @@ const ChatWindow = ({
     const [messages, setMessages] = useState([]);
     const [inputText, setInputText] =
         useState('');
+    const [showTemplatePicker, setShowTemplatePicker] = useState(false);
+    const [waTemplates, setWaTemplates] = useState([]);
 
     const messagesEndRef = useRef(null);
 
@@ -631,17 +640,38 @@ const ChatWindow = ({
             handleNewMessage
         );
 
+        const handleWhatsappUpdate = (payload) => {
+            if (payload && payload.leadId === leadId && payload.wamid) {
+                setMessages(prev => prev.map(m =>
+                    m.wamid === payload.wamid
+                        ? { ...m, deliveryStatus: payload.whatsappData?.deliveryStatus || payload.deliveryStatus }
+                        : m
+                ));
+            }
+        };
+        socket.on('whatsapp_update', handleWhatsappUpdate);
+
         return () => {
             socket.off(
                 'new_chat_message',
                 handleNewMessage
             );
+            socket.off('whatsapp_update', handleWhatsappUpdate);
         };
     }, [
         socket,
         leadId,
         onMessageReceived,
     ]);
+
+    const fetchWATemplates = async () => {
+        try {
+            const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://lead-filteration-backend-624770114041.asia-south1.run.app';
+            const res = await fetch(`${API_BASE}/api/whatsapp/templates`, { credentials: 'include' });
+            const data = await res.json();
+            if (data.success) setWaTemplates(data.data.filter(t => t.status === 'APPROVED'));
+        } catch {}
+    };
 
     const handleSend = async (e) => {
         e.preventDefault();
@@ -705,6 +735,7 @@ const ChatWindow = ({
     };
 
     return (
+        <>
         <div
             className="
                 flex
@@ -889,6 +920,15 @@ const ChatWindow = ({
                     />
 
                     <button
+                        type="button"
+                        onClick={() => { fetchWATemplates(); setShowTemplatePicker(true); }}
+                        title="Send template"
+                        className="w-10 h-10 rounded-full flex items-center justify-center text-slate-400 hover:text-[#25D366] hover:bg-[#25D366]/10 transition-all"
+                    >
+                        <span className="material-symbols-outlined text-lg">description</span>
+                    </button>
+
+                    <button
                         type="submit"
                         disabled={
                             !inputText.trim()
@@ -915,7 +955,49 @@ const ChatWindow = ({
                     </button>
                 </form>
             </div>
+
         </div>
+
+        {showTemplatePicker && (
+            <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/30 backdrop-blur-sm"
+                onClick={() => setShowTemplatePicker(false)}>
+                <div className="bg-white dark:bg-[#0F172A] rounded-t-3xl sm:rounded-3xl w-full sm:max-w-md max-h-[60vh] overflow-y-auto p-5 shadow-2xl"
+                    onClick={e => e.stopPropagation()}>
+                    <h3 className="text-sm font-black uppercase tracking-[0.2em] mb-4 text-slate-800 dark:text-white">Select Template</h3>
+                    {waTemplates.length === 0 ? (
+                        <p className="text-sm text-slate-500 text-center py-6">No approved templates found</p>
+                    ) : (
+                        <div className="space-y-2">
+                            {waTemplates.map(t => (
+                                <button key={t.id || t.name} type="button"
+                                    onClick={async () => {
+                                        setShowTemplatePicker(false);
+                                        const content = `[Template: ${t.name}]`;
+                                        const optimistic = {
+                                            _id: Date.now().toString(), leadId,
+                                            content, sender: 'system',
+                                            messageType: 'template', templateName: t.name,
+                                            createdAt: new Date().toISOString()
+                                        };
+                                        setMessages(prev => [...prev, optimistic]);
+                                        try {
+                                            await sendChatMessage(leadId, { message: content });
+                                            onMessageReceived?.();
+                                        } catch {
+                                            setMessages(prev => prev.filter(m => m._id !== optimistic._id));
+                                        }
+                                    }}
+                                    className="w-full text-left p-4 rounded-2xl border border-slate-200 dark:border-white/10 hover:border-[#25D366] hover:bg-[#25D366]/5 transition-all">
+                                    <p className="text-sm font-bold text-slate-800 dark:text-white">{t.name}</p>
+                                    <p className="text-xs text-slate-500 mt-0.5">{t.category} • {t.language}</p>
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            </div>
+        )}
+        </>
     );
 };
 

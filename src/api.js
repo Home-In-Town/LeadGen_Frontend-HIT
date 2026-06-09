@@ -165,3 +165,18 @@ export const authApi = {
     verifyResetOtp: (accessToken, email) => _authAxios.post('/verify-reset-otp', { accessToken, email }),
     resetPin: (tempToken, newPin) => _authAxios.post('/reset-pin', { tempToken, newPin }),
 };
+
+// ====== WHATSAPP CLOUD API ENDPOINTS ======
+const whatsappApi = createApiInstance('/whatsapp');
+
+// Phone number management
+export const listWAPhoneNumbers   = ()     => whatsappApi.get('/phone-numbers');
+export const addWAPhoneNumber     = (data) => whatsappApi.post('/phone-numbers', data);
+export const removeWAPhoneNumber  = (id)   => whatsappApi.delete(`/phone-numbers/${id}`);
+export const setDefaultWAPhone    = (id)   => whatsappApi.patch(`/phone-numbers/${id}/default`);
+export const connectMetaOAuth     = (code) => whatsappApi.post('/connect/meta-oauth', { code });
+
+// Template management
+export const listWATemplates      = ()          => whatsappApi.get('/templates');
+export const createWATemplate     = (data)      => whatsappApi.post('/templates', data);
+export const deleteWATemplate     = (name)      => whatsappApi.delete(`/templates/${name}`);

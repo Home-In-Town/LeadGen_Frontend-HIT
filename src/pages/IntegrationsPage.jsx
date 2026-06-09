@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 import { useNotifications } from '../context/NotificationContext';
 
 const API_BASE_URL =
@@ -11,8 +12,14 @@ const ownersApi = axios.create({
   withCredentials: true,
 });
 
+const whatsappApi = axios.create({
+  baseURL: `${API_BASE_URL}/api/whatsapp`,
+  withCredentials: true,
+});
+
 const IntegrationsPage = () => {
   const { addToast } = useNotifications();
+  const navigate = useNavigate();
 
   /* ---------------------------------- */
   /* STATE */
@@ -23,6 +30,8 @@ const IntegrationsPage = () => {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
+
+  const [waPhoneNumbers, setWaPhoneNumbers] = useState([]);
 
   const [visibility, setVisibility] = useState({
     whatsappVendor: false,
@@ -87,6 +96,10 @@ const IntegrationsPage = () => {
       if (response.data.projectSettings) {
         setProjectSettings(response.data.projectSettings);
       }
+
+      whatsappApi.get('/phone-numbers')
+        .then(res => { if (res.data.success) setWaPhoneNumbers(res.data.data || []); })
+        .catch(() => {});
     } catch (error) {
       console.error(error);
 
@@ -395,117 +408,62 @@ const IntegrationsPage = () => {
             {/* WHATSAPP */}
 
             {activeTab === 'whatsapp' && (
-              <div className="animate-fade-in">
-
-                <div className="mb-8 flex items-center gap-4">
-
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#25D366] text-white shadow-lg">
-                    <span className="material-symbols-outlined text-2xl">
-                      chat
-                    </span>
-                  </div>
-
-                  <div>
-
-                    <h2 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white">
-                      WhatsApp Integration
-                    </h2>
-
-                    <p className="mt-1 text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400">
-                      Connect via wa.homeintown.in
-                    </p>
-
-                  </div>
-
-                </div>
-
-                <form
-                  onSubmit={handleSaveWhatsapp}
-                  className="space-y-6"
-                >
-
-                  {/* ── Get Credentials Banner ─────────────────── */}
-                  <div className="rounded-2xl border border-[#25D366]/30 bg-[#25D366]/5 p-4 flex flex-col sm:flex-row sm:items-center gap-4">
-                    <div className="flex-1">
-                      <p className="text-[10px] font-black uppercase tracking-[0.25em] text-[#25D366] mb-1">
-                        Don't have credentials yet?
-                      </p>
-                      <p className="text-xs text-slate-600 dark:text-slate-400">
-                        Visit <span className="font-semibold">wa.homeintown.in</span> to generate your Vendor UID and API Key, then paste them below.
-                      </p>
+                <div className="animate-fade-in">
+                    {/* Header */}
+                    <div className="mb-8 flex items-center gap-4">
+                        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#25D366] text-white shadow-lg">
+                            <span className="material-symbols-outlined text-2xl">chat</span>
+                        </div>
+                        <div>
+                            <h2 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white">WhatsApp Integration</h2>
+                            <p className="mt-1 text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400">
+                                Direct Meta WhatsApp Cloud API
+                            </p>
+                        </div>
                     </div>
-                    <a
-                      href="https://wa.homeintown.in/auth/login"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 rounded-2xl bg-[#25D366] px-5 py-3 text-[10px] font-black uppercase tracking-[0.2em] text-white shadow-md hover:bg-[#20b858] transition-all whitespace-nowrap flex-shrink-0"
-                    >
-                      <span className="material-symbols-outlined text-base">open_in_new</span>
-                      Get Credentials
-                    </a>
-                  </div>
 
-                  {renderPasswordField({
-                    label: 'Vendor UID',
-                    value:
-                      whatsappSettings.vendorUid,
+                    {/* Phone number status */}
+                    {waPhoneNumbers.length > 0 ? (
+                        <div className="space-y-3 mb-6">
+                            {waPhoneNumbers.map(num => (
+                                <div key={num.id || num.phoneNumberId} className="flex items-center gap-3 p-4 rounded-2xl border border-emerald-200 dark:border-emerald-900/30 bg-emerald-50 dark:bg-emerald-900/10">
+                                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse flex-shrink-0" />
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-bold text-slate-900 dark:text-white">{num.display_phone_number || num.displayPhoneNumber || num.phoneNumberId}</p>
+                                        <p className="text-xs text-slate-500">{num.verified_name || num.verifiedName || 'Connected'}</p>
+                                    </div>
+                                    {num.isDefault && (
+                                        <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#25D366]/10 text-[#25D366]">Default</span>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="mb-6 p-5 rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.02] text-center">
+                            <span className="material-symbols-outlined text-slate-300 text-4xl mb-2 block">chat_bubble_outline</span>
+                            <p className="text-sm text-slate-500">No WhatsApp numbers connected yet</p>
+                            <p className="text-xs text-slate-400 mt-1">Connect your WhatsApp Business Account to start sending messages</p>
+                        </div>
+                    )}
 
-                    placeholder:
-                      'Your Vendor UID',
-
-                    visible:
-                      visibility.whatsappVendor,
-
-                    onToggle: () =>
-                      toggleVisibility(
-                        'whatsappVendor'
-                      ),
-
-                    onChange: (e) =>
-                      setWhatsappSettings({
-                        ...whatsappSettings,
-                        vendorUid:
-                          e.target.value,
-                      }),
-                  })}
-
-                  {renderPasswordField({
-                    label: 'API Key',
-                    value:
-                      whatsappSettings.apiKey,
-
-                    placeholder:
-                      'Your API Key',
-
-                    visible:
-                      visibility.whatsappApi,
-
-                    onToggle: () =>
-                      toggleVisibility(
-                        'whatsappApi'
-                      ),
-
-                    onChange: (e) =>
-                      setWhatsappSettings({
-                        ...whatsappSettings,
-                        apiKey:
-                          e.target.value,
-                      }),
-                  })}
-
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    className={primaryButton}
-                  >
-                    {saving
-                      ? 'Saving...'
-                      : 'Save WhatsApp Settings'}
-                  </button>
-
-                </form>
-
-              </div>
+                    {/* Action buttons */}
+                    <div className="flex flex-wrap gap-3">
+                        <button
+                            onClick={() => navigate('/whatsapp-setup')}
+                            className={primaryButton}
+                        >
+                            <span className="material-symbols-outlined text-base mr-2">settings</span>
+                            {waPhoneNumbers.length > 0 ? 'Manage Setup' : 'Connect WhatsApp'}
+                        </button>
+                        <button
+                            onClick={() => navigate('/whatsapp-templates')}
+                            className="rounded-2xl border border-[#25D366]/40 bg-[#25D366]/5 px-6 py-4 text-[10px] font-black uppercase tracking-[0.25em] text-[#25D366] transition-all hover:bg-[#25D366]/10 flex items-center gap-2"
+                        >
+                            <span className="material-symbols-outlined text-base">description</span>
+                            Manage Templates
+                        </button>
+                    </div>
+                </div>
             )}
 
             {/* EXTERNAL */}
