@@ -59,11 +59,9 @@ const PrivacyPolicyPage = () => {
               onClick={() => navigate('/')}
               className="group flex cursor-pointer items-center gap-3"
             >
-              <img
-              src="/vite.svg"
-              alt="OneEmployee Logo"
-              className="h-10 w-10 object-contain"
-            />
+              <span className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-gradient-to-br from-primary to-emerald-600 text-white shadow-lg shadow-primary/25">
+                                    <span className="material-symbols-outlined text-[20px]">hub</span>
+                                </span>
 
               <div>
                 <p className="text-[10px] font-black uppercase tracking-[0.35em] text-primary">
