@@ -450,10 +450,14 @@ const IntegrationsPage = () => {
                     <div className="flex flex-wrap gap-3">
                         <button
                             onClick={() => navigate('/whatsapp-setup')}
-                            className={primaryButton}
+                            className={`${primaryButton} flex items-center justify-center`}
                         >
-                            <span className="material-symbols-outlined text-base mr-2">settings</span>
-                            {waPhoneNumbers.length > 0 ? 'Manage Setup' : 'Connect WhatsApp'}
+                            <span className="material-symbols-outlined text-base mr-2">
+                                settings
+                            </span>
+                            <span>
+                                {waPhoneNumbers.length > 0 ? 'Manage Setup' : 'Connect WhatsApp'}
+                            </span>
                         </button>
                         <button
                             onClick={() => navigate('/whatsapp-templates')}
