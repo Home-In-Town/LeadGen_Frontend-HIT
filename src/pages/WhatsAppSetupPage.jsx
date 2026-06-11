@@ -113,25 +113,30 @@ export default function WhatsAppSetupPage() {
             return;
         }
         setConnecting(true);
-        window.FB.login(async (response) => {
+        // FB.login does NOT support async callbacks — use .then() chain instead
+        window.FB.login((response) => {
             if (response?.authResponse?.code) {
-                try {
-                    const res = await waApi.post('/connect/meta-oauth', { code: response.authResponse.code });
-                    if (res.data.success) {
-                        addToast(`Connected ${res.data.data.addedPhoneNumbers?.length || 0} number(s) successfully!`, 'success');
-                        setConnected(true);
-                        setStep('connected');
-                        await reloadPhoneNumbers();
-                    } else {
-                        addToast(res.data.error || 'Connection failed', 'error');
-                    }
-                } catch (err) {
-                    addToast(err.response?.data?.error || 'OAuth exchange failed', 'error');
-                }
+                waApi.post('/connect/meta-oauth', { code: response.authResponse.code })
+                    .then(res => {
+                        if (res.data.success) {
+                            addToast(`Connected ${res.data.data.addedPhoneNumbers?.length || 0} number(s) successfully!`, 'success');
+                            setConnected(true);
+                            setStep('connected');
+                            reloadPhoneNumbers();
+                        } else {
+                            addToast(res.data.error || 'Connection failed', 'error');
+                        }
+                    })
+                    .catch(err => {
+                        addToast(err.response?.data?.error || 'OAuth exchange failed', 'error');
+                    })
+                    .finally(() => {
+                        setConnecting(false);
+                    });
             } else {
                 addToast('Meta Embedded Signup was cancelled.', 'warning');
+                setConnecting(false);
             }
-            setConnecting(false);
         }, {
             config_id: SIGNUP_CONFIG_ID,
             response_type: 'code',
