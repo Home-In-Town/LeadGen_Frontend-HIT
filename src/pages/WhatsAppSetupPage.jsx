@@ -10,8 +10,8 @@ import axios from 'axios';
 import { useNotifications } from '../context/NotificationContext';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://lead-filteration-backend-624770114041.asia-south1.run.app';
-const META_APP_ID  = import.meta.env.VITE_META_APP_ID  || '';
-const SIGNUP_CONFIG_ID = import.meta.env.VITE_META_SIGNUP_CONFIG_ID || '';
+const META_APP_ID  = import.meta.env.VITE_META_APP_ID  || '1275388667714234';
+const SIGNUP_CONFIG_ID = import.meta.env.VITE_META_SIGNUP_CONFIG_ID || '1005112248795110';
 
 const waApi = axios.create({ baseURL: `${API_BASE_URL}/api/whatsapp`, withCredentials: true });
 
