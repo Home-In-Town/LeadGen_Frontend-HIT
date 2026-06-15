@@ -166,7 +166,31 @@ export const authApi = {
     resetPin: (tempToken, newPin) => _authAxios.post('/reset-pin', { tempToken, newPin }),
 };
 
-// ====== WHATSAPP CLOUD API ENDPOINTS ======
+// ====== FACEBOOK INTEGRATION ENDPOINTS ======
+const facebookApi = createApiInstance('/facebook');
+
+// OAuth flow
+export const initiateFBConnect  = () => {
+    // Redirect browser to backend /connect which initiates OAuth
+    window.location.href = `${BASE_URL}/api/facebook/connect`;
+};
+
+// Status: connection info + pages + forms + mappings
+export const getFBStatus        = ()     => facebookApi.get('/status');
+// Disconnect
+export const disconnectFacebook = ()     => facebookApi.post('/disconnect');
+// Fetch real-time leads from a specific form
+export const getFBFormLeads     = (formId, limit = 25) =>
+    facebookApi.get('/leads', { params: { formId, limit } });
+
+// Form mapping CRUD
+export const getFBMappings      = ()     => facebookApi.get('/mapping');
+export const createFBMapping    = (data) => facebookApi.post('/mapping', data);
+export const deleteFBMapping    = (id)   => facebookApi.delete(`/mapping/${id}`);
+
+// Bridge: get builder projects for mapping
+export const getFBBridgeProjects = ()   => facebookApi.get('/bridge/projects');
+
 const whatsappApi = createApiInstance('/whatsapp');
 
 // Phone number management
