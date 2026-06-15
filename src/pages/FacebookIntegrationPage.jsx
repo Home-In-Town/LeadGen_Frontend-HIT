@@ -1,27 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const FacebookIntegrationPage = () => {
     const [isConnected, setIsConnected] = useState(false);
     const [loading, setLoading] = useState(false);
 
-    const handleConnect = () => {
-        const appId = import.meta.env.VITE_FB_APP_ID || '1949735323089600';
-        const redirectUri = import.meta.env.VITE_FB_REDIRECT_URI || 'https://lead-filteration-backend-624770114041.asia-south1.run.app/api/facebook/callback';
-        const configId = import.meta.env.VITE_FB_CONFIG_ID || '1267124698537310';
-
-        if (!appId || appId === 'undefined') {
-            alert('Facebook App ID missing in environment variables.');
-            return;
+    // Check URL params on mount — backend redirects here with ?connected=true on success
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('connected') === 'true') {
+            setIsConnected(true);
+            // Clean up the URL without a page reload
+            window.history.replaceState({}, '', window.location.pathname);
         }
+    }, []);
 
-        const authUrl =
-            `https://www.facebook.com/v20.0/dialog/oauth` +
-            `?client_id=${appId}` +
-            `&redirect_uri=${redirectUri}` +
-            `&config_id=${configId}` +
-            `&response_type=code`;
-
-        window.location.href = authUrl;
+    const handleConnect = () => {
+        // Redirect to backend's /connect endpoint which sets the state cookie
+        // and then redirects to Facebook — this avoids the auth cookie problem on callback.
+        const backendUrl = import.meta.env.VITE_API_URL || 'https://lead-filteration-backend-624770114041.asia-south1.run.app';
+        window.location.href = `${backendUrl}/api/facebook/connect`;
     };
 
     const cardClass =
