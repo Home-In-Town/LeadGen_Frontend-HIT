@@ -1,15 +1,15 @@
 /**
  * FacebookIntegrationPage.jsx
  *
- * Production-grade Facebook Lead Ads integration page.
- * - Loads connection state from API on mount (persists across reloads)
- * - Shows all pages, all lead forms with status + lead count
- * - Shows all active form→project mappings
- * - Add / delete form mappings inline
- * - Handles token expiry, degraded mode, and disconnect
+ * 4-tab Facebook Lead Ads integration page:
+ *   Tab 1: Overview    — connection status + quick stats
+ *   Tab 2: Campaigns   — campaigns + forms from DB (synced via Meta Graph API)
+ *   Tab 3: Leads       — mini-CRM table of FB leads (source='facebook')
+ *   Tab 4: Settings    — historical import, auto-sync toggle, disconnect
  */
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
     getFBStatus,
     disconnectFacebook,
@@ -18,13 +18,18 @@ import {
     getFBBridgeProjects,
     initiateFBConnect,
     importFBHistorical,
+    syncFBCampaigns,
+    getFBCampaigns,
+    getAllLeads,
 } from '../api';
 import { useNotifications } from '../context/NotificationContext';
 
-// ─── tiny helpers ─────────────────────────────────────────────────────────────
+// ─── Design tokens ────────────────────────────────────────────────────────────
 
 const cardClass =
     'bg-white/75 dark:bg-white/[0.04] backdrop-blur-xl border border-slate-200/80 dark:border-white/10 rounded-[24px] shadow-sm';
+
+// ─── Tiny helpers ─────────────────────────────────────────────────────────────
 
 function Badge({ label, color = 'slate' }) {
     const map = {
@@ -33,9 +38,10 @@ function Badge({ label, color = 'slate' }) {
         yellow: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300',
         blue:   'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
         slate:  'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300',
+        orange: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300',
     };
     return (
-        <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ${map[color]}`}>
+        <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ${map[color] || map.slate}`}>
             {label}
         </span>
     );
@@ -48,70 +54,45 @@ function Spinner({ size = 'sm' }) {
     );
 }
 
-
-// ─── MappingRow — one row per existing mapping ───────────────────────────────
-
-function MappingRow({ mapping, onDelete }) {
-    const [deleting, setDeleting] = useState(false);
-
-    const handleDelete = async () => {
-        if (!window.confirm('Remove this form mapping? New leads from this form will no longer be imported.')) return;
-        setDeleting(true);
-        try { await onDelete(mapping._id); }
-        finally { setDeleting(false); }
-    };
-
-    return (
-        <div className="flex items-center gap-3 p-3 rounded-2xl border border-slate-200/70 dark:border-white/10 bg-white/60 dark:bg-white/[0.02]">
-            <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-slate-900 dark:text-white truncate">
-                    {mapping.formName || mapping.fbFormId}
-                </p>
-                <p className="text-xs text-slate-500 mt-0.5 truncate">
-                    Form ID: {mapping.fbFormId}
-                </p>
-            </div>
-            <Badge label={mapping.isActive ? 'Active' : 'Inactive'} color={mapping.isActive ? 'green' : 'slate'} />
-            <button
-                onClick={handleDelete}
-                disabled={deleting}
-                className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 disabled:opacity-40 transition-colors flex-shrink-0"
-                title="Remove mapping"
-            >
-                {deleting
-                    ? <Spinner />
-                    : <span className="material-symbols-outlined text-lg">delete</span>
-                }
-            </button>
-        </div>
-    );
+function relativeTime(date) {
+    if (!date) return 'Never';
+    const diff = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
+    if (diff < 60)   return `${diff}s ago`;
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+    return `${Math.floor(diff / 86400)}d ago`;
 }
 
+function statusBadgeColor(status) {
+    const s = (status || '').toUpperCase();
+    if (s === 'ACTIVE')   return 'green';
+    if (s === 'PAUSED')   return 'yellow';
+    if (s === 'HOT')      return 'red';
+    if (s === 'WARM')     return 'orange';
+    if (s === 'COLD')     return 'blue';
+    return 'slate';
+}
 
-// ─── AddMappingModal — inline modal to map a form to a project ───────────────
+// ─── AddMappingModal ─────────────────────────────────────────────────────────
 
-function AddMappingModal({ form, page, projects, onSave, onClose }) {
+function AddMappingModal({ form, projects, onSave, onClose }) {
     const [projectId, setProjectId] = useState('');
-    const [saving, setSaving] = useState(false);
-    const [error, setError] = useState('');
+    const [saving, setSaving]       = useState(false);
+    const [error, setError]         = useState('');
 
     const handleSave = async () => {
         if (!projectId) { setError('Select a project first.'); return; }
-        setSaving(true);
-        setError('');
+        setSaving(true); setError('');
         try {
             await createFBMapping({
-                fbFormId: form.id,
-                formName: form.name,
-                pageId: page.id,
+                fbFormId:              form.formId,
+                formName:              form.formName,
                 salesWebsiteProjectId: projectId,
             });
             onSave();
         } catch (err) {
             setError(err.response?.data?.error || 'Failed to create mapping.');
-        } finally {
-            setSaving(false);
-        }
+        } finally { setSaving(false); }
     };
 
     return (
@@ -123,42 +104,29 @@ function AddMappingModal({ form, page, projects, onSave, onClose }) {
                         <span className="material-symbols-outlined">close</span>
                     </button>
                 </div>
-
                 <div className="mb-4 p-3 rounded-2xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
-                    <p className="text-xs font-bold text-blue-700 dark:text-blue-300">{form.name}</p>
+                    <p className="text-xs font-bold text-blue-700 dark:text-blue-300">{form.formName || form.formId}</p>
                     <p className="text-[10px] text-blue-500 mt-0.5">Leads from this form will be imported automatically</p>
                 </div>
-
-                <label className="block text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 mb-2">
-                    Link to Project
-                </label>
+                <label className="block text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 mb-2">Link to Project</label>
                 <select
                     value={projectId}
                     onChange={e => setProjectId(e.target.value)}
                     className="w-full rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm font-medium text-slate-900 dark:text-white outline-none focus:border-primary transition-all"
                 >
                     <option value="">— Select project —</option>
-                    {projects.map(p => (
-                        <option key={p._id || p.id} value={p._id || p.id}>
-                            {p.title || p.name}
-                        </option>
+                    {(projects || []).map(p => (
+                        <option key={p._id || p.id} value={p._id || p.id}>{p.title || p.name}</option>
                     ))}
                 </select>
-
                 {error && <p className="mt-2 text-sm text-red-500">{error}</p>}
-
                 <div className="flex gap-3 mt-5">
-                    <button
-                        onClick={handleSave}
-                        disabled={saving || !projectId}
-                        className="flex-1 rounded-2xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-black text-[11px] uppercase tracking-[0.2em] py-3 transition-all"
-                    >
+                    <button onClick={handleSave} disabled={saving || !projectId}
+                        className="flex-1 rounded-2xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-black text-[11px] uppercase tracking-[0.2em] py-3 transition-all">
                         {saving ? 'Saving…' : 'Save Mapping'}
                     </button>
-                    <button
-                        onClick={onClose}
-                        className="rounded-2xl border border-slate-200 dark:border-white/10 px-5 py-3 text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-all"
-                    >
+                    <button onClick={onClose}
+                        className="rounded-2xl border border-slate-200 dark:border-white/10 px-5 py-3 text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-all">
                         Cancel
                     </button>
                 </div>
@@ -167,232 +135,624 @@ function AddMappingModal({ form, page, projects, onSave, onClose }) {
     );
 }
 
+// ─── Tab 1: Overview ─────────────────────────────────────────────────────────
 
-// ─── FormCard — one card per lead form ───────────────────────────────────────
+function TabOverview({ status, campaigns, fbLeads, onConnect, onDisconnect, disconnecting }) {
+    const isConnected = status?.connected === true;
+    const totalForms  = (status?.pages || []).reduce((s, p) => s + (p.forms?.length || 0), 0);
+    const totalMapped = (status?.mappings || []).length;
+    const totalLeads  = (status?.pages || []).reduce(
+        (s, p) => s + (p.forms || []).reduce((ss, f) => ss + (f.leads_count || 0), 0), 0
+    );
+    const activeCamps = campaigns.filter(c => c.status === 'ACTIVE').length;
 
-function FormCard({ form, page, mappings, projects, onMappingCreated, onMappingDeleted }) {
-    const [showModal, setShowModal] = useState(false);
-    const isMapped = mappings.some(m => m.fbFormId === form.id);
-
-    const formStatus = (form.status || '').toLowerCase();
-    const statusColor = formStatus === 'active' ? 'green' : formStatus === 'archived' ? 'slate' : 'yellow';
+    const stats = [
+        { label: 'Connected Pages',  value: (status?.pages || []).length,        icon: 'pages' },
+        { label: 'Lead Forms',       value: totalForms,                            icon: 'description' },
+        { label: 'Mapped Forms',     value: totalMapped,                           icon: 'link' },
+        { label: 'Active Campaigns', value: activeCamps,                           icon: 'campaign' },
+        { label: 'Total FB Leads',   value: totalLeads.toLocaleString('en-IN'),    icon: 'people' },
+        { label: 'Leads in CRM',     value: fbLeads.length.toLocaleString('en-IN'), icon: 'manage_accounts' },
+    ];
 
     return (
-        <>
-            <div className="p-4 rounded-2xl border border-slate-200/70 dark:border-white/10 bg-white/60 dark:bg-white/[0.02] hover:border-blue-400/40 transition-all">
-                <div className="flex items-start justify-between gap-3 mb-3">
-                    <div className="min-w-0">
-                        <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{form.name}</p>
-                        <p className="text-xs text-slate-500 mt-0.5 font-mono">{form.id}</p>
+        <div className="space-y-6">
+            {/* Connection card */}
+            <div className={`${cardClass} p-6`}>
+                <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-center gap-4">
+                        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-lg flex-shrink-0">
+                            <span className="text-2xl font-black">f</span>
+                        </div>
+                        <div>
+                            <h2 className="text-xl font-black text-slate-900 dark:text-white">Facebook Lead Ads</h2>
+                            {isConnected && status?.connectedAt && (
+                                <p className="text-xs text-slate-500 mt-0.5">
+                                    Connected {new Date(status.connectedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                    {status?.pageName ? ` · ${status.pageName}` : ''}
+                                </p>
+                            )}
+                        </div>
                     </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                        <Badge label={form.status || 'Unknown'} color={statusColor} />
-                        {isMapped && <Badge label="Mapped" color="blue" />}
+                    <div className="flex items-center gap-3">
+                        <div className={`inline-flex items-center gap-2 rounded-2xl px-4 py-2 text-sm font-black uppercase tracking-[0.2em]
+                            ${isConnected
+                                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                                : 'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20'}`}>
+                            <span className={`h-2.5 w-2.5 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
+                            {isConnected ? 'Connected' : 'Disconnected'}
+                        </div>
+                        {!isConnected && (
+                            <button onClick={onConnect}
+                                className="rounded-2xl bg-blue-600 px-5 py-2.5 text-sm font-black uppercase tracking-[0.2em] text-white hover:bg-blue-700 transition-all">
+                                Connect
+                            </button>
+                        )}
+                        {isConnected && (
+                            <button onClick={onDisconnect} disabled={disconnecting}
+                                className="rounded-2xl border border-red-500/20 bg-red-500/10 px-5 py-2.5 text-sm font-black uppercase tracking-[0.2em] text-red-600 dark:text-red-400 hover:bg-red-500/20 disabled:opacity-50 transition-all">
+                                {disconnecting ? 'Disconnecting…' : 'Disconnect'}
+                            </button>
+                        )}
                     </div>
                 </div>
-
-                <div className="flex items-center gap-4 text-xs text-slate-500 mb-3">
-                    <span className="flex items-center gap-1">
-                        <span className="material-symbols-outlined text-[14px]">people</span>
-                        {(form.leads_count || 0).toLocaleString('en-IN')} leads
-                    </span>
-                </div>
-
-                {!isMapped ? (
-                    <button
-                        onClick={() => setShowModal(true)}
-                        className="w-full flex items-center justify-center gap-2 rounded-2xl border border-blue-500/30 bg-blue-500/5 hover:bg-blue-500/10 text-blue-600 dark:text-blue-400 text-[11px] font-black uppercase tracking-[0.2em] py-2.5 transition-all"
-                    >
-                        <span className="material-symbols-outlined text-base">add_link</span>
-                        Map to Project
-                    </button>
-                ) : (
-                    <div className="space-y-2">
-                        {mappings.filter(m => m.fbFormId === form.id).map(m => (
-                            <MappingRow key={m._id} mapping={m} onDelete={onMappingDeleted} />
-                        ))}
+                {status?.degraded && (
+                    <div className="mt-4 flex items-center gap-3 rounded-2xl bg-yellow-500/10 border border-yellow-500/20 px-4 py-3">
+                        <span className="material-symbols-outlined text-yellow-500">warning</span>
+                        <p className="text-sm text-yellow-700 dark:text-yellow-300">Facebook API temporarily unreachable. Showing cached data.</p>
+                    </div>
+                )}
+                {status?.tokenExpired && (
+                    <div className="mt-4 flex items-center gap-3 rounded-2xl bg-red-500/10 border border-red-500/20 px-4 py-3">
+                        <span className="material-symbols-outlined text-red-500">error</span>
+                        <p className="text-sm text-red-700 dark:text-red-300">Your Facebook token has expired. Please reconnect.</p>
                     </div>
                 )}
             </div>
 
-            {showModal && (
-                <AddMappingModal
-                    form={form}
-                    page={page}
-                    projects={projects}
-                    onSave={() => { setShowModal(false); onMappingCreated(); }}
-                    onClose={() => setShowModal(false)}
-                />
-            )}
-        </>
-    );
-}
-
-
-// ─── PageSection — one section per Facebook Page ─────────────────────────────
-
-function PageSection({ page, mappings, projects, onMappingCreated, onMappingDeleted }) {
-    const [expanded, setExpanded] = useState(true);
-    const forms = page.forms || [];
-
-    return (
-        <div className="border border-slate-200/70 dark:border-white/10 rounded-2xl overflow-hidden">
-            {/* Page header */}
-            <button
-                onClick={() => setExpanded(v => !v)}
-                className="w-full flex items-center justify-between gap-3 px-5 py-4 bg-slate-50/80 dark:bg-white/[0.02] hover:bg-slate-100/80 dark:hover:bg-white/[0.04] transition-all text-left"
-            >
-                <div className="flex items-center gap-3 min-w-0">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 text-white font-black text-sm flex-shrink-0">f</div>
-                    <div className="min-w-0">
-                        <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{page.name}</p>
-                        <p className="text-xs text-slate-500">{forms.length} form{forms.length !== 1 ? 's' : ''} · Page ID: {page.id}</p>
-                    </div>
-                </div>
-                <span className={`material-symbols-outlined text-slate-400 transition-transform ${expanded ? 'rotate-180' : ''}`}>
-                    expand_more
-                </span>
-            </button>
-
-            {/* Forms list */}
-            {expanded && (
-                <div className="p-4 space-y-3">
-                    {forms.length === 0 ? (
-                        <div className="text-center py-8 text-slate-400">
-                            <span className="material-symbols-outlined text-3xl mb-2 block">description</span>
-                            <p className="text-sm">No lead forms found for this page.</p>
-                            <p className="text-xs mt-1">Create a Lead Ads form in Meta Ads Manager.</p>
+            {/* Stats grid */}
+            {isConnected && (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                    {stats.map(({ label, value, icon }) => (
+                        <div key={label} className={`${cardClass} p-5 flex flex-col gap-2`}>
+                            <span className="material-symbols-outlined text-2xl text-blue-500">{icon}</span>
+                            <p className="text-2xl font-black text-slate-900 dark:text-white">{value}</p>
+                            <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500">{label}</p>
                         </div>
-                    ) : (
-                        forms.map(form => (
-                            <FormCard
-                                key={form.id}
-                                form={form}
-                                page={page}
-                                mappings={mappings}
-                                projects={projects}
-                                onMappingCreated={onMappingCreated}
-                                onMappingDeleted={onMappingDeleted}
-                            />
-                        ))
-                    )}
+                    ))}
                 </div>
             )}
         </div>
     );
 }
 
+// ─── Tab 2: Campaigns & Forms ────────────────────────────────────────────────
+
+function CampaignCard({ campaign, projects, onMappingCreated }) {
+    const [expanded, setExpanded]         = useState(false);
+    const [mappingForm, setMappingForm]   = useState(null);
+
+    const statusColor = campaign.status === 'ACTIVE' ? 'green'
+        : campaign.status === 'PAUSED' ? 'yellow' : 'slate';
+
+    const objColor = ['OUTCOME_LEADS', 'LEAD_GENERATION'].includes(campaign.objective) ? 'blue' : 'slate';
+
+    const budgetStr = campaign.budget
+        ? `${campaign.currency || '₹'} ${Number(campaign.budget / 100).toLocaleString('en-IN')}`
+        : '—';
+
+    return (
+        <div className="border border-slate-200/70 dark:border-white/10 rounded-2xl overflow-hidden">
+            <button onClick={() => setExpanded(v => !v)}
+                className="w-full flex items-center justify-between gap-3 px-5 py-4 bg-slate-50/80 dark:bg-white/[0.02] hover:bg-slate-100/80 dark:hover:bg-white/[0.04] transition-all text-left">
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-600 text-white font-black text-xs flex-shrink-0">f</div>
+                    <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                            <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{campaign.campaignName}</p>
+                            <Badge label={campaign.status || 'Unknown'} color={statusColor} />
+                            <Badge label={campaign.objective || 'Unknown'} color={objColor} />
+                        </div>
+                        <div className="flex items-center gap-3 mt-1 text-xs text-slate-500 flex-wrap">
+                            <span className="flex items-center gap-1">
+                                <span className="material-symbols-outlined text-[13px]">people</span>
+                                {(campaign.leadsCount || 0).toLocaleString('en-IN')} leads
+                            </span>
+                            <span className="flex items-center gap-1">
+                                <span className="material-symbols-outlined text-[13px]">description</span>
+                                {(campaign.forms || []).length} form{campaign.forms?.length !== 1 ? 's' : ''}
+                            </span>
+                            <span className="flex items-center gap-1">
+                                <span className="material-symbols-outlined text-[13px]">payments</span>
+                                {budgetStr}
+                            </span>
+                            {campaign.lastSyncedAt && (
+                                <span className="text-[10px] text-slate-400">synced {relativeTime(campaign.lastSyncedAt)}</span>
+                            )}
+                        </div>
+                    </div>
+                </div>
+                <span className={`material-symbols-outlined text-slate-400 transition-transform flex-shrink-0 ${expanded ? 'rotate-180' : ''}`}>
+                    expand_more
+                </span>
+            </button>
+
+            {expanded && (
+                <div className="p-4 space-y-3">
+                    {(campaign.forms || []).length === 0 ? (
+                        <div className="text-center py-8 text-slate-400">
+                            <span className="material-symbols-outlined text-3xl mb-2 block">description</span>
+                            <p className="text-sm">No lead forms found for this campaign.</p>
+                            <p className="text-xs mt-1">Sync again after creating forms in Meta Ads Manager.</p>
+                        </div>
+                    ) : (
+                        (campaign.forms || []).map(form => (
+                            <div key={form.formId}
+                                className="p-4 rounded-2xl border border-slate-200/70 dark:border-white/10 bg-white/60 dark:bg-white/[0.02]">
+                                <div className="flex items-start justify-between gap-3 mb-2">
+                                    <div className="min-w-0">
+                                        <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{form.formName || form.formId}</p>
+                                        <p className="text-xs text-slate-500 font-mono mt-0.5">{form.formId}</p>
+                                    </div>
+                                    <div className="flex items-center gap-2 flex-shrink-0">
+                                        <Badge label={form.status || 'Unknown'} color={(form.status || '').toLowerCase() === 'active' ? 'green' : 'slate'} />
+                                        {form.isMapped && <Badge label="Mapped" color="blue" />}
+                                    </div>
+                                </div>
+                                <div className="flex items-center justify-between gap-3 flex-wrap">
+                                    <span className="flex items-center gap-1 text-xs text-slate-500">
+                                        <span className="material-symbols-outlined text-[13px]">people</span>
+                                        {(form.leadsCount || 0).toLocaleString('en-IN')} leads
+                                        {form.pageName && <span className="ml-2">· {form.pageName}</span>}
+                                    </span>
+                                    <div className="flex items-center gap-2">
+                                        {!form.isMapped && (
+                                            <button onClick={() => setMappingForm(form)}
+                                                className="flex items-center gap-1.5 rounded-xl border border-blue-500/30 bg-blue-500/5 hover:bg-blue-500/10 text-blue-600 dark:text-blue-400 text-[10px] font-black uppercase tracking-[0.2em] px-3 py-1.5 transition-all">
+                                                <span className="material-symbols-outlined text-[13px]">add_link</span>
+                                                Map to Project
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        ))
+                    )}
+                </div>
+            )}
+
+            {mappingForm && (
+                <AddMappingModal
+                    form={mappingForm}
+                    projects={projects}
+                    onSave={() => { setMappingForm(null); onMappingCreated(); }}
+                    onClose={() => setMappingForm(null)}
+                />
+            )}
+        </div>
+    );
+}
+
+function TabCampaigns({ campaigns, campaignsLoading, onSync, syncing, isConnected, projects, onMappingCreated }) {
+    const ORDER = { ACTIVE: 0, PAUSED: 1, ARCHIVED: 2, DELETED: 3 };
+    const sorted = [...campaigns].sort((a, b) => {
+        const ao = ORDER[a.status] ?? 9;
+        const bo = ORDER[b.status] ?? 9;
+        return ao !== bo ? ao - bo : (b.leadsCount || 0) - (a.leadsCount || 0);
+    });
+
+    if (!isConnected) {
+        return (
+            <div className={`${cardClass} p-12 text-center`}>
+                <span className="material-symbols-outlined text-4xl text-slate-400 mb-3 block">lock</span>
+                <p className="text-slate-500">Connect Facebook first to view campaigns.</p>
+            </div>
+        );
+    }
+
+    return (
+        <div className="space-y-4">
+            <div className="flex items-center justify-between">
+                <h2 className="text-lg font-black text-slate-900 dark:text-white">
+                    Campaigns & Forms
+                    {campaigns.length > 0 && <span className="ml-2 text-slate-400 text-base font-normal">({campaigns.length})</span>}
+                </h2>
+                <button onClick={onSync} disabled={syncing}
+                    className="flex items-center gap-2 rounded-2xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-[11px] font-black uppercase tracking-[0.2em] px-4 py-2.5 transition-all">
+                    <span className={`material-symbols-outlined text-base ${syncing ? 'animate-spin' : ''}`}>sync</span>
+                    {syncing ? 'Syncing…' : 'Sync Now'}
+                </button>
+            </div>
+
+            {campaignsLoading && (
+                <div className="flex justify-center py-12"><Spinner size="lg" /></div>
+            )}
+
+            {!campaignsLoading && sorted.length === 0 && (
+                <div className={`${cardClass} p-12 text-center`}>
+                    <span className="material-symbols-outlined text-4xl text-slate-400 mb-3 block">campaign</span>
+                    <p className="text-slate-500 font-bold">No campaigns found</p>
+                    <p className="text-slate-400 text-sm mt-1">Click "Sync Now" to fetch campaigns from your ad accounts.</p>
+                </div>
+            )}
+
+            {!campaignsLoading && sorted.map(camp => (
+                <CampaignCard
+                    key={camp.campaignId}
+                    campaign={camp}
+                    projects={projects}
+                    onMappingCreated={onMappingCreated}
+                />
+            ))}
+        </div>
+    );
+}
+
+// ─── Tab 3: Lead Management ──────────────────────────────────────────────────
+
+function TabLeads({ leads, leadsLoading, userId }) {
+    const navigate = useNavigate();
+    const [search, setSearch]       = useState('');
+    const [statusFilter, setFilter] = useState('');
+
+    const filtered = leads.filter(l => {
+        const name  = `${l.first_name || ''} ${l.last_name || ''}`.toLowerCase();
+        const phone = (l.phone_number || '').toLowerCase();
+        const q     = search.toLowerCase();
+        const matchQ = !q || name.includes(q) || phone.includes(q);
+        const matchS = !statusFilter || l.status === statusFilter;
+        return matchQ && matchS;
+    });
+
+    const scoreColor = (s) => s >= 70 ? 'text-emerald-500' : s >= 40 ? 'text-yellow-500' : 'text-red-500';
+
+    const getLeadStatus = (lead) => {
+        const s = lead.score || 0;
+        if (s >= 70) return { label: 'HOT',  color: 'red' };
+        if (s >= 40) return { label: 'WARM', color: 'orange' };
+        return { label: 'COLD', color: 'blue' };
+    };
+
+    return (
+        <div className="space-y-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <h2 className="text-lg font-black text-slate-900 dark:text-white">
+                    Facebook Leads
+                    {leads.length > 0 && <span className="ml-2 text-slate-400 text-base font-normal">({leads.length} total)</span>}
+                </h2>
+                <div className="flex items-center gap-2 flex-wrap">
+                    <input
+                        type="text"
+                        placeholder="Search by name or phone…"
+                        value={search}
+                        onChange={e => setSearch(e.target.value)}
+                        className="rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-800 px-4 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-blue-500 transition-all w-56"
+                    />
+                    <select value={statusFilter} onChange={e => setFilter(e.target.value)}
+                        className="rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 outline-none focus:border-blue-500 transition-all">
+                        <option value="">All scores</option>
+                        <option value="HOT">HOT (≥70)</option>
+                        <option value="WARM">WARM (≥40)</option>
+                        <option value="COLD">COLD (&lt;40)</option>
+                    </select>
+                </div>
+            </div>
+
+            {leadsLoading && (
+                <div className="flex justify-center py-12"><Spinner size="lg" /></div>
+            )}
+
+            {!leadsLoading && filtered.length === 0 && (
+                <div className={`${cardClass} p-12 text-center`}>
+                    <span className="material-symbols-outlined text-4xl text-slate-400 mb-3 block">manage_accounts</span>
+                    <p className="text-slate-500 font-bold">No Facebook leads found</p>
+                    <p className="text-slate-400 text-sm mt-1">Leads captured via Facebook Lead Ads will appear here.</p>
+                </div>
+            )}
+
+            {!leadsLoading && filtered.length > 0 && (
+                <div className={`${cardClass} overflow-hidden`}>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                            <thead>
+                                <tr className="border-b border-slate-200/70 dark:border-white/10 bg-slate-50/80 dark:bg-white/[0.02]">
+                                    <th className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-[0.25em] text-slate-500">Name</th>
+                                    <th className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-[0.25em] text-slate-500">Phone</th>
+                                    <th className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 hidden sm:table-cell">Email</th>
+                                    <th className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-[0.25em] text-slate-500">Score</th>
+                                    <th className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-[0.25em] text-slate-500">Status</th>
+                                    <th className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 hidden md:table-cell">Created</th>
+                                    <th className="px-5 py-3"></th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-200/50 dark:divide-white/5">
+                                {filtered.map(lead => {
+                                    const ls = getLeadStatus(lead);
+                                    return (
+                                        <tr key={lead.id || lead._id}
+                                            className="hover:bg-slate-50/80 dark:hover:bg-white/[0.02] transition-colors">
+                                            <td className="px-5 py-3.5 font-bold text-slate-900 dark:text-white">
+                                                {lead.first_name} {lead.last_name}
+                                            </td>
+                                            <td className="px-5 py-3.5 text-slate-600 dark:text-slate-300 font-mono text-xs">
+                                                {lead.phone_number}
+                                            </td>
+                                            <td className="px-5 py-3.5 text-slate-500 text-xs hidden sm:table-cell">
+                                                {lead.email || '—'}
+                                            </td>
+                                            <td className={`px-5 py-3.5 font-black ${scoreColor(lead.score || 0)}`}>
+                                                {lead.score || 0}
+                                            </td>
+                                            <td className="px-5 py-3.5">
+                                                <Badge label={ls.label} color={ls.color} />
+                                            </td>
+                                            <td className="px-5 py-3.5 text-xs text-slate-500 hidden md:table-cell">
+                                                {lead.createdAt ? new Date(lead.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '—'}
+                                            </td>
+                                            <td className="px-5 py-3.5">
+                                                <button
+                                                    onClick={() => navigate(`/lead/${lead.id || lead._id}`)}
+                                                    className="flex items-center gap-1 rounded-xl border border-slate-200 dark:border-white/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5 transition-all">
+                                                    <span className="material-symbols-outlined text-[13px]">open_in_new</span>
+                                                    Open
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
+// ─── Tab 4: Settings & Import ────────────────────────────────────────────────
+
+function TabSettings({ isConnected, onSync, syncing, lastSynced, onDisconnect, disconnecting, onConnect }) {
+    const { addToast }       = useNotifications();
+    const [importing, setImporting]     = useState(false);
+    const [importDays, setImportDays]   = useState(30);
+    const [runAutomation, setRunAuto]   = useState(false);
+
+    const handleImport = async () => {
+        setImporting(true);
+        try {
+            await importFBHistorical(importDays, runAutomation);
+            addToast(`Historical import started (last ${importDays} days). Check CRM in a minute.`, 'success');
+        } catch (err) {
+            addToast(err.response?.data?.error || 'Import failed.', 'error');
+        } finally { setImporting(false); }
+    };
+
+    return (
+        <div className="space-y-6 max-w-2xl">
+            {/* Sync section */}
+            <div className={`${cardClass} p-6`}>
+                <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 mb-4">Campaign Sync</h3>
+                <div className="flex items-center justify-between gap-4">
+                    <div>
+                        <p className="text-sm font-bold text-slate-900 dark:text-white">Sync Campaigns & Forms</p>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                            Fetches all campaigns from your ad accounts and stores form details in the database.
+                            {lastSynced && <span> Last synced: <span className="font-bold">{relativeTime(lastSynced)}</span></span>}
+                        </p>
+                    </div>
+                    <button onClick={onSync} disabled={syncing || !isConnected}
+                        className="flex items-center gap-2 rounded-2xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-[11px] font-black uppercase tracking-[0.2em] px-5 py-3 transition-all flex-shrink-0">
+                        <span className={`material-symbols-outlined text-base ${syncing ? 'animate-spin' : ''}`}>sync</span>
+                        {syncing ? 'Syncing…' : 'Sync Now'}
+                    </button>
+                </div>
+            </div>
+
+            {/* Historical import section */}
+            {isConnected && (
+                <div className={`${cardClass} p-6`}>
+                    <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 mb-4">Historical Lead Import</h3>
+                    <p className="text-sm text-slate-600 dark:text-slate-300 mb-4">
+                        Pull existing leads from all mapped forms into the CRM. Duplicates are automatically skipped.
+                    </p>
+
+                    <div className="mb-4">
+                        <label className="block text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 mb-2">Time Range</label>
+                        <div className="flex gap-2 flex-wrap">
+                            {[7, 30, 90].map(d => (
+                                <button key={d} onClick={() => setImportDays(d)}
+                                    className={`rounded-2xl border px-4 py-2 text-[11px] font-black uppercase tracking-[0.2em] transition-all
+                                        ${importDays === d
+                                            ? 'bg-blue-600 border-blue-600 text-white'
+                                            : 'border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5'}`}>
+                                    Last {d} days
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="mb-5 flex items-center justify-between gap-3 p-4 rounded-2xl border border-slate-200/70 dark:border-white/10 bg-slate-50/80 dark:bg-white/[0.02]">
+                        <div>
+                            <p className="text-sm font-bold text-slate-900 dark:text-white">Run Automation</p>
+                            <p className="text-xs text-slate-500 mt-0.5">
+                                When enabled, triggers AI voice calls for each imported lead. Disable for silent imports.
+                            </p>
+                        </div>
+                        <button
+                            onClick={() => setRunAuto(v => !v)}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0
+                                ${runAutomation ? 'bg-blue-600' : 'bg-slate-300 dark:bg-slate-600'}`}
+                            aria-label="Toggle run automation"
+                        >
+                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform
+                                ${runAutomation ? 'translate-x-6' : 'translate-x-1'}`} />
+                        </button>
+                    </div>
+
+                    <button onClick={handleImport} disabled={importing}
+                        className="w-full flex items-center justify-center gap-2 rounded-2xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-black text-[11px] uppercase tracking-[0.2em] py-3.5 transition-all">
+                        {importing ? <Spinner /> : <span className="material-symbols-outlined text-base">download</span>}
+                        {importing ? 'Importing…' : `Import Last ${importDays} Days`}
+                    </button>
+                </div>
+            )}
+
+            {/* Disconnect section */}
+            {isConnected && (
+                <div className={`${cardClass} p-6`}>
+                    <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 mb-4">Danger Zone</h3>
+                    <div className="flex items-center justify-between gap-4">
+                        <div>
+                            <p className="text-sm font-bold text-slate-900 dark:text-white">Disconnect Facebook</p>
+                            <p className="text-xs text-slate-500 mt-0.5">Existing mappings are preserved but no new leads will import until you reconnect.</p>
+                        </div>
+                        <button onClick={onDisconnect} disabled={disconnecting}
+                            className="rounded-2xl border border-red-500/20 bg-red-500/10 px-5 py-2.5 text-sm font-black uppercase tracking-[0.2em] text-red-600 dark:text-red-400 hover:bg-red-500/20 disabled:opacity-50 transition-all flex-shrink-0">
+                            {disconnecting ? 'Disconnecting…' : 'Disconnect'}
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {!isConnected && (
+                <div className={`${cardClass} p-10 text-center`}>
+                    <span className="material-symbols-outlined text-4xl text-slate-400 mb-3 block">link_off</span>
+                    <p className="text-slate-500 font-bold mb-4">Facebook not connected</p>
+                    <button onClick={onConnect}
+                        className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-6 py-3 text-sm font-black uppercase tracking-[0.2em] text-white hover:bg-blue-700 transition-all">
+                        <span className="text-base font-black">f</span>
+                        Connect Facebook
+                    </button>
+                </div>
+            )}
+        </div>
+    );
+}
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
+
+const TABS = [
+    { id: 'overview',   label: 'Overview',       icon: 'dashboard' },
+    { id: 'campaigns',  label: 'Campaigns',       icon: 'campaign' },
+    { id: 'leads',      label: 'Lead Management', icon: 'manage_accounts' },
+    { id: 'settings',   label: 'Settings',        icon: 'settings' },
+];
 
 const FacebookIntegrationPage = () => {
     const { addToast } = useNotifications();
 
     // ── state ──
-    const [status, setStatus] = useState(null);    // null = loading
-    const [loadError, setLoadError] = useState('');
-    const [projects, setProjects] = useState([]);
+    const [activeTab,   setActiveTab]   = useState('overview');
+    const [status,      setStatus]      = useState(null);     // null = loading
+    const [loadError,   setLoadError]   = useState('');
+    const [projects,    setProjects]    = useState([]);
+    const [campaigns,   setCampaigns]   = useState([]);
+    const [campsLoading, setCampsLoading] = useState(false);
+    const [fbLeads,     setFbLeads]     = useState([]);
+    const [leadsLoading, setLeadsLoading] = useState(false);
+    const [syncing,     setSyncing]     = useState(false);
     const [disconnecting, setDisconnecting] = useState(false);
-    const [refreshing, setRefreshing] = useState(false);
-    const pollRef = useRef(null);
+    const [lastSynced,  setLastSynced]  = useState(null);
+    const syncIntervalRef = useRef(null);
+    const userId = useRef(null);
 
-    // ── load status (called on mount, after connect callback, and on manual refresh) ──
+    // ── load FB status ──
     const loadStatus = useCallback(async (quiet = false) => {
         if (!quiet) setStatus(null);
         setLoadError('');
         try {
             const res = await getFBStatus();
             setStatus(res.data);
-
-            // Also load projects for mapping modal (non-blocking)
-            getFBBridgeProjects()
-                .then(r => setProjects(r.data?.data || []))
-                .catch(() => {});
+            // Extract userId from createdBy of any mapping or use a stored ref
+            if (res.data?.mappings?.[0]?.ownerId) userId.current = res.data.mappings[0].ownerId;
         } catch (err) {
-            const msg = err.response?.data?.error || 'Failed to load Facebook status.';
-            setLoadError(msg);
+            setLoadError(err.response?.data?.error || 'Failed to load Facebook status.');
             setStatus({ connected: false });
         }
     }, []);
 
-    // ── on mount: handle ?connected=true callback OR just load status ──
+    // ── load campaigns from DB ──
+    const loadCampaigns = useCallback(async (quiet = false) => {
+        if (!quiet) setCampsLoading(true);
+        try {
+            const res = await getFBCampaigns({ limit: 200 });
+            setCampaigns(res.data?.data || []);
+            const sorted = (res.data?.data || []).sort((a, b) => new Date(b.lastSyncedAt) - new Date(a.lastSyncedAt));
+            if (sorted[0]?.lastSyncedAt) setLastSynced(sorted[0].lastSyncedAt);
+        } catch { /* ignore */ } finally {
+            if (!quiet) setCampsLoading(false);
+        }
+    }, []);
+
+    // ── load Facebook leads from CRM ──
+    const loadFbLeads = useCallback(async () => {
+        setLeadsLoading(true);
+        try {
+            const res = await getAllLeads({ source: 'facebook', limit: 500 });
+            setFbLeads(res.data?.leads || res.data?.data || []);
+            // Also capture userId from first lead
+            const firstLead = (res.data?.leads || res.data?.data || [])[0];
+            if (firstLead?.createdBy?.userId) userId.current = firstLead.createdBy.userId;
+        } catch { /* ignore */ } finally { setLeadsLoading(false); }
+    }, []);
+
+    // ── on mount ──
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
-        // Always clean the URL
-        if (params.toString()) {
-            window.history.replaceState({}, '', window.location.pathname);
-        }
-        loadStatus();
-        // Poll every 60s while page is open to refresh token/form data
-        pollRef.current = setInterval(() => loadStatus(true), 60_000);
-        return () => clearInterval(pollRef.current);
-    }, [loadStatus]);
+        if (params.toString()) window.history.replaceState({}, '', window.location.pathname);
+
+        Promise.all([
+            loadStatus(),
+            loadCampaigns(),
+            loadFbLeads(),
+            getFBBridgeProjects().then(r => setProjects(r.data?.data || [])).catch(() => {}),
+        ]);
+
+        // Auto-sync campaigns every 5 minutes silently
+        syncIntervalRef.current = setInterval(() => {
+            loadCampaigns(true);
+        }, 5 * 60 * 1000);
+
+        return () => clearInterval(syncIntervalRef.current);
+    }, [loadStatus, loadCampaigns, loadFbLeads]);
+
+    // ── manual sync ──
+    const handleSync = async () => {
+        setSyncing(true);
+        try {
+            await syncFBCampaigns();
+            addToast('Sync started. Refreshing in 3 seconds…', 'success');
+            setTimeout(() => loadCampaigns(), 3000);
+        } catch (err) {
+            addToast(err.response?.data?.error || 'Sync failed.', 'error');
+        } finally { setSyncing(false); }
+    };
 
     // ── connect ──
-    const handleConnect = () => {
-        initiateFBConnect(); // redirects browser to /api/facebook/connect
-    };
+    const handleConnect = () => initiateFBConnect();
 
     // ── disconnect ──
     const handleDisconnect = async () => {
-        if (!window.confirm('Disconnect Facebook? All form mappings will remain but no new leads will be imported until you reconnect.')) return;
+        if (!window.confirm('Disconnect Facebook? All form mappings will remain but no new leads will import until you reconnect.')) return;
         setDisconnecting(true);
         try {
             await disconnectFacebook();
             setStatus({ connected: false });
-            addToast('Facebook disconnected successfully', 'success');
-        } catch {
-            addToast('Failed to disconnect. Please try again.', 'error');
-        } finally {
-            setDisconnecting(false);
-        }
-    };
-
-    // ── refresh pages + forms ──
-    const handleRefresh = async () => {
-        setRefreshing(true);
-        await loadStatus(false);
-        setRefreshing(false);
-        addToast('Pages and forms refreshed', 'success');
+            setCampaigns([]);
+            addToast('Facebook disconnected.', 'success');
+        } catch { addToast('Failed to disconnect.', 'error'); }
+        finally { setDisconnecting(false); }
     };
 
     // ── mapping callbacks ──
     const handleMappingCreated = useCallback(() => {
         loadStatus(true);
+        loadCampaigns(true);
         addToast('Form mapping saved. Leads will now import automatically.', 'success');
-    }, [loadStatus, addToast]);
-
-    const handleMappingDeleted = useCallback(async (id) => {
-        try {
-            await deleteFBMapping(id);
-            loadStatus(true);
-            addToast('Mapping removed.', 'success');
-        } catch {
-            addToast('Failed to remove mapping.', 'error');
-        }
-    }, [loadStatus, addToast]);
-
-    const [importing, setImporting] = useState(false);
-    const handleImportHistorical = async (days = 30) => {
-        setImporting(true);
-        try {
-            await importFBHistorical(days);
-            addToast(`Historical import started (last ${days} days). Check CRM in a minute.`, 'success');
-        } catch (err) {
-            addToast(err.response?.data?.error || 'Import failed.', 'error');
-        } finally {
-            setImporting(false);
-        }
-    };
-
+    }, [loadStatus, loadCampaigns, addToast]);
 
     // ── derived ──
     const isConnected = status?.connected === true;
-    const totalForms  = (status?.pages || []).reduce((sum, p) => sum + (p.forms?.length || 0), 0);
-    const totalMapped = (status?.mappings || []).length;
-    const totalLeads  = (status?.pages || []).reduce(
-        (sum, p) => sum + (p.forms || []).reduce((s, f) => s + (f.leads_count || 0), 0), 0
-    );
 
     // ── loading skeleton ──
     if (status === null && !loadError) {
@@ -400,9 +760,7 @@ const FacebookIntegrationPage = () => {
             <div className="flex min-h-[60vh] items-center justify-center">
                 <div className="flex flex-col items-center gap-4">
                     <Spinner size="lg" />
-                    <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500">
-                        Loading Facebook Integration…
-                    </p>
+                    <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500">Loading Facebook Integration…</p>
                 </div>
             </div>
         );
@@ -413,298 +771,100 @@ const FacebookIntegrationPage = () => {
             <div className="mx-auto max-w-7xl">
 
                 {/* ── Header ── */}
-                <div className={`${cardClass} mb-8 p-6 md:p-8`}>
-                    <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+                <div className={`${cardClass} mb-6 p-6 md:p-8`}>
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                         <div>
-                            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/10 px-4 py-2">
+                            <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/10 px-4 py-1.5">
                                 <span className="h-2 w-2 animate-pulse rounded-full bg-blue-500" />
-                                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-600 dark:text-blue-400">
-                                    Meta Lead Ads
-                                </span>
+                                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-600 dark:text-blue-400">Meta Lead Ads</span>
                             </div>
-                            <h1 className="text-3xl font-black tracking-tight text-slate-900 dark:text-white md:text-4xl">
-                                Facebook Integration
-                            </h1>
-                            <p className="mt-2 text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400">
-                                Connect Facebook pages &amp; receive lead ads instantly
-                            </p>
+                            <h1 className="text-3xl font-black tracking-tight text-slate-900 dark:text-white">Facebook Integration</h1>
                         </div>
-
-                        <div className="flex items-center gap-3 flex-wrap">
-                            {isConnected && (
-                                <button
-                                    onClick={handleRefresh}
-                                    disabled={refreshing}
-                                    className="flex items-center gap-2 rounded-2xl border border-slate-200 dark:border-white/10 px-4 py-2.5 text-[11px] font-black uppercase tracking-[0.2em] text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 disabled:opacity-50 transition-all"
-                                >
-                                    <span className={`material-symbols-outlined text-base ${refreshing ? 'animate-spin' : ''}`}>refresh</span>
-                                    {refreshing ? 'Refreshing…' : 'Refresh'}
-                                </button>
-                            )}
-                            <div className={`inline-flex items-center gap-3 rounded-2xl px-5 py-3 font-black uppercase tracking-[0.25em] text-sm
-                                ${isConnected
-                                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
-                                    : 'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20'
-                                }`}
-                            >
-                                <span className={`h-3 w-3 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
-                                {isConnected ? 'Connected' : 'Disconnected'}
-                            </div>
+                        <div className={`inline-flex items-center gap-2 rounded-2xl px-4 py-2 text-sm font-black uppercase tracking-[0.2em]
+                            ${isConnected
+                                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                                : 'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20'}`}>
+                            <span className={`h-2.5 w-2.5 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
+                            {isConnected ? 'Connected' : 'Disconnected'}
                         </div>
                     </div>
-
-                    {/* Degraded warning */}
-                    {status?.degraded && (
-                        <div className="mt-4 flex items-center gap-3 rounded-2xl bg-yellow-500/10 border border-yellow-500/20 px-4 py-3">
-                            <span className="material-symbols-outlined text-yellow-500">warning</span>
-                            <p className="text-sm text-yellow-700 dark:text-yellow-300">
-                                Facebook API is temporarily unreachable. Showing cached data. Leads are still being received.
-                            </p>
-                        </div>
-                    )}
-                    {status?.tokenExpired && (
-                        <div className="mt-4 flex items-center gap-3 rounded-2xl bg-red-500/10 border border-red-500/20 px-4 py-3">
-                            <span className="material-symbols-outlined text-red-500">error</span>
-                            <p className="text-sm text-red-700 dark:text-red-300">
-                                Your Facebook token has expired. Please reconnect to restore lead imports.
-                            </p>
-                        </div>
-                    )}
                     {loadError && (
                         <div className="mt-4 flex items-center gap-3 rounded-2xl bg-red-500/10 border border-red-500/20 px-4 py-3">
                             <span className="material-symbols-outlined text-red-500">error</span>
                             <p className="text-sm text-red-700 dark:text-red-300">{loadError}</p>
                         </div>
                     )}
+                    {/* Prompt to sync if connected but no campaigns */}
+                    {isConnected && !campsLoading && campaigns.length === 0 && (
+                        <div className="mt-4 flex items-center gap-3 rounded-2xl bg-blue-500/10 border border-blue-500/20 px-4 py-3">
+                            <span className="material-symbols-outlined text-blue-500">info</span>
+                            <p className="text-sm text-blue-700 dark:text-blue-300 flex-1">
+                                No campaigns loaded yet. Click <strong>Sync Campaigns</strong> to import your ad account data.
+                            </p>
+                            <button onClick={handleSync} disabled={syncing}
+                                className="flex items-center gap-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-[10px] font-black uppercase tracking-[0.2em] px-3 py-1.5 transition-all flex-shrink-0">
+                                <span className={`material-symbols-outlined text-[13px] ${syncing ? 'animate-spin' : ''}`}>sync</span>
+                                {syncing ? 'Syncing…' : 'Sync Campaigns'}
+                            </button>
+                        </div>
+                    )}
                 </div>
 
-
-                {/* ── Main 2-col layout ── */}
-                <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-
-                    {/* ── Left: OAuth card ── */}
-                    <div className="lg:col-span-1 space-y-6">
-                        <div className={`${cardClass} p-6 md:p-8`}>
-                            <div className="mb-6 flex items-center gap-4">
-                                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-lg flex-shrink-0">
-                                    <span className="text-2xl font-black">f</span>
-                                </div>
-                                <div>
-                                    <h2 className="text-xl font-black tracking-tight text-slate-900 dark:text-white">Facebook OAuth</h2>
-                                    <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400">
-                                        Secure Meta authentication
-                                    </p>
-                                </div>
-                            </div>
-
-                            {!isConnected ? (
-                                <div>
-                                    <div className="mb-6 rounded-2xl border border-blue-500/20 bg-blue-500/5 p-4">
-                                        <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-300">
-                                            Connect your Facebook account to sync Lead Ads forms directly into your CRM pipeline.
-                                        </p>
-                                    </div>
-                                    <button
-                                        onClick={handleConnect}
-                                        className="group flex w-full items-center justify-center gap-3 rounded-2xl bg-blue-600 px-6 py-4 text-sm font-black uppercase tracking-[0.2em] text-white shadow-lg transition-all hover:scale-[1.02] hover:bg-blue-700 active:scale-[0.98]"
-                                    >
-                                        <span className="text-xl font-black">f</span>
-                                        Connect Facebook
-                                    </button>
-                                </div>
-                            ) : (
-                                <div className="space-y-3">
-                                    {status?.connectedAt && (
-                                        <div className="rounded-2xl bg-emerald-500/5 border border-emerald-500/20 p-3 text-xs text-slate-500">
-                                            Connected {new Date(status.connectedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                                        </div>
-                                    )}
-                                    <button
-                                        onClick={handleDisconnect}
-                                        disabled={disconnecting}
-                                        className="w-full rounded-2xl border border-red-500/20 bg-red-500/10 px-6 py-4 text-sm font-black uppercase tracking-[0.2em] text-red-600 transition-all hover:bg-red-500/20 dark:text-red-400 disabled:opacity-50"
-                                    >
-                                        {disconnecting ? 'Disconnecting…' : 'Disconnect'}
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Stats card (only when connected) */}
-                        {isConnected && (
-                            <div className={`${cardClass} p-5`}>
-                                <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 mb-4">Quick Stats</h3>
-                                <div className="space-y-3">
-                                    {[
-                                        { label: 'Connected Pages', value: (status?.pages || []).length, icon: 'pages' },
-                                        { label: 'Lead Forms', value: totalForms, icon: 'description' },
-                                        { label: 'Mapped Forms', value: totalMapped, icon: 'link' },
-                                        { label: 'Total Leads (FB)', value: totalLeads.toLocaleString('en-IN'), icon: 'people' },
-                                    ].map(({ label, value, icon }) => (
-                                        <div key={label} className="flex items-center justify-between">
-                                            <span className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
-                                                <span className="material-symbols-outlined text-base">{icon}</span>
-                                                {label}
-                                            </span>
-                                            <span className="text-sm font-bold text-slate-900 dark:text-white">{value}</span>
-                                        </div>
-                                    ))}
-                                </div>
-
-                                {/* Historical import button — only shown when mappings exist */}
-                                {totalMapped > 0 && (
-                                    <div className="mt-5 pt-4 border-t border-slate-200/70 dark:border-white/10 space-y-2">
-                                        <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400 mb-2">Import Historical Leads</p>
-                                        {[
-                                            { label: 'Last 7 days',  days: 7 },
-                                            { label: 'Last 30 days', days: 30 },
-                                            { label: 'Last 90 days', days: 90 },
-                                        ].map(({ label, days }) => (
-                                            <button
-                                                key={days}
-                                                onClick={() => handleImportHistorical(days)}
-                                                disabled={importing}
-                                                className="w-full flex items-center justify-center gap-2 rounded-2xl border border-blue-500/30 bg-blue-500/5 hover:bg-blue-500/10 text-blue-600 dark:text-blue-400 text-[11px] font-black uppercase tracking-[0.18em] py-2 transition-all disabled:opacity-50"
-                                            >
-                                                {importing
-                                                    ? <Spinner />
-                                                    : <span className="material-symbols-outlined text-base">download</span>
-                                                }
-                                                {label}
-                                            </button>
-                                        ))}
-                                        <p className="text-[10px] text-slate-400 text-center mt-1">Pulls from all mapped forms. Duplicates skipped.</p>
-                                    </div>
-                                )}
-
-                                {/* No mappings yet — prompt */}
-                                {totalMapped === 0 && totalForms > 0 && (
-                                    <div className="mt-4 pt-4 border-t border-slate-200/70 dark:border-white/10">
-                                        <p className="text-xs text-slate-400 text-center">Map a form above to enable lead import.</p>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </div>
-
-
-                    {/* ── Right: Form Mapping panel ── */}
-                    <div className="lg:col-span-2">
-                        <div className={`${cardClass} p-6 md:p-8`}>
-                            <div className="mb-6 flex items-center justify-between">
-                                <div>
-                                    <h2 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white">
-                                        Lead Form Mapping
-                                    </h2>
-                                    <p className="mt-1 text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400">
-                                        Map Meta forms to projects — leads import automatically
-                                    </p>
-                                </div>
-                            </div>
-
-                            {/* Not connected */}
-                            {!isConnected && (
-                                <div className="rounded-3xl border border-dashed border-slate-300 dark:border-white/10 bg-slate-50/80 dark:bg-slate-900/40 p-12 text-center">
-                                    <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-slate-200 dark:bg-slate-800">
-                                        <span className="material-symbols-outlined text-4xl text-slate-500 dark:text-slate-400">lock</span>
-                                    </div>
-                                    <h3 className="mb-2 text-xl font-black text-slate-900 dark:text-white">Facebook Not Connected</h3>
-                                    <p className="mx-auto max-w-md text-sm leading-relaxed text-slate-500 dark:text-slate-400">
-                                        Connect your Facebook account first to access lead forms and configure automatic lead routing.
-                                    </p>
-                                    <button
-                                        onClick={handleConnect}
-                                        className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-6 py-3 text-sm font-black uppercase tracking-[0.2em] text-white hover:bg-blue-700 transition-all"
-                                    >
-                                        <span className="text-base font-black">f</span>
-                                        Connect Facebook
-                                    </button>
-                                </div>
-                            )}
-
-                            {/* Connected — no pages */}
-                            {isConnected && (status?.pages || []).length === 0 && (
-                                <div className="rounded-3xl border border-dashed border-slate-300 dark:border-white/10 bg-slate-50/80 dark:bg-slate-900/40 p-12 text-center">
-                                    <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-blue-500/10">
-                                        <span className="material-symbols-outlined text-4xl text-blue-500">pages</span>
-                                    </div>
-                                    <h3 className="mb-2 text-xl font-black text-slate-900 dark:text-white">No Facebook Pages Found</h3>
-                                    <p className="mx-auto max-w-md text-sm leading-relaxed text-slate-500 dark:text-slate-400">
-                                        Make sure your Facebook account manages at least one Page with Lead Ads enabled. Then click Refresh.
-                                    </p>
-                                    <button
-                                        onClick={handleRefresh}
-                                        disabled={refreshing}
-                                        className="mt-6 inline-flex items-center gap-2 rounded-2xl border border-slate-300 dark:border-white/10 px-6 py-3 text-sm font-black uppercase tracking-[0.2em] text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/5 disabled:opacity-50 transition-all"
-                                    >
-                                        <span className={`material-symbols-outlined text-base ${refreshing ? 'animate-spin' : ''}`}>refresh</span>
-                                        {refreshing ? 'Refreshing…' : 'Refresh Pages'}
-                                    </button>
-                                </div>
-                            )}
-
-                            {/* Connected — pages present */}
-                            {isConnected && (status?.pages || []).length > 0 && (
-                                <div className="space-y-4">
-                                    {/* Info banner when page has no forms yet */}
-                                    {totalForms === 0 && (
-                                        <div className="rounded-2xl border border-yellow-500/20 bg-yellow-500/5 p-4 flex items-start gap-3">
-                                            <span className="material-symbols-outlined text-yellow-500 text-xl flex-shrink-0 mt-0.5">info</span>
-                                            <div>
-                                                <p className="text-sm font-bold text-yellow-700 dark:text-yellow-300">No Lead Ads forms found on this page yet</p>
-                                                <p className="text-xs text-yellow-600/80 dark:text-yellow-400/80 mt-1">
-                                                    Go to <a href="https://www.facebook.com/ads/manager" target="_blank" rel="noopener noreferrer" className="underline">Meta Ads Manager</a> → Lead Ads → create a Lead form on your page. Once created, click Refresh here.
-                                                </p>
-                                            </div>
-                                        </div>
-                                    )}
-                                    {(status.pages || []).map(page => (
-                                        <PageSection
-                                            key={page.id}
-                                            page={page}
-                                            mappings={status?.mappings || []}
-                                            projects={projects}
-                                            onMappingCreated={handleMappingCreated}
-                                            onMappingDeleted={handleMappingDeleted}
-                                        />
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-
-                        {/* ── All Mappings summary table ── */}
-                        {isConnected && (status?.mappings || []).length > 0 && (
-                            <div className={`${cardClass} p-6 mt-6`}>
-                                <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 mb-4 flex items-center gap-2">
-                                    <span className="material-symbols-outlined text-base">link</span>
-                                    All Active Mappings ({status.mappings.length})
-                                </h3>
-                                <div className="space-y-2">
-                                    {(status.mappings || []).map(m => (
-                                        <div key={m._id} className="flex items-center gap-3 p-3 rounded-2xl border border-slate-200/70 dark:border-white/10 bg-white/60 dark:bg-white/[0.02]">
-                                            <span className="material-symbols-outlined text-base text-blue-500 flex-shrink-0">description</span>
-                                            <div className="flex-1 min-w-0">
-                                                <p className="text-sm font-bold text-slate-900 dark:text-white truncate">
-                                                    {m.formName || m.fbFormId}
-                                                </p>
-                                                <p className="text-xs text-slate-500 font-mono truncate">Form ID: {m.fbFormId}</p>
-                                            </div>
-                                            <Badge label={m.isActive ? 'Active' : 'Inactive'} color={m.isActive ? 'green' : 'slate'} />
-                                            <button
-                                                onClick={() => handleMappingDeleted(m._id)}
-                                                className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-400 transition-colors flex-shrink-0"
-                                                title="Remove"
-                                            >
-                                                <span className="material-symbols-outlined text-base">delete</span>
-                                            </button>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-
+                {/* ── Tab bar ── */}
+                <div className="flex gap-1 mb-6 p-1 rounded-2xl bg-slate-100/80 dark:bg-white/[0.03] border border-slate-200/70 dark:border-white/10 overflow-x-auto">
+                    {TABS.map(tab => (
+                        <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+                            className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-[11px] font-black uppercase tracking-[0.2em] transition-all whitespace-nowrap flex-shrink-0
+                                ${activeTab === tab.id
+                                    ? 'bg-white dark:bg-white/10 text-slate-900 dark:text-white shadow-sm'
+                                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}>
+                            <span className="material-symbols-outlined text-base">{tab.icon}</span>
+                            {tab.label}
+                        </button>
+                    ))}
                 </div>
+
+                {/* ── Tab content ── */}
+                {activeTab === 'overview' && (
+                    <TabOverview
+                        status={status}
+                        campaigns={campaigns}
+                        fbLeads={fbLeads}
+                        onConnect={handleConnect}
+                        onDisconnect={handleDisconnect}
+                        disconnecting={disconnecting}
+                    />
+                )}
+                {activeTab === 'campaigns' && (
+                    <TabCampaigns
+                        campaigns={campaigns}
+                        campaignsLoading={campsLoading}
+                        onSync={handleSync}
+                        syncing={syncing}
+                        isConnected={isConnected}
+                        projects={projects}
+                        onMappingCreated={handleMappingCreated}
+                    />
+                )}
+                {activeTab === 'leads' && (
+                    <TabLeads
+                        leads={fbLeads}
+                        leadsLoading={leadsLoading}
+                        userId={userId.current}
+                    />
+                )}
+                {activeTab === 'settings' && (
+                    <TabSettings
+                        isConnected={isConnected}
+                        onSync={handleSync}
+                        syncing={syncing}
+                        lastSynced={lastSynced}
+                        onDisconnect={handleDisconnect}
+                        disconnecting={disconnecting}
+                        onConnect={handleConnect}
+                    />
+                )}
+
             </div>
         </div>
     );

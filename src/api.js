@@ -189,7 +189,11 @@ export const createFBMapping    = (data) => facebookApi.post('/mapping', data);
 export const deleteFBMapping    = (id)   => facebookApi.delete(`/mapping/${id}`);
 export const toggleFBMapping    = (id)   => facebookApi.patch(`/mapping/${id}/toggle`);
 // Historical lead import
-export const importFBHistorical = (days = 30) => facebookApi.post(`/import-historical?days=${days}`);
+export const importFBHistorical = (days = 30, runAutomation = true) =>
+    facebookApi.post(`/import-historical?days=${days}&runAutomation=${runAutomation}`);
+// Campaign management
+export const syncFBCampaigns = ()       => facebookApi.post('/campaigns/sync');
+export const getFBCampaigns  = (params) => facebookApi.get('/campaigns', { params });
 
 // Bridge: get builder projects for mapping
 export const getFBBridgeProjects = ()   => facebookApi.get('/bridge/projects');
