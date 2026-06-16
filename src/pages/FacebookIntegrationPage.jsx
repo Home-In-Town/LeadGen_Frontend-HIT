@@ -17,6 +17,7 @@ import {
     deleteFBMapping,
     getFBBridgeProjects,
     initiateFBConnect,
+    importFBHistorical,
 } from '../api';
 import { useNotifications } from '../context/NotificationContext';
 
@@ -371,6 +372,19 @@ const FacebookIntegrationPage = () => {
         }
     }, [loadStatus, addToast]);
 
+    const [importing, setImporting] = useState(false);
+    const handleImportHistorical = async (days = 30) => {
+        setImporting(true);
+        try {
+            await importFBHistorical(days);
+            addToast(`Historical import started (last ${days} days). Check CRM in a minute.`, 'success');
+        } catch (err) {
+            addToast(err.response?.data?.error || 'Import failed.', 'error');
+        } finally {
+            setImporting(false);
+        }
+    };
+
 
     // ── derived ──
     const isConnected = status?.connected === true;
@@ -536,6 +550,39 @@ const FacebookIntegrationPage = () => {
                                         </div>
                                     ))}
                                 </div>
+
+                                {/* Historical import button — only shown when mappings exist */}
+                                {totalMapped > 0 && (
+                                    <div className="mt-5 pt-4 border-t border-slate-200/70 dark:border-white/10 space-y-2">
+                                        <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400 mb-2">Import Historical Leads</p>
+                                        {[
+                                            { label: 'Last 7 days',  days: 7 },
+                                            { label: 'Last 30 days', days: 30 },
+                                            { label: 'Last 90 days', days: 90 },
+                                        ].map(({ label, days }) => (
+                                            <button
+                                                key={days}
+                                                onClick={() => handleImportHistorical(days)}
+                                                disabled={importing}
+                                                className="w-full flex items-center justify-center gap-2 rounded-2xl border border-blue-500/30 bg-blue-500/5 hover:bg-blue-500/10 text-blue-600 dark:text-blue-400 text-[11px] font-black uppercase tracking-[0.18em] py-2 transition-all disabled:opacity-50"
+                                            >
+                                                {importing
+                                                    ? <Spinner />
+                                                    : <span className="material-symbols-outlined text-base">download</span>
+                                                }
+                                                {label}
+                                            </button>
+                                        ))}
+                                        <p className="text-[10px] text-slate-400 text-center mt-1">Pulls from all mapped forms. Duplicates skipped.</p>
+                                    </div>
+                                )}
+
+                                {/* No mappings yet — prompt */}
+                                {totalMapped === 0 && totalForms > 0 && (
+                                    <div className="mt-4 pt-4 border-t border-slate-200/70 dark:border-white/10">
+                                        <p className="text-xs text-slate-400 text-center">Map a form above to enable lead import.</p>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>
@@ -599,6 +646,18 @@ const FacebookIntegrationPage = () => {
                             {/* Connected — pages present */}
                             {isConnected && (status?.pages || []).length > 0 && (
                                 <div className="space-y-4">
+                                    {/* Info banner when page has no forms yet */}
+                                    {totalForms === 0 && (
+                                        <div className="rounded-2xl border border-yellow-500/20 bg-yellow-500/5 p-4 flex items-start gap-3">
+                                            <span className="material-symbols-outlined text-yellow-500 text-xl flex-shrink-0 mt-0.5">info</span>
+                                            <div>
+                                                <p className="text-sm font-bold text-yellow-700 dark:text-yellow-300">No Lead Ads forms found on this page yet</p>
+                                                <p className="text-xs text-yellow-600/80 dark:text-yellow-400/80 mt-1">
+                                                    Go to <a href="https://www.facebook.com/ads/manager" target="_blank" rel="noopener noreferrer" className="underline">Meta Ads Manager</a> → Lead Ads → create a Lead form on your page. Once created, click Refresh here.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    )}
                                     {(status.pages || []).map(page => (
                                         <PageSection
                                             key={page.id}

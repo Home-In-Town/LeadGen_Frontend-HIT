@@ -188,6 +188,8 @@ export const getFBMappings      = ()     => facebookApi.get('/mapping');
 export const createFBMapping    = (data) => facebookApi.post('/mapping', data);
 export const deleteFBMapping    = (id)   => facebookApi.delete(`/mapping/${id}`);
 export const toggleFBMapping    = (id)   => facebookApi.patch(`/mapping/${id}/toggle`);
+// Historical lead import
+export const importFBHistorical = (days = 30) => facebookApi.post(`/import-historical?days=${days}`);
 
 // Bridge: get builder projects for mapping
 export const getFBBridgeProjects = ()   => facebookApi.get('/bridge/projects');
