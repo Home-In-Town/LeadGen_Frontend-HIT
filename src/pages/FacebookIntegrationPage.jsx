@@ -21,6 +21,8 @@ import {
     syncFBCampaigns,
     getFBCampaigns,
     getAllLeads,
+    updateFBCampaignSettings,
+    listWATemplates,
 } from '../api';
 import { useNotifications } from '../context/NotificationContext';
 
@@ -231,6 +233,47 @@ function TabOverview({ status, campaigns, fbLeads, onConnect, onDisconnect, disc
 function CampaignCard({ campaign, projects, onMappingCreated }) {
     const [expanded, setExpanded]         = useState(false);
     const [mappingForm, setMappingForm]   = useState(null);
+    const [aiExpanded, setAiExpanded]     = useState(false);
+    const [waTemplates, setWaTemplates]   = useState([]);
+    const [settings, setSettings]         = useState({
+        aiPrompt:         campaign.aiPrompt         || '',
+        aiPromptEnabled:  campaign.aiPromptEnabled  ?? false,
+        waTemplateName:   campaign.waTemplateName   || '',
+        waTemplateEnabled: campaign.waTemplateEnabled ?? false,
+        autoCallEnabled:  campaign.autoCallEnabled  ?? true,
+        autoWaEnabled:    campaign.autoWaEnabled    ?? true,
+        autoEmailEnabled: campaign.autoEmailEnabled ?? false,
+    });
+    const [saving, setSaving]             = useState(false);
+    const [saveMsg, setSaveMsg]           = useState('');
+
+    const isLead = ['OUTCOME_LEADS', 'LEAD_GENERATION'].includes(campaign.objective);
+
+    // Load WA templates when AI section is expanded
+    const handleAiExpand = async () => {
+        const next = !aiExpanded;
+        setAiExpanded(next);
+        if (next && waTemplates.length === 0) {
+            try {
+                const res = await listWATemplates();
+                if (res?.data?.success) setWaTemplates(res.data.data || []);
+            } catch { /* WA templates optional */ }
+        }
+    };
+
+    const handleSave = async () => {
+        setSaving(true);
+        setSaveMsg('');
+        try {
+            await updateFBCampaignSettings(campaign.campaignId, settings);
+            setSaveMsg('Saved!');
+            setTimeout(() => setSaveMsg(''), 2500);
+        } catch (err) {
+            setSaveMsg('Save failed');
+        } finally {
+            setSaving(false);
+        }
+    };
 
     const statusColor = campaign.status === 'ACTIVE' ? 'green'
         : campaign.status === 'PAUSED' ? 'yellow' : 'slate';
@@ -317,6 +360,110 @@ function CampaignCard({ campaign, projects, onMappingCreated }) {
                                 </div>
                             </div>
                         ))
+                    )}
+
+                    {/* ── AI Prompt + Automation Settings (lead campaigns only) ── */}
+                    {isLead && (
+                        <div className="rounded-2xl border border-blue-200/60 dark:border-blue-500/20 overflow-hidden">
+                            <button onClick={handleAiExpand}
+                                className="w-full flex items-center justify-between gap-3 px-4 py-3 bg-blue-50/60 dark:bg-blue-500/[0.06] hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-all text-left">
+                                <div className="flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-blue-500 text-base">psychology</span>
+                                    <span className="text-sm font-bold text-slate-900 dark:text-white">AI &amp; Automation Settings</span>
+                                </div>
+                                <span className={`material-symbols-outlined text-slate-400 text-base transition-transform ${aiExpanded ? 'rotate-180' : ''}`}>expand_more</span>
+                            </button>
+
+                            {aiExpanded && (
+                                <div className="p-4 space-y-4 bg-white/60 dark:bg-white/[0.01]">
+                                    {/* Automation Toggles */}
+                                    <div>
+                                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 mb-2">Automation</p>
+                                        <div className="flex flex-wrap gap-3">
+                                            {[
+                                                { key: 'autoCallEnabled',  icon: 'call',      label: 'Auto Call' },
+                                                { key: 'autoWaEnabled',    icon: 'chat',      label: 'Auto WhatsApp' },
+                                                { key: 'autoEmailEnabled', icon: 'email',     label: 'Auto Email' },
+                                            ].map(({ key, icon, label }) => (
+                                                <label key={key} className="flex items-center gap-2 cursor-pointer select-none">
+                                                    <input type="checkbox" checked={settings[key]}
+                                                        onChange={e => setSettings(s => ({ ...s, [key]: e.target.checked }))}
+                                                        className="w-4 h-4 accent-blue-600 rounded" />
+                                                    <span className="material-symbols-outlined text-[14px] text-slate-500">{icon}</span>
+                                                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{label}</span>
+                                                </label>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* WhatsApp Template */}
+                                    <div>
+                                        <div className="flex items-center justify-between mb-1">
+                                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">WhatsApp Template</p>
+                                            <label className="flex items-center gap-1.5 cursor-pointer">
+                                                <input type="checkbox" checked={settings.waTemplateEnabled}
+                                                    onChange={e => setSettings(s => ({ ...s, waTemplateEnabled: e.target.checked }))}
+                                                    className="w-3.5 h-3.5 accent-blue-600 rounded" />
+                                                <span className="text-[10px] font-bold text-slate-500">Enable</span>
+                                            </label>
+                                        </div>
+                                        <select
+                                            value={settings.waTemplateName}
+                                            onChange={e => setSettings(s => ({ ...s, waTemplateName: e.target.value }))}
+                                            disabled={!settings.waTemplateEnabled}
+                                            className="w-full rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-blue-400 transition-all disabled:opacity-50"
+                                        >
+                                            <option value="">— Select template —</option>
+                                            {waTemplates.map(t => (
+                                                <option key={t.name} value={t.name}>{t.name} ({t.status})</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    {/* AI Voice Prompt */}
+                                    <div>
+                                        <div className="flex items-center justify-between mb-1">
+                                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Campaign AI Prompt</p>
+                                            <label className="flex items-center gap-1.5 cursor-pointer">
+                                                <input type="checkbox" checked={settings.aiPromptEnabled}
+                                                    onChange={e => setSettings(s => ({ ...s, aiPromptEnabled: e.target.checked }))}
+                                                    className="w-3.5 h-3.5 accent-blue-600 rounded" />
+                                                <span className="text-[10px] font-bold text-slate-500">Enable</span>
+                                            </label>
+                                        </div>
+                                        <textarea
+                                            rows={4}
+                                            value={settings.aiPrompt}
+                                            onChange={e => setSettings(s => ({ ...s, aiPrompt: e.target.value }))}
+                                            disabled={!settings.aiPromptEnabled}
+                                            placeholder="Extra context injected into the AI agent's prompt for leads from this campaign. E.g. 'This lead is interested in 2BHK units in the North Tower.'"
+                                            className="w-full rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-blue-400 transition-all resize-none disabled:opacity-50"
+                                        />
+                                        <p className="text-[10px] text-slate-400 mt-1">
+                                            This prompt is appended to your base AI voice settings when a lead arrives from this campaign.
+                                        </p>
+                                    </div>
+
+                                    {/* Save Button */}
+                                    <div className="flex items-center gap-3 pt-1">
+                                        <button onClick={handleSave} disabled={saving}
+                                            className="flex items-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-[11px] font-black uppercase tracking-[0.2em] px-4 py-2 transition-all">
+                                            {saving ? (
+                                                <span className="material-symbols-outlined text-base animate-spin">refresh</span>
+                                            ) : (
+                                                <span className="material-symbols-outlined text-base">save</span>
+                                            )}
+                                            {saving ? 'Saving…' : 'Save Settings'}
+                                        </button>
+                                        {saveMsg && (
+                                            <span className={`text-xs font-bold ${saveMsg === 'Saved!' ? 'text-emerald-500' : 'text-red-500'}`}>
+                                                {saveMsg}
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     )}
                 </div>
             )}

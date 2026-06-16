@@ -45,7 +45,7 @@ const CRMPage = () => {
 
   useEffect(() => {
     fetchLeads();
-  }, []);
+  }, [fetchLeads]);
 
  useEffect(() => {
   setCurrentPage(1);

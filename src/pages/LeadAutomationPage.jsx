@@ -144,7 +144,6 @@ const LeadAutomationPage = () => {
       const [
         usersRes,
         templatesRes,
-        projectsRes,
         automationsRes,
       ] = await Promise.all([
         api.getAllUsers({
@@ -153,8 +152,6 @@ const LeadAutomationPage = () => {
         }),
 
         api.getWhatsappTemplates(),
-
-        api.getBuilderProjects(),
 
         api.getCreatorAutomations(user.id),
       ]);
@@ -166,9 +163,8 @@ const LeadAutomationPage = () => {
         setTemplates(templatesRes.data.data);
       }
 
-      if (projectsRes?.data?.success) {
-        setProjects(projectsRes.data.data);
-      }
+      // Projects no longer fetched from HIT Backend — external source projects load separately
+      setProjects([]);
 
       let resolvedLead = null;
 

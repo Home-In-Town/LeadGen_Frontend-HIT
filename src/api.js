@@ -192,8 +192,9 @@ export const toggleFBMapping    = (id)   => facebookApi.patch(`/mapping/${id}/to
 export const importFBHistorical = (days = 30, runAutomation = true) =>
     facebookApi.post(`/import-historical?days=${days}&runAutomation=${runAutomation}`);
 // Campaign management
-export const syncFBCampaigns = ()       => facebookApi.post('/campaigns/sync');
-export const getFBCampaigns  = (params) => facebookApi.get('/campaigns', { params });
+export const syncFBCampaigns           = ()                  => facebookApi.post('/campaigns/sync');
+export const getFBCampaigns            = (params)            => facebookApi.get('/campaigns', { params });
+export const updateFBCampaignSettings  = (campaignId, data)  => facebookApi.patch(`/campaigns/${campaignId}`, data);
 
 // Bridge: get builder projects for mapping
 export const getFBBridgeProjects = ()   => facebookApi.get('/bridge/projects');

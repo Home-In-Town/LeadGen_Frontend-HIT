@@ -18,8 +18,7 @@ const UsersPage = () => {
   const [processingMessage, setProcessingMessage] = useState('');
 
   const [showProjectModal, setShowProjectModal] = useState(false);
-  const [projects, setProjects] = useState([]);
-  const [fetchingProjects, setFetchingProjects] = useState(false);
+  // projects and fetchingProjects state removed — Select Project feature retired
 
   const itemsPerPage = 15;
 
@@ -113,27 +112,9 @@ const UsersPage = () => {
 
   const handleBulkCreateLead = async () => {
     if (selectedUsers.size === 0) return;
-
-    setFetchingProjects(true);
-
-    try {
-      const res = await api.getBuilderProjects();
-
-      const projectList = res.data.data || [];
-
-      if (!projectList.length) {
-        alert('No projects available');
-        return;
-      }
-
-      setProjects(projectList);
-      setShowProjectModal(true);
-    } catch (err) {
-      console.error('Failed to fetch projects:', err);
-      alert('Failed to fetch projects');
-    } finally {
-      setFetchingProjects(false);
-    }
+    // Execute bulk create directly without project selection
+    // (HIT Backend project bridge has been removed)
+    await executeBulkCreate(null, null);
   };
 
   const executeBulkCreate = async (projectSlug, projectName) => {
@@ -539,65 +520,9 @@ const UsersPage = () => {
       </div>
 
       {/* ---------------------------------- */}
-      {/* Modal */}
+      {/* Modal removed: Select Project feature has been retired */}
+      {/* (HIT Backend project bridge removed — project selection no longer available) */}
       {/* ---------------------------------- */}
-
-      {showProjectModal &&
-        createPortal(
-          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-            <div className="w-full max-w-md overflow-hidden rounded-[22px] border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-950 shadow-2xl">
-              <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 px-5 py-4">
-                <div>
-                  <h2 className="text-lg font-black text-slate-900 dark:text-white">
-                    Select Project
-                  </h2>
-
-                  <p className="mt-1 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
-                    Choose project to link leads
-                  </p>
-                </div>
-
-                <button
-                  onClick={() => setShowProjectModal(false)}
-                  className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-300/70 dark:border-white/10 bg-white dark:bg-white/[0.05]
-                    text-slate-700 dark:text-white/80
-                    hover:bg-slate-100 dark:hover:bg-white/[0.12]
-                    hover:text-slate-900 dark:hover:text-white
-                    transition-all duration-200
-                  "
-                >
-                  <span className="material-symbols-outlined text-[20px] font-bold">
-                    close
-                  </span>
-                </button>
-              </div>
-
-              <div className="max-h-[60vh] overflow-y-auto p-5 space-y-3">
-                {projects.map((p) => (
-                  <button
-                    key={p._id || p.id || p.slug}
-                    onClick={() =>
-                      executeBulkCreate(
-                        p.slug,
-                        p.projectName
-                      )
-                    }
-                    className="w-full rounded-[14px] border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.03] px-4 py-4 text-left transition-all hover:border-primary/40 hover:bg-primary/5 dark:hover:bg-primary/10"
-                  >
-                    <div className="text-sm font-black text-slate-900 dark:text-white">
-                      {p.projectName}
-                    </div>
-
-                    <div className="mt-1 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
-                      Click to continue
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>,
-          document.body
-        )}
     </div>
   );
 };
