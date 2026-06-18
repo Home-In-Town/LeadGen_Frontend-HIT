@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import * as api from '../api';
 import { useAuth } from '../context/AuthContext';
+import { getFBCampaigns } from '../api';
 
 const UsersPage = () => {
   const navigate = useNavigate();
@@ -18,7 +19,7 @@ const UsersPage = () => {
   const [processingMessage, setProcessingMessage] = useState('');
 
   const [showProjectModal, setShowProjectModal] = useState(false);
-  const [projects, setProjects] = useState([]);
+  const [campaigns, setCampaigns] = useState([]);
   const [fetchingProjects, setFetchingProjects] = useState(false);
 
   const itemsPerPage = 15;
@@ -117,26 +118,25 @@ const UsersPage = () => {
     setFetchingProjects(true);
 
     try {
-      const res = await api.getBuilderProjects();
+      const res = await getFBCampaigns({ limit: 200 });
+      const campaignList = res.data?.data || [];
 
-      const projectList = res.data.data || [];
-
-      if (!projectList.length) {
-        alert('No projects available');
+      if (!campaignList.length) {
+        alert('No campaigns found. Sync your Facebook campaigns first.');
         return;
       }
 
-      setProjects(projectList);
+      setCampaigns(campaignList);
       setShowProjectModal(true);
     } catch (err) {
-      console.error('Failed to fetch projects:', err);
-      alert('Failed to fetch projects');
+      console.error('Failed to fetch campaigns:', err);
+      alert('Failed to fetch campaigns. Make sure Facebook is connected.');
     } finally {
       setFetchingProjects(false);
     }
   };
 
-  const executeBulkCreate = async (projectSlug, projectName) => {
+  const executeBulkCreate = async (campaignId, campaignName) => {
     setShowProjectModal(false);
     setProcessing(true);
 
@@ -152,8 +152,8 @@ const UsersPage = () => {
           user.name ||
           `${user.first_name || ''} ${user.last_name || ''}`.trim(),
         creatorRole: user.role || 'agent',
-        projectSlug,
-        projectName,
+        projectSlug: campaignId,
+        projectName: campaignName,
       };
 
       const userIds = Array.from(selectedUsers);
@@ -168,7 +168,6 @@ const UsersPage = () => {
 
         try {
           await api.createLeadFromUser(userIds[i], creatorData);
-
           successCount++;
         } catch (err) {
           console.error(err);
@@ -185,7 +184,6 @@ const UsersPage = () => {
       setSelectedUsers(new Set());
     } catch (err) {
       console.error('Bulk create failed:', err);
-
       alert('FAILED TO PROCESS SOME REQUESTS.');
     } finally {
       setProcessing(false);
@@ -549,11 +547,11 @@ const UsersPage = () => {
               <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 px-5 py-4">
                 <div>
                   <h2 className="text-lg font-black text-slate-900 dark:text-white">
-                    Select Project
+                    Select Campaign
                   </h2>
 
                   <p className="mt-1 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
-                    Choose project to link leads
+                    Choose campaign to link leads
                   </p>
                 </div>
 
@@ -573,23 +571,26 @@ const UsersPage = () => {
               </div>
 
               <div className="max-h-[60vh] overflow-y-auto p-5 space-y-3">
-                {projects.map((p) => (
+                {campaigns.map((c) => (
                   <button
-                    key={p._id || p.id || p.slug}
+                    key={c.campaignId || c._id}
                     onClick={() =>
                       executeBulkCreate(
-                        p.slug,
-                        p.projectName
+                        c.campaignId,
+                        c.campaignName
                       )
                     }
                     className="w-full rounded-[14px] border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.03] px-4 py-4 text-left transition-all hover:border-primary/40 hover:bg-primary/5 dark:hover:bg-primary/10"
                   >
-                    <div className="text-sm font-black text-slate-900 dark:text-white">
-                      {p.projectName}
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className={`inline-flex h-2 w-2 rounded-full ${c.status === 'ACTIVE' ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+                      <div className="text-sm font-black text-slate-900 dark:text-white">
+                        {c.campaignName}
+                      </div>
                     </div>
-
-                    <div className="mt-1 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
-                      Click to continue
+                    <div className="mt-1 flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                      <span>{c.status || 'Unknown'}</span>
+                      {c.leadsCount > 0 && <span>· {c.leadsCount} leads</span>}
                     </div>
                   </button>
                 ))}
