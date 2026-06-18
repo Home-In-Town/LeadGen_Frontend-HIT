@@ -336,7 +336,7 @@ const UsersPage = () => {
 
               <button
                 onClick={handleBulkCreateLead}
-                disabled={processing || fetchingProjects}
+                disabled={processing}
                 className="rounded-[12px] bg-primary px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-white transition-all hover:bg-charcoal disabled:opacity-50"
               >
                 Start Lead
