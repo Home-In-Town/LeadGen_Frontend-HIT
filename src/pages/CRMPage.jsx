@@ -53,19 +53,19 @@ const CRMPage = () => {
 }, [debouncedSearch, activeTab, leadTypeFilter]);
 
   const fetchLeads = useCallback(async () => {
-    try {
-      if (!user) return;
+  try {
+    if (!user) return;
 
-      const params = {
-        userId: user.id,
-        role: user.role,
-        limit: 200
-      };
+    const params = {
+      userId: user.id,
+      role: user.role,
+      limit: 200
+    };
 
-      const [leadsRes, automationsRes] = await Promise.all([
-        api.getAllLeads(params),
-        api.getCreatorAutomations(user.id)
-      ]);
+    const [leadsRes, automationsRes] = await Promise.all([
+      api.getAllLeads(params),
+      api.getCreatorAutomations(user.id)
+    ]);
 
       const leadsData = leadsRes.data;
 
@@ -79,11 +79,15 @@ const CRMPage = () => {
         setAutomations(automationsRes.data.data);
       }
     } catch (err) {
-      console.error('Failed to fetch CRM data:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, [user]);
+    console.error(err);
+  } finally {
+    setLoading(false);
+  }
+}, [user]);
+
+useEffect(() => {
+  fetchLeads();
+}, [fetchLeads]);
 
 /* -------------------------------------------------------------------------- */
 /*                                   FILTERS                                  */
