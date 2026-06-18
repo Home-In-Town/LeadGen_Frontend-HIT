@@ -192,12 +192,20 @@ export const toggleFBMapping    = (id)   => facebookApi.patch(`/mapping/${id}/to
 export const importFBHistorical = (days = 30, runAutomation = true) =>
     facebookApi.post(`/import-historical?days=${days}&runAutomation=${runAutomation}`);
 // Campaign management
-export const syncFBCampaigns           = ()                  => facebookApi.post('/campaigns/sync');
-export const getFBCampaigns            = (params)            => facebookApi.get('/campaigns', { params });
-export const updateFBCampaignSettings  = (campaignId, data)  => facebookApi.patch(`/campaigns/${campaignId}`, data);
+export const syncFBCampaigns        = ()                  => facebookApi.post('/campaigns/sync');
+export const getFBCampaigns         = (params)            => facebookApi.get('/campaigns', { params });
+export const updateFBCampaignConfig = (campaignId, data)  => facebookApi.put(`/campaigns/${campaignId}/config`, data);
 
-// Bridge: get builder projects for mapping
-export const getFBBridgeProjects = ()   => facebookApi.get('/bridge/projects');
+// ====== EMAIL TEMPLATE ENDPOINTS ======
+const emailTemplateApi = createApiInstance('/email-templates');
+export const listEmailTemplates   = ()       => emailTemplateApi.get('');
+export const createEmailTemplate  = (data)   => emailTemplateApi.post('', data);
+export const updateEmailTemplate  = (id, data) => emailTemplateApi.put(`/${id}`, data);
+export const deleteEmailTemplate  = (id)     => emailTemplateApi.delete(`/${id}`);
+export const testEmailTemplate    = (id)     => emailTemplateApi.post(`/${id}/test`);
+
+// ====== AUTOMATION HISTORY ======
+export const getLeadAutomationHistory = (leadId) => leadsApi.get(`/${leadId}/automation-history`);
 
 const whatsappApi = createApiInstance('/whatsapp');
 

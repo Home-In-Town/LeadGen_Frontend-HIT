@@ -15,15 +15,14 @@ import {
     disconnectFacebook,
     createFBMapping,
     deleteFBMapping,
-    getFBBridgeProjects,
     initiateFBConnect,
     importFBHistorical,
     syncFBCampaigns,
     getFBCampaigns,
     getAllLeads,
-    updateFBCampaignSettings,
-    listWATemplates,
+    getLeadAutomationHistory,
 } from '../api';
+import CampaignConfigModal from '../components/CampaignConfigModal';
 import { useNotifications } from '../context/NotificationContext';
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
@@ -233,47 +232,7 @@ function TabOverview({ status, campaigns, fbLeads, onConnect, onDisconnect, disc
 function CampaignCard({ campaign, projects, onMappingCreated }) {
     const [expanded, setExpanded]         = useState(false);
     const [mappingForm, setMappingForm]   = useState(null);
-    const [aiExpanded, setAiExpanded]     = useState(false);
-    const [waTemplates, setWaTemplates]   = useState([]);
-    const [settings, setSettings]         = useState({
-        aiPrompt:         campaign.aiPrompt         || '',
-        aiPromptEnabled:  campaign.aiPromptEnabled  ?? false,
-        waTemplateName:   campaign.waTemplateName   || '',
-        waTemplateEnabled: campaign.waTemplateEnabled ?? false,
-        autoCallEnabled:  campaign.autoCallEnabled  ?? true,
-        autoWaEnabled:    campaign.autoWaEnabled    ?? true,
-        autoEmailEnabled: campaign.autoEmailEnabled ?? false,
-    });
-    const [saving, setSaving]             = useState(false);
-    const [saveMsg, setSaveMsg]           = useState('');
-
-    const isLead = ['OUTCOME_LEADS', 'LEAD_GENERATION'].includes(campaign.objective);
-
-    // Load WA templates when AI section is expanded
-    const handleAiExpand = async () => {
-        const next = !aiExpanded;
-        setAiExpanded(next);
-        if (next && waTemplates.length === 0) {
-            try {
-                const res = await listWATemplates();
-                if (res?.data?.success) setWaTemplates(res.data.data || []);
-            } catch { /* WA templates optional */ }
-        }
-    };
-
-    const handleSave = async () => {
-        setSaving(true);
-        setSaveMsg('');
-        try {
-            await updateFBCampaignSettings(campaign.campaignId, settings);
-            setSaveMsg('Saved!');
-            setTimeout(() => setSaveMsg(''), 2500);
-        } catch (err) {
-            setSaveMsg('Save failed');
-        } finally {
-            setSaving(false);
-        }
-    };
+    const [showConfig, setShowConfig]     = useState(false);
 
     const statusColor = campaign.status === 'ACTIVE' ? 'green'
         : campaign.status === 'PAUSED' ? 'yellow' : 'slate';
@@ -285,10 +244,11 @@ function CampaignCard({ campaign, projects, onMappingCreated }) {
         : '—';
 
     return (
+        <>
         <div className="border border-slate-200/70 dark:border-white/10 rounded-2xl overflow-hidden">
-            <button onClick={() => setExpanded(v => !v)}
-                className="w-full flex items-center justify-between gap-3 px-5 py-4 bg-slate-50/80 dark:bg-white/[0.02] hover:bg-slate-100/80 dark:hover:bg-white/[0.04] transition-all text-left">
-                <div className="flex items-center gap-3 min-w-0 flex-1">
+            <div className="w-full flex items-center justify-between gap-3 px-5 py-4 bg-slate-50/80 dark:bg-white/[0.02] hover:bg-slate-100/80 dark:hover:bg-white/[0.04] transition-all">
+                <button onClick={() => setExpanded(v => !v)}
+                    className="flex items-center gap-3 min-w-0 flex-1 text-left">
                     <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-600 text-white font-black text-xs flex-shrink-0">f</div>
                     <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
@@ -314,11 +274,22 @@ function CampaignCard({ campaign, projects, onMappingCreated }) {
                             )}
                         </div>
                     </div>
+                </button>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                    <button
+                        onClick={() => setShowConfig(true)}
+                        title="Configure campaign"
+                        className="flex items-center justify-center h-8 w-8 rounded-xl border border-slate-200 dark:border-white/10 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-500 transition-all">
+                        <span className="material-symbols-outlined text-[18px]">settings</span>
+                    </button>
+                    <button onClick={() => setExpanded(v => !v)}
+                        className="flex items-center justify-center h-8 w-8 rounded-xl text-slate-400 transition-all">
+                        <span className={`material-symbols-outlined transition-transform ${expanded ? 'rotate-180' : ''}`}>
+                            expand_more
+                        </span>
+                    </button>
                 </div>
-                <span className={`material-symbols-outlined text-slate-400 transition-transform flex-shrink-0 ${expanded ? 'rotate-180' : ''}`}>
-                    expand_more
-                </span>
-            </button>
+            </div>
 
             {expanded && (
                 <div className="p-4 space-y-3">
@@ -361,110 +332,6 @@ function CampaignCard({ campaign, projects, onMappingCreated }) {
                             </div>
                         ))
                     )}
-
-                    {/* ── AI Prompt + Automation Settings (lead campaigns only) ── */}
-                    {isLead && (
-                        <div className="rounded-2xl border border-blue-200/60 dark:border-blue-500/20 overflow-hidden">
-                            <button onClick={handleAiExpand}
-                                className="w-full flex items-center justify-between gap-3 px-4 py-3 bg-blue-50/60 dark:bg-blue-500/[0.06] hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-all text-left">
-                                <div className="flex items-center gap-2">
-                                    <span className="material-symbols-outlined text-blue-500 text-base">psychology</span>
-                                    <span className="text-sm font-bold text-slate-900 dark:text-white">AI &amp; Automation Settings</span>
-                                </div>
-                                <span className={`material-symbols-outlined text-slate-400 text-base transition-transform ${aiExpanded ? 'rotate-180' : ''}`}>expand_more</span>
-                            </button>
-
-                            {aiExpanded && (
-                                <div className="p-4 space-y-4 bg-white/60 dark:bg-white/[0.01]">
-                                    {/* Automation Toggles */}
-                                    <div>
-                                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 mb-2">Automation</p>
-                                        <div className="flex flex-wrap gap-3">
-                                            {[
-                                                { key: 'autoCallEnabled',  icon: 'call',      label: 'Auto Call' },
-                                                { key: 'autoWaEnabled',    icon: 'chat',      label: 'Auto WhatsApp' },
-                                                { key: 'autoEmailEnabled', icon: 'email',     label: 'Auto Email' },
-                                            ].map(({ key, icon, label }) => (
-                                                <label key={key} className="flex items-center gap-2 cursor-pointer select-none">
-                                                    <input type="checkbox" checked={settings[key]}
-                                                        onChange={e => setSettings(s => ({ ...s, [key]: e.target.checked }))}
-                                                        className="w-4 h-4 accent-blue-600 rounded" />
-                                                    <span className="material-symbols-outlined text-[14px] text-slate-500">{icon}</span>
-                                                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{label}</span>
-                                                </label>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    {/* WhatsApp Template */}
-                                    <div>
-                                        <div className="flex items-center justify-between mb-1">
-                                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">WhatsApp Template</p>
-                                            <label className="flex items-center gap-1.5 cursor-pointer">
-                                                <input type="checkbox" checked={settings.waTemplateEnabled}
-                                                    onChange={e => setSettings(s => ({ ...s, waTemplateEnabled: e.target.checked }))}
-                                                    className="w-3.5 h-3.5 accent-blue-600 rounded" />
-                                                <span className="text-[10px] font-bold text-slate-500">Enable</span>
-                                            </label>
-                                        </div>
-                                        <select
-                                            value={settings.waTemplateName}
-                                            onChange={e => setSettings(s => ({ ...s, waTemplateName: e.target.value }))}
-                                            disabled={!settings.waTemplateEnabled}
-                                            className="w-full rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-blue-400 transition-all disabled:opacity-50"
-                                        >
-                                            <option value="">— Select template —</option>
-                                            {waTemplates.map(t => (
-                                                <option key={t.name} value={t.name}>{t.name} ({t.status})</option>
-                                            ))}
-                                        </select>
-                                    </div>
-
-                                    {/* AI Voice Prompt */}
-                                    <div>
-                                        <div className="flex items-center justify-between mb-1">
-                                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Campaign AI Prompt</p>
-                                            <label className="flex items-center gap-1.5 cursor-pointer">
-                                                <input type="checkbox" checked={settings.aiPromptEnabled}
-                                                    onChange={e => setSettings(s => ({ ...s, aiPromptEnabled: e.target.checked }))}
-                                                    className="w-3.5 h-3.5 accent-blue-600 rounded" />
-                                                <span className="text-[10px] font-bold text-slate-500">Enable</span>
-                                            </label>
-                                        </div>
-                                        <textarea
-                                            rows={4}
-                                            value={settings.aiPrompt}
-                                            onChange={e => setSettings(s => ({ ...s, aiPrompt: e.target.value }))}
-                                            disabled={!settings.aiPromptEnabled}
-                                            placeholder="Extra context injected into the AI agent's prompt for leads from this campaign. E.g. 'This lead is interested in 2BHK units in the North Tower.'"
-                                            className="w-full rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-blue-400 transition-all resize-none disabled:opacity-50"
-                                        />
-                                        <p className="text-[10px] text-slate-400 mt-1">
-                                            This prompt is appended to your base AI voice settings when a lead arrives from this campaign.
-                                        </p>
-                                    </div>
-
-                                    {/* Save Button */}
-                                    <div className="flex items-center gap-3 pt-1">
-                                        <button onClick={handleSave} disabled={saving}
-                                            className="flex items-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-[11px] font-black uppercase tracking-[0.2em] px-4 py-2 transition-all">
-                                            {saving ? (
-                                                <span className="material-symbols-outlined text-base animate-spin">refresh</span>
-                                            ) : (
-                                                <span className="material-symbols-outlined text-base">save</span>
-                                            )}
-                                            {saving ? 'Saving…' : 'Save Settings'}
-                                        </button>
-                                        {saveMsg && (
-                                            <span className={`text-xs font-bold ${saveMsg === 'Saved!' ? 'text-emerald-500' : 'text-red-500'}`}>
-                                                {saveMsg}
-                                            </span>
-                                        )}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    )}
                 </div>
             )}
 
@@ -477,6 +344,15 @@ function CampaignCard({ campaign, projects, onMappingCreated }) {
                 />
             )}
         </div>
+
+        {showConfig && (
+            <CampaignConfigModal
+                campaign={campaign}
+                onClose={() => setShowConfig(false)}
+                onSaved={onMappingCreated}
+            />
+        )}
+        </>
     );
 }
 
@@ -537,10 +413,26 @@ function TabCampaigns({ campaigns, campaignsLoading, onSync, syncing, isConnecte
 
 // ─── Tab 3: Lead Management ──────────────────────────────────────────────────
 
-function TabLeads({ leads, leadsLoading, userId }) {
+function TabLeads({ leads, leadsLoading, userId, campaigns }) {
     const navigate = useNavigate();
-    const [search, setSearch]       = useState('');
-    const [statusFilter, setFilter] = useState('');
+    const [search, setSearch]             = useState('');
+    const [statusFilter, setFilter]       = useState('');
+    const [campaignFilter, setCampaign]   = useState('');
+    const [dateFrom, setDateFrom]         = useState('');
+    const [dateTo, setDateTo]             = useState('');
+    const [selectedLead, setSelectedLead] = useState(null);
+    const [history, setHistory]           = useState([]);
+    const [historyLoading, setHistLoading]= useState(false);
+
+    const handleRowClick = async (lead) => {
+        setSelectedLead(lead);
+        setHistLoading(true);
+        try {
+            const res = await getLeadAutomationHistory(lead.id || lead._id);
+            setHistory(res.data?.data || []);
+        } catch { setHistory([]); }
+        finally { setHistLoading(false); }
+    };
 
     const filtered = leads.filter(l => {
         const name  = `${l.first_name || ''} ${l.last_name || ''}`.toLowerCase();
@@ -548,7 +440,8 @@ function TabLeads({ leads, leadsLoading, userId }) {
         const q     = search.toLowerCase();
         const matchQ = !q || name.includes(q) || phone.includes(q);
         const matchS = !statusFilter || l.status === statusFilter;
-        return matchQ && matchS;
+        const matchC = !campaignFilter || l.metadata?.campaignId === campaignFilter || l.metadata?.campaignName === campaignFilter;
+        return matchQ && matchS && matchC;
     });
 
     const scoreColor = (s) => s >= 70 ? 'text-emerald-500' : s >= 40 ? 'text-yellow-500' : 'text-red-500';
@@ -560,29 +453,49 @@ function TabLeads({ leads, leadsLoading, userId }) {
         return { label: 'COLD', color: 'blue' };
     };
 
+    const typeIcon = { call: 'call', whatsapp: 'chat', email: 'mail' };
+    const typeColor = { call: 'text-blue-500', whatsapp: 'text-emerald-500', email: 'text-violet-500' };
+
     return (
         <div className="space-y-4">
+            {/* Header + search */}
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <h2 className="text-lg font-black text-slate-900 dark:text-white">
                     Facebook Leads
                     {leads.length > 0 && <span className="ml-2 text-slate-400 text-base font-normal">({leads.length} total)</span>}
                 </h2>
-                <div className="flex items-center gap-2 flex-wrap">
-                    <input
-                        type="text"
-                        placeholder="Search by name or phone…"
-                        value={search}
-                        onChange={e => setSearch(e.target.value)}
-                        className="rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-800 px-4 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-blue-500 transition-all w-56"
-                    />
-                    <select value={statusFilter} onChange={e => setFilter(e.target.value)}
-                        className="rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 outline-none focus:border-blue-500 transition-all">
-                        <option value="">All scores</option>
-                        <option value="HOT">HOT (≥70)</option>
-                        <option value="WARM">WARM (≥40)</option>
-                        <option value="COLD">COLD (&lt;40)</option>
-                    </select>
-                </div>
+                <input type="text" placeholder="Search by name or phone…" value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    className="rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-800 px-4 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-blue-500 transition-all w-full sm:w-56"
+                />
+            </div>
+
+            {/* Filter bar */}
+            <div className="flex flex-wrap gap-2">
+                <select value={campaignFilter} onChange={e => setCampaign(e.target.value)}
+                    className="rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-xs text-slate-700 dark:text-slate-200 outline-none focus:border-blue-500 transition-all">
+                    <option value="">All campaigns</option>
+                    {(campaigns || []).map(c => (
+                        <option key={c.campaignId} value={c.campaignId}>{c.campaignName}</option>
+                    ))}
+                </select>
+                <select value={statusFilter} onChange={e => setFilter(e.target.value)}
+                    className="rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-xs text-slate-700 dark:text-slate-200 outline-none focus:border-blue-500 transition-all">
+                    <option value="">All statuses</option>
+                    <option value="HOT">HOT</option>
+                    <option value="WARM">WARM</option>
+                    <option value="COLD">COLD</option>
+                </select>
+                <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
+                    className="rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-xs text-slate-700 dark:text-slate-200 outline-none focus:border-blue-500 transition-all" />
+                <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
+                    className="rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-xs text-slate-700 dark:text-slate-200 outline-none focus:border-blue-500 transition-all" />
+                {(campaignFilter || statusFilter || dateFrom || dateTo || search) && (
+                    <button onClick={() => { setCampaign(''); setFilter(''); setDateFrom(''); setDateTo(''); setSearch(''); }}
+                        className="rounded-2xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 px-3 py-2 text-xs font-bold text-red-600 dark:text-red-400 hover:bg-red-100 transition-all">
+                        Clear
+                    </button>
+                )}
             </div>
 
             {leadsLoading && (
@@ -605,7 +518,7 @@ function TabLeads({ leads, leadsLoading, userId }) {
                                 <tr className="border-b border-slate-200/70 dark:border-white/10 bg-slate-50/80 dark:bg-white/[0.02]">
                                     <th className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-[0.25em] text-slate-500">Name</th>
                                     <th className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-[0.25em] text-slate-500">Phone</th>
-                                    <th className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 hidden sm:table-cell">Email</th>
+                                    <th className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 hidden sm:table-cell">Campaign</th>
                                     <th className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-[0.25em] text-slate-500">Score</th>
                                     <th className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-[0.25em] text-slate-500">Status</th>
                                     <th className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 hidden md:table-cell">Created</th>
@@ -617,15 +530,16 @@ function TabLeads({ leads, leadsLoading, userId }) {
                                     const ls = getLeadStatus(lead);
                                     return (
                                         <tr key={lead.id || lead._id}
-                                            className="hover:bg-slate-50/80 dark:hover:bg-white/[0.02] transition-colors">
+                                            onClick={() => handleRowClick(lead)}
+                                            className="hover:bg-slate-50/80 dark:hover:bg-white/[0.02] transition-colors cursor-pointer">
                                             <td className="px-5 py-3.5 font-bold text-slate-900 dark:text-white">
                                                 {lead.first_name} {lead.last_name}
                                             </td>
                                             <td className="px-5 py-3.5 text-slate-600 dark:text-slate-300 font-mono text-xs">
                                                 {lead.phone_number}
                                             </td>
-                                            <td className="px-5 py-3.5 text-slate-500 text-xs hidden sm:table-cell">
-                                                {lead.email || '—'}
+                                            <td className="px-5 py-3.5 text-slate-500 text-xs hidden sm:table-cell truncate max-w-[140px]">
+                                                {lead.metadata?.campaignName || '—'}
                                             </td>
                                             <td className={`px-5 py-3.5 font-black ${scoreColor(lead.score || 0)}`}>
                                                 {lead.score || 0}
@@ -637,11 +551,10 @@ function TabLeads({ leads, leadsLoading, userId }) {
                                                 {lead.createdAt ? new Date(lead.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '—'}
                                             </td>
                                             <td className="px-5 py-3.5">
-                                                <button
-                                                    onClick={() => navigate(`/lead/${lead.id || lead._id}`)}
+                                                <button onClick={e => { e.stopPropagation(); navigate(`/lead/${lead.id || lead._id}`); }}
                                                     className="flex items-center gap-1 rounded-xl border border-slate-200 dark:border-white/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5 transition-all">
                                                     <span className="material-symbols-outlined text-[13px]">open_in_new</span>
-                                                    Open
+                                                    CRM
                                                 </button>
                                             </td>
                                         </tr>
@@ -649,6 +562,60 @@ function TabLeads({ leads, leadsLoading, userId }) {
                                 })}
                             </tbody>
                         </table>
+                    </div>
+                </div>
+            )}
+
+            {/* Automation history slide-in */}
+            {selectedLead && (
+                <div className="fixed inset-0 z-50 flex items-start justify-end">
+                    <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={() => setSelectedLead(null)} />
+                    <div className={`${cardClass} relative w-full max-w-md h-screen overflow-y-auto flex flex-col`}>
+                        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200/70 dark:border-white/10">
+                            <div>
+                                <h3 className="text-sm font-black text-slate-900 dark:text-white">
+                                    {selectedLead.first_name} {selectedLead.last_name}
+                                </h3>
+                                <p className="text-xs text-slate-500 mt-0.5">{selectedLead.phone_number}</p>
+                            </div>
+                            <button onClick={() => setSelectedLead(null)} className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-white/10 text-slate-500">
+                                <span className="material-symbols-outlined text-lg">close</span>
+                            </button>
+                        </div>
+                        <div className="p-5 flex-1">
+                            <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 mb-3">Automation History</p>
+                            {historyLoading && <div className="flex justify-center py-8"><Spinner /></div>}
+                            {!historyLoading && history.length === 0 && (
+                                <p className="text-sm text-slate-400 text-center py-8">No automation history yet.</p>
+                            )}
+                            {!historyLoading && history.length > 0 && (
+                                <div className="space-y-3">
+                                    {history.map((evt, i) => (
+                                        <div key={i} className="flex items-start gap-3 p-3 rounded-2xl border border-slate-200/70 dark:border-white/10 bg-slate-50/50 dark:bg-white/[0.02]">
+                                            <span className={`material-symbols-outlined text-xl flex-shrink-0 ${typeColor[evt.type] || 'text-slate-400'}`}>
+                                                {typeIcon[evt.type] || 'notifications'}
+                                            </span>
+                                            <div className="min-w-0 flex-1">
+                                                <p className="text-xs font-bold text-slate-900 dark:text-white capitalize">{evt.type}</p>
+                                                {evt.status && <p className="text-[10px] text-slate-500">{evt.status}</p>}
+                                                {evt.transcript && <p className="text-[10px] text-slate-400 mt-1 line-clamp-2">{evt.transcript}</p>}
+                                                {evt.templateName && <p className="text-[10px] text-slate-500">Template: {evt.templateName}</p>}
+                                                <p className="text-[10px] text-slate-400 mt-1">
+                                                    {evt.timestamp ? new Date(evt.timestamp).toLocaleString('en-IN') : ''}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                        <div className="px-5 py-4 border-t border-slate-200/70 dark:border-white/10">
+                            <button onClick={() => navigate(`/lead/${selectedLead.id || selectedLead._id}`)}
+                                className="w-full rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-black text-[11px] uppercase tracking-[0.2em] py-3 transition-all flex items-center justify-center gap-2">
+                                <span className="material-symbols-outlined text-base">open_in_new</span>
+                                Open Full CRM Record
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
@@ -998,6 +965,7 @@ const FacebookIntegrationPage = () => {
                         leads={fbLeads}
                         leadsLoading={leadsLoading}
                         userId={userId.current}
+                        campaigns={campaigns}
                     />
                 )}
                 {activeTab === 'settings' && (

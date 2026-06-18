@@ -1,108 +1,88 @@
-# Lead Filtration Engine - Frontend
+# OneEmployee CRM Frontend
 
-This is the React-based frontend for the Lead Filtration Engine. It provides a simulation interface to create leads, trigger mock outcomes from external systems, and view the **30-second executive summary** with human-readable reasoning.
+React frontend for the OneEmployee lead generation and CRM platform. Deployed on Vercel.
 
-## 🛠 Features
-
-- **Lead Creation**: Simple form to initialize a lead with name and phone
-- **Outcome Simulators**: 
-  - WhatsApp reply simulator (YES / NO / NO_RESPONSE)
-  - AI Call result simulator (Interest, Budget, Timeline)
-  - Link activity simulator (Opened, Time Spent, Form Submitted)
-- **Executive Summary**: 
-  - Real-time status badge (HOT / WARM / COLD)
-  - Score display with visual indicator
-  - **System Reasoning** box explaining WHY the lead got its status
-- **Dark Theme UI**: Premium dark mode with consistent styling
+**Live:** `https://www.oneemployee.in`  
+**Repo:** `Home-In-Town/LeadGen_Frontend-HIT` (auto-deploys on push to `main`)
 
 ---
 
-## 🚀 Getting Started
+## Tech Stack
 
-### Prerequisites
-- Node.js installed
-- Backend server running on `http://localhost:5002`
+- **Framework:** React + Vite
+- **Styling:** Tailwind CSS
+- **Real-time:** Socket.io-client
+- **HTTP:** Axios
 
-### Installation
+---
+
+## Quick Start
 
 ```bash
-cd client
 npm install
-```
-
-### Running the Development Server
-
-```bash
 npm run dev
 ```
 
-The frontend will run on `http://localhost:5173` (Vite default).
+Frontend runs on `http://localhost:5173`. Expects LeadGen Backend at `http://localhost:5002`.
 
----
-
-## 📂 Project Structure
-
+Create `.env`:
 ```
-client/
-├── src/
-│   ├── App.jsx         # Main application with all components
-│   ├── api.js          # Axios configuration and API calls
-│   ├── index.css       # Premium dark-mode styling
-│   └── main.jsx        # React entry point
-├── index.html          # HTML template
-├── vite.config.js      # Vite configuration
-└── package.json        # Dependencies and scripts
+VITE_API_URL=http://localhost:5002/api
+VITE_META_APP_ID=          # Meta WhatsApp App ID (production)
+VITE_META_SIGNUP_CONFIG_ID= # Meta Embedded Signup config (production)
 ```
 
 ---
 
-## UI Components
+## Features
 
-### 1. Create Lead Form
-- Simple form with Name and Phone inputs
-- Creates a new lead in the backend
-
-### 2. Simulator Cards
-Three cards to simulate external system responses:
-- **Mock WhatsApp**: Dropdown to select reply type
-- **Mock AI Call**: Dropdowns for Interest, Budget, Timeline
-- **Mock Link Click**: Checkboxes and number input for activity
-
-### 3. Executive Summary
-The key feature showing:
-- **Lead Name & Phone**: Displayed prominently at the top
-- **Status Badge**: Color-coded (HOT=red, WARM=orange, COLD=green)
-- **Natural Language Summary**: Human-readable sentence explaining WHY with point breakdown
-  - Example: *"This lead is HOT due to WhatsApp engagement(+20), high call interest(+40) and form submission(+30)."*
-- **Confidence Score**: Displayed as X/100 (capped at 100)
+- **Lead Management** — create, view, score (HOT/WARM/COLD), delete leads from Facebook/Google/manual sources
+- **AI Voice Calls** — trigger outbound AI calls per lead, view call history with transcripts
+- **WhatsApp** — send messages, manage templates, connect Meta number (`/whatsapp-setup`, `/whatsapp-templates`)
+- **Email** — compose and send emails via connected Gmail/Outlook account
+- **Chat Dashboard** — real-time messaging with delivery ticks (sent/delivered/read/failed)
+- **Bulk Campaigns** — batch WhatsApp + email + voice campaigns with queue management
+- **Lead Automation** — scheduled follow-up sequences
+- **Facebook Lead Ads** — OAuth integration for auto-importing leads
+- **Google Ads** — auto-import from Google campaigns
+- **Call Logs** — paginated table with search + expandable transcripts (`/call-logs`)
+- **Integrations** — configure WhatsApp, voice, and project source webhooks (`/integrations`)
 
 ---
 
-## 🔗 API Integration
+## Key Pages
 
-All API calls are centralized in `src/api.js`:
-
-| Function | Endpoint | Description |
-|----------|----------|-------------|
-| `createLead()` | POST `/api/leads` | Create new lead |
-| `updateWhatsapp()` | POST `/api/leads/:id/whatsapp-result` | Update WhatsApp result |
-| `updateAiCall()` | POST `/api/leads/:id/ai-call-result` | Update AI call result |
-| `updateLinkActivity()` | POST `/api/leads/:id/link-activity` | Update link activity |
-| `getSummary()` | GET `/api/leads/:id/summary` | Get lead summary |
-
----
-
-## 🎯 Key Design Decisions
-
-1. **30-Second Summary**: Designed for sales reps to make instant decisions
-2. **Dark Theme**: Consistent with modern web aesthetics
-3. **No Raw JSON**: Technical data hidden from end users
-4. **Real-time Updates**: Summary refreshes after each interaction
+| Route | Description |
+|-------|-------------|
+| `/` | Dashboard / lead pipeline |
+| `/leads` | All leads table |
+| `/call-logs` | AI voice call history |
+| `/chat` | Chat dashboard |
+| `/campaigns` | Bulk campaign management |
+| `/integrations` | WhatsApp + voice + webhook settings |
+| `/whatsapp-setup` | Connect Meta WhatsApp number |
+| `/whatsapp-templates` | Create/manage WA templates |
 
 ---
 
-## 📦 Dependencies
+## Auth
 
-- **React**: UI library
-- **Vite**: Build tool and dev server
-- **Axios**: HTTP client for API calls
+Email-based flow using MSG91 OTP Widget:
+1. Register: Name + Email + Mobile → OTP → set 6-digit PIN → JWT cookie
+2. Login: Email + PIN → JWT cookie (no OTP)
+3. Forgot PIN: Email → OTP → set new PIN
+
+---
+
+## Project Structure
+
+```
+src/
+├── pages/          — Page-level components
+├── components/     — Reusable UI components
+├── api.js          — All Axios API calls (centralized)
+├── App.jsx         — Routes
+└── main.jsx        — Entry point
+```
+
+All API calls go through `src/api.js` — add new functions there rather than inline axios calls.
