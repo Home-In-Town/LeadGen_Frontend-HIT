@@ -21,6 +21,7 @@ import {
     getFBCampaigns,
     getAllLeads,
     getLeadAutomationHistory,
+    listEmailTemplates,
 } from '../api';
 import CampaignConfigModal from '../components/CampaignConfigModal';
 import { useNotifications } from '../context/NotificationContext';
@@ -819,7 +820,6 @@ const FacebookIntegrationPage = () => {
             loadStatus(),
             loadCampaigns(),
             loadFbLeads(),
-            getFBBridgeProjects().then(r => setProjects(r.data?.data || [])).catch(() => {}),
         ]);
 
         // Auto-sync campaigns every 5 minutes silently
