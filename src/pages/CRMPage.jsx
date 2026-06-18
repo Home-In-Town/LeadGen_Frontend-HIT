@@ -43,15 +43,6 @@ const CRMPage = () => {
   /*                                   FETCH                                    */
   /* -------------------------------------------------------------------------- */
 
-  useEffect(() => {
-    fetchLeads();
-  }, [fetchLeads]);
-
- useEffect(() => {
-  setCurrentPage(1);
-  setSelectedAutomationGroup(null);
-}, [debouncedSearch, activeTab, leadTypeFilter]);
-
   const fetchLeads = useCallback(async () => {
   try {
     if (!user) return;
@@ -79,15 +70,22 @@ const CRMPage = () => {
         setAutomations(automationsRes.data.data);
       }
     } catch (err) {
-    console.error(err);
+    console.error('Failed to fetch CRM data:', err);
   } finally {
     setLoading(false);
   }
 }, [user]);
 
 useEffect(() => {
-  fetchLeads();
-}, [fetchLeads]);
+  if (user) {
+    fetchLeads();
+  }
+}, [user, fetchLeads]);
+
+useEffect(() => {
+  setCurrentPage(1);
+  setSelectedAutomationGroup(null);
+}, [debouncedSearch, activeTab, leadTypeFilter]);
 
 /* -------------------------------------------------------------------------- */
 /*                                   FILTERS                                  */
