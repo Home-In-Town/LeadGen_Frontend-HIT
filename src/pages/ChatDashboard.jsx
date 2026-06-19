@@ -17,6 +17,7 @@ import {
     getChatMessages,
     sendChatMessage,
     markChatAsRead,
+    listWAPhoneNumbers,
 } from '../api';
 
 import { useNotifications } from '../context/NotificationContext';
@@ -263,6 +264,7 @@ const ChatSidebar = memo(
         activeLeadId,
         onSelect,
         loading,
+        activeWANumber,
     }) => (
         <div
             className="
@@ -353,6 +355,33 @@ const ChatSidebar = memo(
                 >
                     Conversations
                 </h2>
+
+                {/* Active WhatsApp number indicator */}
+                {activeWANumber && (
+                    <div className="mt-2 flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                        <span className="material-symbols-outlined text-[14px] text-emerald-500">chat</span>
+                        <div className="min-w-0 flex-1">
+                            <p className="text-[10px] font-black uppercase tracking-[0.15em] text-emerald-600 dark:text-emerald-400 truncate">
+                                {activeWANumber.display_phone_number || activeWANumber.displayPhoneNumber || activeWANumber.phoneNumberId}
+                            </p>
+                            {(activeWANumber.verified_name || activeWANumber.verifiedName) && (
+                                <p className="text-[9px] text-emerald-500/70 truncate">
+                                    {activeWANumber.verified_name || activeWANumber.verifiedName}
+                                </p>
+                            )}
+                        </div>
+                        {activeWANumber.isDefault && (
+                            <span className="text-[8px] font-black uppercase tracking-wider text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 rounded-full flex-shrink-0">Default</span>
+                        )}
+                    </div>
+                )}
+                {activeWANumber === null && (
+                    <Link to="/whatsapp-setup"
+                        className="mt-2 flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-500/10 border border-amber-500/20 hover:bg-amber-500/20 transition-colors">
+                        <span className="material-symbols-outlined text-[14px] text-amber-500">warning</span>
+                        <p className="text-[10px] font-black text-amber-600 dark:text-amber-400">No WhatsApp connected — Setup</p>
+                    </Link>
+                )}
             </div>
 
             {/* Content */}
@@ -1023,10 +1052,26 @@ export default function ChatDashboard() {
             : null
     );
 
+    // Active WhatsApp number (default phone from connected account)
+    // null = not loaded yet, false = no number connected
+    const [activeWANumber, setActiveWANumber] = useState(undefined);
+
     const { socket } =
         useNotifications();
 
     const { user } = useAuth();
+
+    // Load the owner's connected WhatsApp numbers on mount
+    useEffect(() => {
+        listWAPhoneNumbers()
+            .then(res => {
+                const numbers = res.data?.data || [];
+                // Prefer the default number, fall back to first
+                const defaultNum = numbers.find(n => n.isDefault) || numbers[0];
+                setActiveWANumber(defaultNum || null);
+            })
+            .catch(() => setActiveWANumber(null));
+    }, []);
 
     useEffect(() => {
         const sanitizedId =
@@ -1150,6 +1195,7 @@ export default function ChatDashboard() {
                         handleSelectLead
                     }
                     loading={isLoading}
+                    activeWANumber={activeWANumber}
                 />
             </div>
 
@@ -1176,6 +1222,7 @@ export default function ChatDashboard() {
                         handleSelectLead
                     }
                     loading={isLoading}
+                    activeWANumber={activeWANumber}
                 />
             </div>
 
