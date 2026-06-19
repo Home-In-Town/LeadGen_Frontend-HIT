@@ -144,7 +144,6 @@ const LeadAutomationPage = () => {
       const [
         usersRes,
         templatesRes,
-        projectsRes,
         automationsRes,
       ] = await Promise.all([
         api.getAllUsers({
@@ -152,9 +151,8 @@ const LeadAutomationPage = () => {
           role: user.role,
         }),
 
-        api.getWhatsappTemplates(),
-
-        api.getBuilderProjects(),
+        // Fetch live Meta WhatsApp templates (APPROVED only)
+        api.listWATemplates().catch(() => ({ data: { success: false, data: [] } })),
 
         api.getCreatorAutomations(user.id),
       ]);
@@ -162,13 +160,16 @@ const LeadAutomationPage = () => {
       const fetchedUsers = usersRes?.data || [];
       setUsers(fetchedUsers);
 
+      // Map Meta templates to { id, label } format for the dropdown
       if (templatesRes?.data?.success) {
-        setTemplates(templatesRes.data.data);
+        const metaTemplates = (templatesRes.data.data || [])
+          .filter(t => t.status === 'APPROVED')
+          .map(t => ({ id: t.name, label: t.name.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) }));
+        setTemplates(metaTemplates.length > 0 ? metaTemplates : []);
       }
 
-      if (projectsRes?.data?.success) {
-        setProjects(projectsRes.data.data);
-      }
+      // Projects no longer fetched from HIT — removed
+      setProjects([]);
 
       let resolvedLead = null;
 
@@ -896,50 +897,7 @@ const LeadAutomationPage = () => {
 
         </div>
 
-        {/* PROJECT */}
-
-        {newAutomation.templateName === 'lead_street_view' && (
-          <div>
-
-            <label className="mb-2 flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.35em] text-slate-900/45 dark:text-slate-300/50">
-
-              <span className="material-symbols-outlined text-[14px] text-primary">
-                apartment
-              </span>
-
-              Project
-
-            </label>
-
-            <select
-              value={newAutomation.projectId}
-              onChange={(e) =>
-                setNewAutomation({
-                  ...newAutomation,
-                  projectId: e.target.value,
-                })
-              }
-              className={inputClass}
-            >
-
-              <option value="">
-                Select Project
-              </option>
-
-              {projects.map((p) => (
-                <option
-                  key={p._id}
-                  value={p.slug}
-                  className="bg-white text-slate-900 dark:bg-[#111827] dark:text-white"
-                >
-                  {p.projectName}
-                </option>
-              ))}
-
-            </select>
-
-          </div>
-        )}
+        {/* PROJECT — removed: HIT projects no longer used */}
 
         {/* TIME */}
 
