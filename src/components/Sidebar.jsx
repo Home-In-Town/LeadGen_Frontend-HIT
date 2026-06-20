@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import ConfirmationModal from './ConfirmationModal';
+import IntegrationSelectorModal from './IntegrationSelectorModal';
 import { useAuth } from '../context/AuthContext';
 
 const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
@@ -15,22 +16,56 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
     onConfirm: () => {},
     type: 'default'
   });
+  const [isIntegrationModalOpen, setIsIntegrationModalOpen] = useState(false);
+  const [expandedGroups, setExpandedGroups] = useState(() => {
+    // All groups expanded by default
+    return { DASHBOARD: true, 'LEAD MANAGEMENT': true, COMMUNICATION: true, MARKETING: true, ADMINISTRATION: true };
+  });
+
+  const toggleGroup = (label) => {
+    setExpandedGroups(prev => ({ ...prev, [label]: !prev[label] }));
+  };
   
   const isActive = (path) => 
     location.pathname === path || (path !== '/' && location.pathname.startsWith(path + '/'));
 
-  const menuItems = [
-    { name: 'Dashboard', path: '/dashboard', icon: 'grid_view' },
-    { name: 'CRM', path: '/crm', icon: 'assignment' },
-    { name: 'Chat', path: '/chat', icon: 'chat' },
-    { name: 'Users', path: '/users', icon: 'person' },
-    { name: 'Automation', path: '/lead-automation', icon: 'settings_suggest' },
-    { name: 'Integrations', path: '/integrations', icon: 'integration_instructions' },
-    { name: 'Call Logs', path: '/call-logs', icon: 'record_voice_over'},
-    { name: 'Campaigns', path: '/campaigns', icon: 'campaign' },
-    { name: 'WhatsApp Setup', path: '/whatsapp-setup', icon: 'chat' },
-    { name: 'WA Templates', path: '/whatsapp-templates', icon: 'description' },
-    { name: 'Email Templates', path: '/email-templates', icon: 'mail' },
+  const menuGroups = [
+    {
+      label: 'DASHBOARD',
+      items: [
+        { name: 'Dashboard', path: '/dashboard', icon: 'grid_view' },
+      ],
+    },
+    {
+      label: 'LEAD MANAGEMENT',
+      items: [
+        { name: 'CRM', path: '/crm', icon: 'assignment' },
+        { name: 'Lead Automation', path: '/lead-automation', icon: 'settings_suggest' },
+      ],
+    },
+    {
+      label: 'COMMUNICATION',
+      items: [
+        { name: 'Chat', path: '/chat', icon: 'chat' },
+        { name: 'WhatsApp', path: '/whatsapp-setup', icon: 'chat' },
+        { name: 'WA Templates', path: '/whatsapp-templates', icon: 'description' },
+        { name: 'Call History', path: '/call-logs', icon: 'record_voice_over' },
+      ],
+    },
+    {
+      label: 'MARKETING',
+      items: [
+        { name: 'Campaigns', path: '/campaigns', icon: 'campaign' },
+        { name: 'Email Templates', path: '/email-templates', icon: 'mail' },
+      ],
+    },
+    {
+      label: 'ADMINISTRATION',
+      items: [
+        { name: 'Users', path: '/users', icon: 'person' },
+        { name: 'Integrations', path: '/integrations', icon: 'integration_instructions', openModal: true },
+      ],
+    },
   ];
 
 
@@ -102,67 +137,94 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
 
       {/* Navigation */}
       <nav className="flex-1 py-4 sm:py-6 overflow-y-auto custom-scrollbar overflow-x-hidden">
-        <ul className="list-none p-0 m-0 space-y-1 px-2">
-          {menuItems.map((item) => (
-            <li key={item.path} onClick={onClose}>
-              {item.placeholder ? (
+        <ul className="list-none p-0 m-0 px-2">
+          {menuGroups.map((group, groupIndex) => (
+            <li key={group.label} className="list-none">
+              {/* Section Header (expanded) / Separator (collapsed) */}
+              {isCollapsed ? (
+                groupIndex > 0 && (
+                  <div className="h-px mx-3 my-2 bg-slate-200/70 dark:bg-white/10" />
+                )
+              ) : (
                 <button
                   type="button"
-                  className={`flex items-center transition-all duration-300 no-underline whitespace-nowrap group ${
-                    isCollapsed
-                      ? 'justify-center px-4 py-3 sm:py-3.5 rounded-[12px]'
-                      : 'gap-3 px-4 py-2.5 sm:py-3 rounded-[12px] uppercase tracking-[0.12em] text-[9px] sm:text-[10px] font-black'
-                  } ${
-                    'text-slate-500 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-900/5 dark:hover:bg-white/10'
-                  }`}
-                  title={item.name}
+                  onClick={() => toggleGroup(group.label)}
+                  className={`w-full flex items-center justify-between px-4 pb-1 cursor-pointer bg-transparent border-none ${groupIndex === 0 ? 'pt-0' : 'pt-4'}`}
                 >
-                  <span className={`material-symbols-outlined transition-all duration-300 ${isCollapsed ? 'text-lg sm:text-xl' : 'text-base sm:text-lg'}`}>
-                    {item.icon}
+                  <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-slate-400 dark:text-slate-500">
+                    {group.label}
                   </span>
-                  {!isCollapsed && (
-                    <span className="opacity-100 transition-opacity duration-300 delay-100 uppercase">
-                      {item.name}
-                    </span>
-                  )}
-
-                  {/* Tooltip for collapsed state */}
-                  {isCollapsed && (
-                    <div className="absolute left-20 ml-2 px-3 py-1 rounded-[10px] bg-slate-900 text-white text-[10px] font-bold uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 whitespace-nowrap shadow-xl">
-                      {item.name}
-                    </div>
-                  )}
+                  <span className={`material-symbols-outlined text-[14px] text-slate-400 dark:text-slate-500 transition-transform duration-200 ${expandedGroups[group.label] ? 'rotate-0' : '-rotate-90'}`}>
+                    expand_more
+                  </span>
                 </button>
-              ) : (
-                <Link
-                  to={item.path}
-                  className={`flex items-center transition-all duration-300 no-underline whitespace-nowrap group ${
-                    isCollapsed
-                      ? 'justify-center px-4 py-3 sm:py-3.5 rounded-[12px]'
-                      : 'gap-3 px-4 py-2.5 sm:py-3 rounded-[12px] uppercase tracking-[0.12em] text-[9px] sm:text-[10px] font-black'
-                  } ${
-                    isActive(item.path)
-                      ? 'bg-gradient-to-r from-primary to-emerald-600 text-white shadow-md shadow-primary/25'
-                      : 'text-slate-500 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-900/5 dark:hover:bg-white/10'
-                  }`}
-                >
-                  <span className={`material-symbols-outlined transition-all duration-300 ${isCollapsed ? 'text-lg sm:text-xl' : 'text-base sm:text-lg'}`}>
-                    {item.icon}
-                  </span>
-                  {!isCollapsed && (
-                    <span className="opacity-100 transition-opacity duration-300 delay-100 uppercase">
-                      {item.name}
-                    </span>
-                  )}
-
-                  {/* Tooltip for collapsed state */}
-                  {isCollapsed && (
-                    <div className="absolute left-20 ml-2 px-3 py-1 rounded-[10px] bg-slate-900 text-white text-[10px] font-bold uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 whitespace-nowrap shadow-xl">
-                      {item.name}
-                    </div>
-                  )}
-                </Link>
               )}
+
+              {/* Group Items */}
+              <ul className={`list-none p-0 m-0 space-y-1 transition-all duration-200 overflow-hidden ${!isCollapsed && !expandedGroups[group.label] ? 'max-h-0 opacity-0' : 'max-h-[500px] opacity-100'}`}>
+                {group.items.map((item) => (
+                  <li key={item.path} onClick={() => { onClose(); if (item.openModal) setIsIntegrationModalOpen(true); }}>
+                    {item.placeholder ? (
+                      <button
+                        type="button"
+                        className={`flex items-center transition-all duration-300 no-underline whitespace-nowrap group ${
+                          isCollapsed
+                            ? 'justify-center px-4 py-3 sm:py-3.5 rounded-[12px]'
+                            : 'gap-3 px-4 py-2.5 sm:py-3 rounded-[12px] uppercase tracking-[0.12em] text-[9px] sm:text-[10px] font-black'
+                        } ${
+                          'text-slate-500 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-900/5 dark:hover:bg-white/10'
+                        }`}
+                        title={item.name}
+                      >
+                        <span className={`material-symbols-outlined transition-all duration-300 ${isCollapsed ? 'text-lg sm:text-xl' : 'text-base sm:text-lg'}`}>
+                          {item.icon}
+                        </span>
+                        {!isCollapsed && (
+                          <span className="opacity-100 transition-opacity duration-300 delay-100 uppercase">
+                            {item.name}
+                          </span>
+                        )}
+
+                        {/* Tooltip for collapsed state */}
+                        {isCollapsed && (
+                          <div className="absolute left-20 ml-2 px-3 py-1 rounded-[10px] bg-slate-900 text-white text-[10px] font-bold uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 whitespace-nowrap shadow-xl">
+                            {item.name}
+                          </div>
+                        )}
+                      </button>
+                    ) : (
+                      <Link
+                        to={item.path}
+                        className={`flex items-center transition-all duration-300 no-underline whitespace-nowrap group ${
+                          isCollapsed
+                            ? 'justify-center px-4 py-3 sm:py-3.5 rounded-[12px]'
+                            : 'gap-3 px-4 py-2.5 sm:py-3 rounded-[12px] uppercase tracking-[0.12em] text-[9px] sm:text-[10px] font-black'
+                        } ${
+                          isActive(item.path)
+                            ? 'bg-gradient-to-r from-primary to-emerald-600 text-white shadow-md shadow-primary/25'
+                            : 'text-slate-500 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-900/5 dark:hover:bg-white/10'
+                        }`}
+                      >
+                        <span className={`material-symbols-outlined transition-all duration-300 ${isCollapsed ? 'text-lg sm:text-xl' : 'text-base sm:text-lg'}`}>
+                          {item.icon}
+                        </span>
+                        {!isCollapsed && (
+                          <span className="opacity-100 transition-opacity duration-300 delay-100 uppercase">
+                            {item.name}
+                          </span>
+                        )}
+
+                        {/* Tooltip for collapsed state */}
+                        {isCollapsed && (
+                          <div className="absolute left-20 ml-2 px-3 py-1 rounded-[10px] bg-slate-900 text-white text-[10px] font-bold uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 whitespace-nowrap shadow-xl">
+                            {item.name}
+                          </div>
+                        )}
+                      </Link>
+                    )}
+                  </li>
+                ))}
+              </ul>
             </li>
           ))}
         </ul>
@@ -193,6 +255,11 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
         message={modalConfig.message}
         confirmText={modalConfig.confirmText}
         type={modalConfig.type}
+      />
+
+      <IntegrationSelectorModal
+        isOpen={isIntegrationModalOpen}
+        onClose={() => setIsIntegrationModalOpen(false)}
       />
     </aside>
   );
