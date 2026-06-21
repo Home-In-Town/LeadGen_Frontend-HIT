@@ -230,9 +230,8 @@ function TabOverview({ status, campaigns, fbLeads, onConnect, onDisconnect, disc
 
 // ─── Tab 2: Campaigns & Forms ────────────────────────────────────────────────
 
-function CampaignCard({ campaign, projects, onMappingCreated }) {
+function CampaignCard({ campaign, onMappingCreated }) {
     const [expanded, setExpanded]         = useState(false);
-    const [mappingForm, setMappingForm]   = useState(null);
     const [showConfig, setShowConfig]     = useState(false);
 
     const statusColor = campaign.status === 'ACTIVE' ? 'green'
@@ -322,11 +321,29 @@ function CampaignCard({ campaign, projects, onMappingCreated }) {
                                     </span>
                                     <div className="flex items-center gap-2">
                                         {!form.isMapped && (
-                                            <button onClick={() => setMappingForm(form)}
-                                                className="flex items-center gap-1.5 rounded-xl border border-blue-500/30 bg-blue-500/5 hover:bg-blue-500/10 text-blue-600 dark:text-blue-400 text-[10px] font-black uppercase tracking-[0.2em] px-3 py-1.5 transition-all">
-                                                <span className="material-symbols-outlined text-[13px]">add_link</span>
-                                                Map to Project
+                                            <button onClick={async () => {
+                                                try {
+                                                    await createFBMapping({
+                                                        fbFormId: form.formId,
+                                                        formName: form.formName || form.formId,
+                                                        salesWebsiteProjectId: campaign.campaignId || 'default',
+                                                        pageId: form.pageId || campaign.pageId,
+                                                    });
+                                                    onMappingCreated();
+                                                } catch (err) {
+                                                    console.error('Enable form failed:', err);
+                                                }
+                                            }}
+                                                className="flex items-center gap-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/5 hover:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-black uppercase tracking-[0.2em] px-3 py-1.5 transition-all">
+                                                <span className="material-symbols-outlined text-[13px]">toggle_on</span>
+                                                Enable Import
                                             </button>
+                                        )}
+                                        {form.isMapped && (
+                                            <span className="flex items-center gap-1 text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600 dark:text-emerald-400">
+                                                <span className="material-symbols-outlined text-[13px]">check_circle</span>
+                                                Active
+                                            </span>
                                         )}
                                     </div>
                                 </div>
@@ -334,15 +351,6 @@ function CampaignCard({ campaign, projects, onMappingCreated }) {
                         ))
                     )}
                 </div>
-            )}
-
-            {mappingForm && (
-                <AddMappingModal
-                    form={mappingForm}
-                    projects={projects}
-                    onSave={() => { setMappingForm(null); onMappingCreated(); }}
-                    onClose={() => setMappingForm(null)}
-                />
             )}
         </div>
 
@@ -357,7 +365,7 @@ function CampaignCard({ campaign, projects, onMappingCreated }) {
     );
 }
 
-function TabCampaigns({ campaigns, campaignsLoading, onSync, syncing, isConnected, projects, onMappingCreated }) {
+function TabCampaigns({ campaigns, campaignsLoading, onSync, syncing, isConnected, onMappingCreated }) {
     const ORDER = { ACTIVE: 0, PAUSED: 1, ARCHIVED: 2, DELETED: 3 };
     const sorted = [...campaigns].sort((a, b) => {
         const ao = ORDER[a.status] ?? 9;
@@ -404,7 +412,6 @@ function TabCampaigns({ campaigns, campaignsLoading, onSync, syncing, isConnecte
                 <CampaignCard
                     key={camp.campaignId}
                     campaign={camp}
-                    projects={projects}
                     onMappingCreated={onMappingCreated}
                 />
             ))}
@@ -760,7 +767,6 @@ const FacebookIntegrationPage = () => {
     const [activeTab,   setActiveTab]   = useState('overview');
     const [status,      setStatus]      = useState(null);     // null = loading
     const [loadError,   setLoadError]   = useState('');
-    const [projects,    setProjects]    = useState([]);
     const [campaigns,   setCampaigns]   = useState([]);
     const [campsLoading, setCampsLoading] = useState(false);
     const [fbLeads,     setFbLeads]     = useState([]);
@@ -956,7 +962,6 @@ const FacebookIntegrationPage = () => {
                         onSync={handleSync}
                         syncing={syncing}
                         isConnected={isConnected}
-                        projects={projects}
                         onMappingCreated={handleMappingCreated}
                     />
                 )}
