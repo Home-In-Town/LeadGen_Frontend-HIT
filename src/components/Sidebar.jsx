@@ -21,9 +21,14 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
     // All groups expanded by default
     return { DASHBOARD: true, 'LEAD MANAGEMENT': true, COMMUNICATION: true, MARKETING: true, ADMINISTRATION: true };
   });
+  const [expandedItems, setExpandedItems] = useState({});
 
   const toggleGroup = (label) => {
     setExpandedGroups(prev => ({ ...prev, [label]: !prev[label] }));
+  };
+
+  const toggleItem = (path) => {
+    setExpandedItems(prev => ({ ...prev, [path]: !prev[path] }));
   };
   
   const isActive = (path) => 
@@ -47,9 +52,10 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
       label: 'COMMUNICATION',
       items: [
         { name: 'Chat', path: '/chat', icon: 'chat' },
-        { name: 'WhatsApp', path: '/whatsapp-setup', icon: 'chat' },
-        { name: 'WA Templates', path: '/whatsapp-templates', icon: 'description' },
-        { name: 'Call History', path: '/call-logs', icon: 'record_voice_over' },
+        { name: 'WhatsApp', path: '/whatsapp-setup', icon: 'chat', children: [
+          { name: 'Templates', path: '/whatsapp-templates', icon: 'description' },
+        ]},
+        { name: 'Voice Calls', path: '/call-logs', icon: 'record_voice_over' },
       ],
     },
     {
@@ -163,8 +169,80 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
               {/* Group Items */}
               <ul className={`list-none p-0 m-0 space-y-1 transition-all duration-200 overflow-hidden ${!isCollapsed && !expandedGroups[group.label] ? 'max-h-0 opacity-0' : 'max-h-[500px] opacity-100'}`}>
                 {group.items.map((item) => (
-                  <li key={item.path} onClick={() => { onClose(); if (item.openModal) setIsIntegrationModalOpen(true); }}>
-                    {item.placeholder ? (
+                  <li key={item.path} onClick={(e) => { if (!item.children) { onClose(); if (item.openModal) setIsIntegrationModalOpen(true); } }}>
+                    {item.children ? (
+                      // Expandable parent item with children
+                      <div>
+                        <div className="flex items-center">
+                          <Link
+                            to={item.path}
+                            onClick={onClose}
+                            className={`flex-1 flex items-center transition-all duration-300 no-underline whitespace-nowrap group ${
+                              isCollapsed
+                                ? 'justify-center px-4 py-3 sm:py-3.5 rounded-[12px]'
+                                : 'gap-3 px-4 py-2.5 sm:py-3 rounded-l-[12px] uppercase tracking-[0.12em] text-[9px] sm:text-[10px] font-black'
+                            } ${
+                              isActive(item.path) || item.children.some(c => isActive(c.path))
+                                ? 'bg-gradient-to-r from-primary to-emerald-600 text-white shadow-md shadow-primary/25'
+                                : 'text-slate-500 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-900/5 dark:hover:bg-white/10'
+                            }`}
+                          >
+                            <span className={`material-symbols-outlined transition-all duration-300 ${isCollapsed ? 'text-lg sm:text-xl' : 'text-base sm:text-lg'}`}>
+                              {item.icon}
+                            </span>
+                            {!isCollapsed && (
+                              <span className="opacity-100 transition-opacity duration-300 delay-100 uppercase">
+                                {item.name}
+                              </span>
+                            )}
+                            {isCollapsed && (
+                              <div className="absolute left-20 ml-2 px-3 py-1 rounded-[10px] bg-slate-900 text-white text-[10px] font-bold uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 whitespace-nowrap shadow-xl">
+                                {item.name}
+                              </div>
+                            )}
+                          </Link>
+                          {!isCollapsed && (
+                            <button
+                              type="button"
+                              onClick={() => toggleItem(item.path)}
+                              className={`p-2 rounded-r-[12px] transition-all duration-200 cursor-pointer border-none ${
+                                isActive(item.path) || item.children.some(c => isActive(c.path))
+                                  ? 'bg-gradient-to-r from-emerald-600 to-emerald-600 text-white/80 hover:text-white'
+                                  : 'bg-transparent text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                              }`}
+                            >
+                              <span className={`material-symbols-outlined text-[14px] transition-transform duration-200 ${expandedItems[item.path] ? 'rotate-0' : '-rotate-90'}`}>
+                                expand_more
+                              </span>
+                            </button>
+                          )}
+                        </div>
+                        {/* Sub-items */}
+                        {!isCollapsed && (
+                          <ul className={`list-none p-0 m-0 pl-4 space-y-0.5 transition-all duration-200 overflow-hidden ${expandedItems[item.path] ? 'max-h-[200px] opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
+                            {item.children.map((child) => (
+                              <li key={child.path} onClick={onClose}>
+                                <Link
+                                  to={child.path}
+                                  className={`flex items-center gap-3 px-4 py-2 rounded-[10px] no-underline whitespace-nowrap uppercase tracking-[0.12em] text-[9px] sm:text-[10px] font-black transition-all duration-300 ${
+                                    isActive(child.path)
+                                      ? 'bg-gradient-to-r from-primary to-emerald-600 text-white shadow-md shadow-primary/25'
+                                      : 'text-slate-400 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-900/5 dark:hover:bg-white/10'
+                                  }`}
+                                >
+                                  <span className="material-symbols-outlined text-base sm:text-lg transition-all duration-300">
+                                    {child.icon}
+                                  </span>
+                                  <span className="opacity-100 transition-opacity duration-300 delay-100 uppercase">
+                                    {child.name}
+                                  </span>
+                                </Link>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    ) : item.placeholder ? (
                       <button
                         type="button"
                         className={`flex items-center transition-all duration-300 no-underline whitespace-nowrap group ${
