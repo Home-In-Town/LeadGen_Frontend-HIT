@@ -2,209 +2,17 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as api from '../api';
 import { useAuth } from '../context/AuthContext';
-import IntegrationSelectorModal from '../components/IntegrationSelectorModal';
 
 const THEME_STORAGE_KEY = 'hit-landing-theme';
 
 function getInitialTheme() {
   if (typeof window === 'undefined') return 'light';
-
   try {
     const stored = localStorage.getItem(THEME_STORAGE_KEY);
-
-    if (stored === 'dark' || stored === 'light') {
-      return stored;
-    }
-  } catch {
-    /* ignore */
-  }
-
-  return window.matchMedia('(prefers-color-scheme: dark)').matches
-    ? 'dark'
-    : 'light';
+    if (stored === 'dark' || stored === 'light') return stored;
+  } catch { /* ignore */ }
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
-
-/* ---------------------------------- */
-/* Reusable Components */
-/* ---------------------------------- */
-
-const SectionHeading = ({ title, icon }) => (
-  <div className="flex items-center gap-3 mb-5 sm:mb-6">
-    {icon && (
-      <span className="material-symbols-outlined text-primary">{icon}</span>
-    )}
-
-    <h2 className="text-[10px] sm:text-[11px] font-black uppercase tracking-[0.4em] text-slate-700/60 dark:text-slate-300/60 whitespace-nowrap">
-      {title}
-    </h2>
-
-    <div className="h-[1px] w-full bg-slate-200/70 dark:bg-white/10" />
-  </div>
-);
-
-const KPIStatCard = ({
-  title,
-  value,
-  subtitle,
-  icon,
-  accent = false,
-  onClick,
-}) => (
-  <div
-    onClick={onClick}
-    role={onClick ? 'button' : undefined}
-    tabIndex={onClick ? 0 : undefined}
-    className={`bg-white/75 dark:bg-white/[0.04] border border-slate-200/80 dark:border-white/10 p-4 sm:p-6 rounded-[16px] shadow-sm backdrop-blur-sm transition-all hover:-translate-y-px hover:shadow-md ${
-      onClick ? 'cursor-pointer' : ''
-    }`}
-  >
-    <div className="flex items-start justify-between gap-3">
-      <div>
-        <h3
-          className={`text-[10px] font-black uppercase tracking-[0.35em] ${
-            accent
-              ? 'text-primary'
-              : 'text-slate-900/50 dark:text-slate-300/60'
-          }`}
-        >
-          {title}
-        </h3>
-
-        <div
-          className={`mt-2 text-3xl sm:text-4xl font-black tracking-tight ${
-            accent
-              ? 'text-primary'
-              : 'text-slate-900 dark:text-white'
-          }`}
-        >
-          {value}
-        </div>
-
-        <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-900/25 dark:text-slate-300/40">
-          {subtitle}
-        </p>
-      </div>
-
-      <div
-        className={`flex h-10 w-10 items-center justify-center rounded-[14px] ring-1 ${
-          accent
-            ? 'bg-primary/10 text-primary ring-primary/20'
-            : 'bg-charcoal/5 text-charcoal ring-charcoal/10 dark:bg-white/[0.04] dark:ring-white/10'
-        }`}
-      >
-        <span className="material-symbols-outlined text-2xl">
-          {icon}
-        </span>
-      </div>
-    </div>
-  </div>
-);
-
-const KPISectionSkeleton = () => (
-  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-    {Array.from({ length: 4 }).map((_, idx) => (
-      <div
-        key={idx}
-        className="rounded-[16px] border border-slate-200/80 dark:border-white/10 bg-white/60 dark:bg-white/[0.04] p-4 sm:p-6 animate-pulse"
-      >
-        <div className="h-[10px] w-28 rounded bg-slate-200 dark:bg-white/10" />
-        <div className="mt-3 h-8 w-24 rounded bg-slate-200 dark:bg-white/10" />
-        <div className="mt-3 h-[10px] w-36 rounded bg-slate-200 dark:bg-white/10" />
-      </div>
-    ))}
-  </div>
-);
-
-const IntegrationsCard = ({ onClick }) => (
-  <div
-    onClick={onClick}
-    className="group bg-white/70 dark:bg-white/[0.04] border border-slate-200/80 dark:border-white/10 backdrop-blur-xl p-4 sm:p-6 hover:bg-white dark:hover:bg-white/[0.07] transition-all cursor-pointer relative overflow-hidden flex flex-col justify-between min-h-[140px] sm:min-h-[160px] rounded-[18px] shadow-sm hover:-translate-y-px hover:shadow-md"
-    role="button"
-    tabIndex={0}
-  >
-    <div className="relative z-10">
-      <div className="flex justify-between items-start mb-4">
-        <span className="material-symbols-outlined text-slate-800/80 group-hover:text-primary transition-colors text-2xl">
-          hub
-        </span>
-
-        <div className="flex gap-2">
-          <div className="w-6 h-6 bg-white border border-slate-200 rounded-sm p-1 flex items-center justify-center">
-            <svg viewBox="0 0 24 24" className="w-full h-full">
-              <path
-                fill="#4285F4"
-                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-              />
-              <path
-                fill="#34A853"
-                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-              />
-              <path
-                fill="#FBBC05"
-                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"
-              />
-              <path
-                fill="#EA4335"
-                d="M12 5.38c1.62 0 3.06.56 4.21 1.66l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-              />
-            </svg>
-          </div>
-
-          <div className="w-6 h-6 bg-[#1877F2] border border-[#1877F2] rounded-sm p-1 flex items-center justify-center">
-            <svg viewBox="0 0 24 24" fill="white" className="w-full h-full">
-              <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-            </svg>
-          </div>
-        </div>
-      </div>
-
-      <h3 className="text-sm font-black uppercase tracking-tight text-slate-900 group-hover:text-primary transition-colors mb-1 dark:text-white">
-        Integrations
-      </h3>
-
-      <p className="text-[10px] font-bold text-slate-700/40 group-hover:text-primary/70 transition-colors uppercase tracking-wider dark:text-slate-300/60">
-        Connect external sources
-      </p>
-    </div>
-
-    <div className="relative z-10 flex items-center justify-between">
-      <div className="flex items-center gap-1.5">
-        <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
-
-        <span className="text-[9px] font-black uppercase tracking-widest text-primary">
-          2 Integrations Active
-        </span>
-      </div>
-
-      <span className="material-symbols-outlined text-slate-700/40 group-hover:text-primary/80 transition-colors">
-        arrow_forward
-      </span>
-    </div>
-
-    <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-charcoal/5 group-hover:bg-primary/15 rotate-12 transition-all rounded-full dark:bg-white/5" />
-  </div>
-);
-
-const EmptyUsersState = ({ onAddUser }) => (
-  <div className="mx-auto max-w-7xl px-3 sm:px-0">
-    <div className="mt-2 bg-white/70 dark:bg-white/[0.04] border border-dashed border-slate-200/70 dark:border-white/15 p-8 sm:p-12 text-center rounded-[18px] shadow-sm backdrop-blur-xl">
-      <span className="material-symbols-outlined text-4xl sm:text-5xl text-slate-700/30 dark:text-white/20 mb-3">
-        person_off
-      </span>
-
-      <p className="text-slate-700/60 dark:text-slate-300/60 text-[9px] sm:text-[10px] font-black uppercase tracking-widest mb-4">
-        No data in system.
-      </p>
-
-      <button
-        onClick={onAddUser}
-        className="px-5 py-2 bg-charcoal text-white font-black uppercase tracking-widest text-[9px] hover:bg-primary transition-all cursor-pointer rounded-[12px]"
-      >
-        Add First Person
-      </button>
-    </div>
-  </div>
-);
 
 /* ---------------------------------- */
 /* Main Component */
@@ -213,95 +21,97 @@ const EmptyUsersState = ({ onAddUser }) => (
 const DashboardPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-
-  const [users, setUsers] = useState([]);
-  const [isUsersLoading, setIsUsersLoading] = useState(true);
-  const [isIntegrationModalOpen, setIsIntegrationModalOpen] =
-    useState(false);
-
   const [theme] = useState(getInitialTheme);
+  const isDark = theme === 'dark';
 
-  /* -------------------- */
-  /* NEW STATES */
-  /* -------------------- */
+  // Data states
+  const [users, setUsers] = useState([]);
+  const [leads, setLeads] = useState({ leads: [], total: 0 });
+  const [campaigns, setCampaigns] = useState({ campaigns: [], total: 0 });
+  const [conversations, setConversations] = useState([]);
+  const [callLogs, setCallLogs] = useState([]);
+  const [automations, setAutomations] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const [manualForm, setManualForm] = useState({
-    name: '',
-    phone: '',
-  });
-
+  // Form states
+  const [manualForm, setManualForm] = useState({ name: '', phone: '' });
   const [file, setFile] = useState(null);
-
   const [manualLoading, setManualLoading] = useState(false);
   const [fileLoading, setFileLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const isDark = theme === 'dark';
-
   /* -------------------- */
-  /* FETCH USERS */
+  /* FETCH ALL DATA */
   /* -------------------- */
 
-  const fetchUsers = useCallback(async () => {
+  const fetchDashboardData = useCallback(async () => {
     if (!user) {
-      setUsers([]);
-      setIsUsersLoading(false);
+      setLoading(false);
       return;
     }
 
-    setIsUsersLoading(true);
+    setLoading(true);
+    const params = { userId: user.id, role: user.role };
 
     try {
-      const params = {
-        userId: user.id,
-        role: user.role,
-      };
+      const [usersRes, leadsRes, campaignsRes, chatsRes, callsRes, automationsRes] =
+        await Promise.allSettled([
+          api.getAllUsers(params),
+          api.getAllLeads({ ...params, limit: 5 }),
+          api.listCampaigns(params),
+          api.getChatConversations(user.id, user.role),
+          api.getCallLogs(params),
+          api.getCreatorAutomations(user.id),
+        ]);
 
-      const res = await api.getAllUsers(params);
-
-      setUsers(res.data);
+      if (usersRes.status === 'fulfilled') setUsers(usersRes.value.data || []);
+      if (leadsRes.status === 'fulfilled') setLeads(leadsRes.value.data || { leads: [], total: 0 });
+      if (campaignsRes.status === 'fulfilled') setCampaigns(campaignsRes.value.data || { campaigns: [], total: 0 });
+      if (chatsRes.status === 'fulfilled') setConversations(chatsRes.value.data || []);
+      if (callsRes.status === 'fulfilled') setCallLogs(callsRes.value.data?.logs || callsRes.value.data || []);
+      if (automationsRes.status === 'fulfilled') setAutomations(automationsRes.value.data || []);
     } catch (err) {
-      console.error('Failed to fetch users:', err);
+      console.error('Dashboard fetch error:', err);
     } finally {
-      setIsUsersLoading(false);
+      setLoading(false);
     }
   }, [user]);
 
   useEffect(() => {
-    fetchUsers();
-  }, [fetchUsers]);
+    fetchDashboardData();
+  }, [fetchDashboardData]);
 
   /* -------------------- */
-  /* MANUAL ENTRY LOGIC */
+  /* DERIVED DATA */
+  /* -------------------- */
+
+  const totalLeads = leads.total || 0;
+  const activeCampaigns = Array.isArray(campaigns.campaigns)
+    ? campaigns.campaigns.filter((c) => c.status === 'active').length
+    : 0;
+  const totalCampaigns = campaigns.total || 0;
+  const unreadChats = Array.isArray(conversations)
+    ? conversations.reduce((sum, c) => sum + (c.unreadCount || 0), 0)
+    : 0;
+  const recentLeads = Array.isArray(leads.leads) ? leads.leads.slice(0, 5) : [];
+  const pendingAutomations = Array.isArray(automations)
+    ? automations.filter((a) => a.status === 'pending').length
+    : 0;
+  const totalCalls = Array.isArray(callLogs) ? callLogs.length : 0;
+
+  /* -------------------- */
+  /* FORM HANDLERS */
   /* -------------------- */
 
   const handleManualSubmit = async (e) => {
     e.preventDefault();
-
     setManualLoading(true);
     setError('');
-
     try {
-      const creatorData = user
-        ? {
-            userId: user.id,
-            role: user.role,
-            name: user.name,
-          }
-        : null;
-
-      await api.createUser({
-        ...manualForm,
-        createdBy: creatorData,
-      });
-
-      setManualForm({
-        name: '',
-        phone: '',
-      });
-
-      await fetchUsers();
-
+      const creatorData = user ? { userId: user.id, role: user.role, name: user.name } : null;
+      await api.createUser({ ...manualForm, createdBy: creatorData });
+      setManualForm({ name: '', phone: '' });
+      await fetchDashboardData();
       navigate('/users');
     } catch (err) {
       console.error(err);
@@ -311,33 +121,16 @@ const DashboardPage = () => {
     }
   };
 
-  /* -------------------- */
-  /* FILE UPLOAD LOGIC */
-  /* -------------------- */
-
   const handleFileUpload = async (e) => {
     e.preventDefault();
-
     if (!file) return;
-
     setFileLoading(true);
     setError('');
-
     try {
-      const creatorData = user
-        ? {
-            userId: user.id,
-            role: user.role,
-            name: user.name,
-          }
-        : null;
-
+      const creatorData = user ? { userId: user.id, role: user.role, name: user.name } : null;
       await api.uploadUser(file, creatorData);
-
       setFile(null);
-
-      await fetchUsers();
-
+      await fetchDashboardData();
       navigate('/users');
     } catch (err) {
       console.error(err);
@@ -347,471 +140,264 @@ const DashboardPage = () => {
     }
   };
 
-  return (
-    <div
-      className={`relative animate-fade-in font-display pb-10 transition-colors duration-300 ${
-        isDark ? 'dark' : ''
-      }`}
-    >
-      {/* Background */}
-      <div
-        className="pointer-events-none absolute inset-0 -z-10 landing-gradient-mesh opacity-10 dark:opacity-25"
-        aria-hidden
-      />
+  /* -------------------- */
+  /* HELPERS */
+  /* -------------------- */
 
-      <div
-        className="pointer-events-none absolute inset-0 -z-10 landing-grid-bg opacity-10 dark:opacity-30"
-        aria-hidden
-      />
+  const timeAgo = (date) => {
+    if (!date) return '';
+    const diff = Date.now() - new Date(date).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'Just now';
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    const days = Math.floor(hrs / 24);
+    return `${days}d ago`;
+  };
+
+  return (
+    <div className={`relative animate-fade-in font-display pb-10 transition-colors duration-300 ${isDark ? 'dark' : ''}`}>
+      {/* Background */}
+      <div className="pointer-events-none absolute inset-0 -z-10 landing-gradient-mesh opacity-10 dark:opacity-25" aria-hidden />
+      <div className="pointer-events-none absolute inset-0 -z-10 landing-grid-bg opacity-10 dark:opacity-30" aria-hidden />
 
       <div className="min-h-[50vh] bg-transparent text-slate-900 dark:text-slate-100 transition-colors duration-300">
-        {/* Header */}
-        <div className="mx-auto max-w-7xl px-3 sm:px-0">
-          <div className="flex flex-col gap-3 sm:gap-4 sm:flex-row justify-between items-center bg-white/70 dark:bg-slate-950/40 border border-slate-200/70 dark:border-white/10 backdrop-blur-xl p-3 sm:p-5 mb-5 sm:mb-8 shadow-sm rounded-[18px] transition-all">
-            <div className="text-center sm:text-left">
-              <h1 className="text-lg sm:text-xl md:text-2xl font-black tracking-tight leading-tight text-slate-900 dark:text-white">
-                System Dashboard
-              </h1>
 
-              <p className="mt-1 text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.2em] text-slate-600/70 dark:text-slate-300/70">
-                Overview & Statistics
+        {/* Header */}
+        <div className="mx-auto max-w-5xl px-4 sm:px-6">
+          <div className="flex flex-col sm:flex-row justify-between items-center bg-white/70 dark:bg-slate-950/40 border border-slate-200/70 dark:border-white/10 backdrop-blur-xl p-4 sm:p-5 mb-6 shadow-sm rounded-[18px]">
+            <div className="text-center sm:text-left">
+              <h1 className="text-lg sm:text-xl font-black tracking-tight text-slate-900 dark:text-white">
+                Welcome{user?.name ? `, ${user.name}` : ''}
+              </h1>
+              <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-600/70 dark:text-slate-300/70">
+                Your system at a glance
               </p>
             </div>
-
-            <button
-              onClick={() => navigate('/users')}
-              className="w-full sm:w-auto bg-primary text-white py-2 sm:py-3 px-4 sm:px-6 font-black uppercase tracking-widest text-[10px] sm:text-xs border border-primary hover:bg-charcoal hover:border-charcoal transition-all cursor-pointer flex items-center justify-center gap-2 shadow-lg rounded-[14px]"
-            >
-              <span className="material-symbols-outlined text-base sm:text-lg font-black">
-                groups
-              </span>
-
-              VIEW USERS
-            </button>
+            <div className="mt-3 sm:mt-0 flex items-center gap-2">
+              <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-[9px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">Active</span>
+              </div>
+            </div>
           </div>
         </div>
 
-        
-
-        {/* Tools & Settings */}
-        <section className="mx-auto max-w-7xl mb-10 sm:mb-12 px-3 sm:px-0">
-          <SectionHeading title="Tools & Settings" icon={
-            <span className="material-symbols-outlined text-primary">
-              settings
-            </span>
-          } />
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6">
-
-            {/* Integrations */}
-            <IntegrationsCard
-              onClick={() => setIsIntegrationModalOpen(true)}
-            />
-
-            {/* WhatsApp Quick Setup */}
-            <div
-              onClick={() => navigate('/whatsapp-setup')}
-              role="button"
-              tabIndex={0}
-              onKeyDown={e => e.key === 'Enter' && navigate('/whatsapp-setup')}
-              className="group bg-white/70 dark:bg-white/[0.04] border border-slate-200/80 dark:border-white/10 backdrop-blur-xl p-5 sm:p-6 hover:bg-white dark:hover:bg-white/[0.07] transition-all cursor-pointer relative overflow-hidden flex flex-col justify-between min-h-[140px] sm:min-h-[160px] rounded-[18px] shadow-sm hover:-translate-y-px hover:shadow-md"
-            >
-              <div className="relative z-10">
-                <div className="flex justify-between items-start mb-4">
-                  <span className="material-symbols-outlined text-[#25D366] text-2xl">chat</span>
-                  <span className="text-[9px] font-black uppercase tracking-widest text-[#25D366] bg-[#25D366]/10 px-2 py-1 rounded-full">
-                    WhatsApp
-                  </span>
-                </div>
-                <h3 className="text-sm font-black uppercase tracking-tight text-slate-900 group-hover:text-[#25D366] transition-colors mb-1 dark:text-white">
-                  Connect WhatsApp
-                </h3>
-                <p className="text-[10px] font-bold text-slate-700/40 group-hover:text-[#25D366]/70 transition-colors uppercase tracking-wider dark:text-slate-300/60">
-                  Get credentials from wa.homeintown.in
-                </p>
-              </div>
-              <div className="relative z-10 flex items-center justify-between mt-4">
-                <a
-                  href="https://wa.homeintown.in/auth/login"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={e => e.stopPropagation()}
-                  className="text-[9px] font-black uppercase tracking-widest text-[#25D366] underline underline-offset-2 hover:opacity-70 transition-opacity"
-                >
-                  Open Portal ↗
-                </a>
-                <span className="material-symbols-outlined text-slate-700/40 group-hover:text-[#25D366]/80 transition-colors">
-                  arrow_forward
-                </span>
-              </div>
-              <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-[#25D366]/5 group-hover:bg-[#25D366]/15 rotate-12 transition-all rounded-full" />
-            </div>
-
-            {/* Manual User Entry */}
-            <form
-              onSubmit={handleManualSubmit}
-              className="
-                bg-white/70 dark:bg-white/[0.04]
-                border border-slate-200/80 dark:border-white/10
-                backdrop-blur-xl
-                rounded-[18px]
-                p-5 sm:p-6
-                shadow-sm
-                hover:shadow-md
-                transition-all
-              "
-            >
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-11 h-11 rounded-[14px] bg-primary/10 flex items-center justify-center">
-                  <span className="material-symbols-outlined text-primary text-[22px]">
-                    person_add
-                  </span>
-                </div>
-
-                <div>
-                  <h3 className="text-sm font-black uppercase tracking-tight text-slate-900 dark:text-white">
-                    Manual Entry
-                  </h3>
-
-                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 mt-1">
-                    Add new person
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-600 dark:text-slate-400">
-                    Full Name
-                  </label>
-
-                  <input
-                    type="text"
-                    placeholder="Enter full name"
-                    value={manualForm.name}
-                    onChange={(e) =>
-                      setManualForm({
-                        ...manualForm,
-                        name: e.target.value,
-                      })
-                    }
-                    required
-                    className="
-                      w-full p-3
-                      bg-white/80 dark:bg-white/[0.03]
-                      border border-slate-200 dark:border-white/10
-                      rounded-[14px]
-                      text-slate-900 dark:text-slate-100
-                      placeholder:text-slate-400 dark:placeholder:text-slate-500
-                      focus:border-primary
-                      focus:ring-4
-                      focus:ring-primary/10
-                      focus:outline-none
-                      transition-all
-                      font-mono text-sm
-                    "
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-600 dark:text-slate-400">
-                    Phone Number
-                  </label>
-
-                  <input
-                    type="tel"
-                    placeholder="Enter phone number"
-                    value={manualForm.phone}
-                    onChange={(e) =>
-                      setManualForm({
-                        ...manualForm,
-                        phone: e.target.value,
-                      })
-                    }
-                    required
-                    className="
-                      w-full p-3
-                      bg-white/80 dark:bg-white/[0.03]
-                      border border-slate-200 dark:border-white/10
-                      rounded-[14px]
-                      text-slate-900 dark:text-slate-100
-                      placeholder:text-slate-400 dark:placeholder:text-slate-500
-                      focus:border-primary
-                      focus:ring-4
-                      focus:ring-primary/10
-                      focus:outline-none
-                      transition-all
-                      font-mono text-sm
-                    "
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={manualLoading}
-                  className="
-                    w-full
-                    bg-primary
-                    text-white
-                    py-3
-                    rounded-[14px]
-                    font-black
-                    uppercase
-                    tracking-[0.2em]
-                    text-[10px]
-                    hover:brightness-110
-                    transition-all
-                    duration-200
-                    cursor-pointer
-                    shadow-lg
-                    disabled:opacity-50
-                    disabled:cursor-not-allowed
-                  "
-                >
-                  {manualLoading
-                    ? 'PROCESSING...'
-                    : 'ADD TO SYSTEM'}
-                </button>
-              </div>
-            </form>
-
-            {/* Upload Document */}
-            <form
-              onSubmit={handleFileUpload}
-              className="
-                bg-white/70 dark:bg-white/[0.04]
-                border border-slate-200/80 dark:border-white/10
-                backdrop-blur-xl
-                rounded-[18px]
-                p-5 sm:p-6
-                shadow-sm
-                hover:shadow-md
-                transition-all
-              "
-            >
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-11 h-11 rounded-[14px] bg-blue-500/10 flex items-center justify-center">
-                  <span className="material-symbols-outlined text-blue-500 text-[22px]">
-                    upload_file
-                  </span>
-                </div>
-
-                <div>
-                  <h3 className="text-sm font-black uppercase tracking-tight text-slate-900 dark:text-white">
-                    Import Document
-                  </h3>
-
-                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 mt-1">
-                    DOCX / XLSX / CSV
-                  </p>
-                </div>
-              </div>
-
+        {/* Stats Row */}
+        <section className="mx-auto max-w-5xl px-4 sm:px-6 mb-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            {[
+              { icon: 'groups', label: 'People', value: loading ? '...' : users.length, path: '/users' },
+              { icon: 'contact_page', label: 'Leads', value: loading ? '...' : totalLeads, path: '/crm' },
+              { icon: 'campaign', label: 'Campaigns', value: loading ? '...' : `${activeCampaigns}/${totalCampaigns}`, path: '/campaigns' },
+              { icon: 'chat', label: 'Unread Chats', value: loading ? '...' : unreadChats, path: '/chat' },
+              { icon: 'call', label: 'Calls', value: loading ? '...' : totalCalls, path: '/call-logs' },
+              { icon: 'schedule_send', label: 'Pending Auto', value: loading ? '...' : pendingAutomations, path: '/lead-automation' },
+            ].map((stat) => (
               <div
-                className={`
-                  relative
-                  border border-dashed
-                  rounded-[18px]
-                  p-8
-                  transition-all
-                  duration-300
-                  backdrop-blur-sm
-                  overflow-hidden
-                  ${
-                    file
-                      ? 'border-emerald-500/40 bg-emerald-500/10'
-                      : 'border-slate-300 dark:border-white/10 bg-white/40 dark:bg-white/[0.02]'
-                  }
-                `}
+                key={stat.label}
+                onClick={() => navigate(stat.path)}
+                role="button"
+                tabIndex={0}
+                className="flex flex-col items-center justify-center bg-white/80 dark:bg-white/[0.04] border border-slate-200/70 dark:border-white/10 rounded-[14px] p-3 shadow-sm hover:shadow-md hover:-translate-y-px transition-all cursor-pointer"
               >
-                <input
-                  type="file"
-                  accept=".docx,.xlsx,.csv"
-                  onChange={(e) => setFile(e.target.files[0])}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                />
+                <span className="material-symbols-outlined text-primary text-xl mb-1">{stat.icon}</span>
+                <span className="text-lg font-black text-slate-900 dark:text-white leading-none">{stat.value}</span>
+                <span className="text-[8px] font-bold uppercase tracking-[0.1em] text-slate-500 dark:text-slate-400 mt-1">{stat.label}</span>
+              </div>
+            ))}
+          </div>
+        </section>
 
-                <div className="flex flex-col items-center justify-center text-center">
-                  <div
-                    className={`
-                      w-14 h-14 rounded-full flex items-center justify-center mb-4
-                      ${
-                        file
-                          ? 'bg-emerald-500/15'
-                          : 'bg-slate-200/60 dark:bg-white/[0.04]'
-                      }
-                    `}
-                  >
-                    <span
-                      className={`
-                        material-symbols-outlined text-[30px]
-                        ${
-                          file
-                            ? 'text-emerald-500'
-                            : 'text-slate-400 dark:text-slate-500'
-                        }
-                      `}
-                    >
+        {/* Main Grid: Add People + Recent Leads */}
+        <section className="mx-auto max-w-5xl px-4 sm:px-6 mb-6">
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
+
+            {/* Left: Add People (2 cols) */}
+            <div className="lg:col-span-2 space-y-4">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="material-symbols-outlined text-primary text-base">add_circle</span>
+                <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-600/60 dark:text-slate-300/60">Add People</h2>
+              </div>
+
+              {/* Manual Entry */}
+              <form onSubmit={handleManualSubmit} className="bg-white/80 dark:bg-white/[0.04] border border-slate-200/80 dark:border-white/10 backdrop-blur-xl rounded-[16px] p-4 shadow-sm">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-8 h-8 rounded-[8px] bg-primary/10 flex items-center justify-center">
+                    <span className="material-symbols-outlined text-primary text-base">person_add</span>
+                  </div>
+                  <span className="text-xs font-black uppercase tracking-tight text-slate-900 dark:text-white">Manual Entry</span>
+                </div>
+                <div className="space-y-2">
+                  <input type="text" placeholder="Full name" value={manualForm.name} onChange={(e) => setManualForm({ ...manualForm, name: e.target.value })} required className="w-full p-2.5 bg-white/80 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 rounded-[10px] text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/10 focus:outline-none transition-all text-sm" />
+                  <input type="tel" placeholder="Phone number" value={manualForm.phone} onChange={(e) => setManualForm({ ...manualForm, phone: e.target.value })} required className="w-full p-2.5 bg-white/80 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 rounded-[10px] text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/10 focus:outline-none transition-all text-sm" />
+                  <button type="submit" disabled={manualLoading} className="w-full bg-primary text-white py-2.5 rounded-[10px] font-black uppercase tracking-[0.15em] text-[9px] hover:brightness-110 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                    {manualLoading ? 'ADDING...' : 'ADD'}
+                  </button>
+                </div>
+              </form>
+
+              {/* Import File */}
+              <form onSubmit={handleFileUpload} className="bg-white/80 dark:bg-white/[0.04] border border-slate-200/80 dark:border-white/10 backdrop-blur-xl rounded-[16px] p-4 shadow-sm">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-8 h-8 rounded-[8px] bg-blue-500/10 flex items-center justify-center">
+                    <span className="material-symbols-outlined text-blue-500 text-base">upload_file</span>
+                  </div>
+                  <span className="text-xs font-black uppercase tracking-tight text-slate-900 dark:text-white">Import File</span>
+                  <span className="text-[8px] font-bold text-slate-400 ml-auto uppercase">DOCX / XLSX / CSV</span>
+                </div>
+                <div className={`relative border border-dashed rounded-[10px] p-4 transition-all ${file ? 'border-emerald-500/40 bg-emerald-500/5' : 'border-slate-300 dark:border-white/10'}`}>
+                  <input type="file" accept=".docx,.xlsx,.csv" onChange={(e) => setFile(e.target.files[0])} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+                  <div className="flex items-center justify-center gap-2">
+                    <span className={`material-symbols-outlined text-xl ${file ? 'text-emerald-500' : 'text-slate-400'}`}>
                       {file ? 'task_alt' : 'cloud_upload'}
                     </span>
+                    <span className={`text-[10px] font-black uppercase ${file ? 'text-emerald-500' : 'text-slate-500'}`}>
+                      {file ? file.name : 'Click to select'}
+                    </span>
                   </div>
+                </div>
+                <button type="submit" disabled={!file || fileLoading} className="w-full mt-3 bg-primary text-white py-2.5 rounded-[10px] font-black uppercase tracking-[0.15em] text-[9px] hover:brightness-110 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                  {fileLoading ? 'PROCESSING...' : 'UPLOAD & PROCESS'}
+                </button>
+              </form>
 
-                  <p
-                    className={`
-                      text-[10px]
-                      font-black
-                      uppercase
-                      tracking-[0.2em]
-                      ${
-                        file
-                          ? 'text-emerald-500'
-                          : 'text-slate-500 dark:text-slate-400'
-                      }
-                    `}
-                  >
-                    {file ? 'File Loaded' : 'Click To Upload'}
-                  </p>
+              {error && (
+                <div className="p-3 rounded-[10px] bg-red-500/10 border border-red-500/20 text-red-400 text-center">
+                  <p className="text-[9px] font-black uppercase">{error}</p>
+                </div>
+              )}
+            </div>
 
-                  <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">
-                    DOCX, XLSX or CSV
-                  </p>
+            {/* Right: Recent Leads (3 cols) */}
+            <div className="lg:col-span-3">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-primary text-base">contact_page</span>
+                  <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-600/60 dark:text-slate-300/60">Recent Leads</h2>
+                </div>
+                <button onClick={() => navigate('/crm')} className="text-[9px] font-black uppercase tracking-widest text-primary hover:underline cursor-pointer bg-transparent border-none">
+                  View All →
+                </button>
+              </div>
 
-                  {file && (
-                    <p className="mt-3 text-[11px] font-mono text-slate-700 dark:text-slate-300 truncate max-w-[240px]">
-                      {file.name}
+              <div className="bg-white/80 dark:bg-white/[0.04] border border-slate-200/80 dark:border-white/10 backdrop-blur-xl rounded-[16px] shadow-sm overflow-hidden">
+                {loading ? (
+                  <div className="p-6 space-y-3">
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <div key={i} className="flex items-center gap-3 animate-pulse">
+                        <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-white/10" />
+                        <div className="flex-1 space-y-1.5">
+                          <div className="h-3 w-32 rounded bg-slate-200 dark:bg-white/10" />
+                          <div className="h-2 w-20 rounded bg-slate-200 dark:bg-white/10" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : recentLeads.length === 0 ? (
+                  <div className="p-8 text-center">
+                    <span className="material-symbols-outlined text-3xl text-slate-300 dark:text-slate-600 mb-2">person_search</span>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-500/70 dark:text-slate-400/70">
+                      No leads yet — add people or run a campaign to start.
                     </p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-slate-100 dark:divide-white/5">
+                    {recentLeads.map((lead) => (
+                      <div
+                        key={lead.id || lead._id}
+                        onClick={() => navigate('/crm')}
+                        className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-white/[0.03] transition-colors cursor-pointer"
+                      >
+                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                          <span className="text-xs font-black text-primary">
+                            {(lead.first_name || lead.name || '?')[0]?.toUpperCase()}
+                          </span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                            {lead.first_name || lead.name}{lead.last_name ? ` ${lead.last_name}` : ''}
+                          </p>
+                          <p className="text-[9px] text-slate-500 dark:text-slate-400 truncate">
+                            {lead.phone_number || lead.email || 'No contact'}
+                          </p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          {lead.source && (
+                            <span className="text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-300">
+                              {lead.source}
+                            </span>
+                          )}
+                          <p className="text-[8px] text-slate-400 mt-0.5">{timeAgo(lead.createdAt)}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Recent Conversations */}
+              <div className="mt-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-blue-500 text-base">chat</span>
+                    <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-600/60 dark:text-slate-300/60">Recent Chats</h2>
+                    {unreadChats > 0 && (
+                      <span className="text-[8px] font-black bg-red-500 text-white px-1.5 py-0.5 rounded-full">{unreadChats}</span>
+                    )}
+                  </div>
+                  <button onClick={() => navigate('/chat')} className="text-[9px] font-black uppercase tracking-widest text-primary hover:underline cursor-pointer bg-transparent border-none">
+                    Open Chat →
+                  </button>
+                </div>
+
+                <div className="bg-white/80 dark:bg-white/[0.04] border border-slate-200/80 dark:border-white/10 backdrop-blur-xl rounded-[16px] shadow-sm overflow-hidden">
+                  {loading ? (
+                    <div className="p-4 animate-pulse space-y-2">
+                      {[1, 2, 3].map((i) => (
+                        <div key={i} className="h-10 rounded bg-slate-200 dark:bg-white/10" />
+                      ))}
+                    </div>
+                  ) : conversations.length === 0 ? (
+                    <div className="p-5 text-center">
+                      <p className="text-[10px] font-bold uppercase text-slate-500/60">No conversations yet</p>
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-slate-100 dark:divide-white/5">
+                      {conversations.slice(0, 4).map((conv, idx) => (
+                        <div
+                          key={idx}
+                          onClick={() => navigate('/chat')}
+                          className="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-white/[0.03] transition-colors cursor-pointer"
+                        >
+                          <div className="w-7 h-7 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
+                            <span className="text-[10px] font-black text-blue-500">
+                              {(conv.lead?.first_name || '?')[0]?.toUpperCase()}
+                            </span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[11px] font-bold text-slate-900 dark:text-white truncate">
+                              {conv.lead?.first_name || 'Unknown'} {conv.lead?.last_name || ''}
+                            </p>
+                            <p className="text-[9px] text-slate-500 dark:text-slate-400 truncate">
+                              {conv.latestMessage?.content || 'No messages'}
+                            </p>
+                          </div>
+                          {conv.unreadCount > 0 && (
+                            <span className="text-[8px] font-black bg-primary text-white w-5 h-5 rounded-full flex items-center justify-center shrink-0">
+                              {conv.unreadCount}
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
               </div>
-
-              <button
-                type="submit"
-                disabled={!file || fileLoading}
-                className="
-                  w-full
-                  mt-5
-                  bg-primary
-                  text-white
-                  py-3
-                  rounded-[14px]
-                  font-black
-                  uppercase
-                  tracking-[0.2em]
-                  text-[10px]
-                  hover:brightness-110
-                  transition-all
-                  duration-200
-                  cursor-pointer
-                  shadow-lg
-                  disabled:opacity-50
-                  disabled:cursor-not-allowed
-                "
-              >
-                {fileLoading
-                  ? 'EXTRACTING...'
-                  : 'PROCESS FILE'}
-              </button>
-            </form>
-          </div>
-
-          {/* Error */}
-          {error && (
-            <div
-              className="
-                mt-6
-                p-4
-                rounded-[16px]
-                bg-red-500/10
-                border border-red-500/20
-                backdrop-blur-xl
-                text-red-400
-                text-center
-              "
-            >
-              <p className="text-[10px] font-black uppercase tracking-[0.2em]">
-                {error}
-              </p>
-            </div>
-          )}
-        </section>
-
-        {/* Empty State */}
-        {!isUsersLoading && users.length === 0 && (
-          <EmptyUsersState
-            onAddUser={() => navigate('/add-user')}
-          />
-        )}
-
-        {/* KPI Section */}
-        <section
-          aria-label="KPI overview"
-          className="mx-auto max-w-7xl mb-6 sm:mb-10 px-3 sm:px-0"
-        >
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-            <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary">
-                monitoring
-              </span>
-
-              <h2 className="text-[10px] sm:text-[11px] font-black uppercase tracking-[0.4em] text-slate-700/60 dark:text-slate-300/60 whitespace-nowrap">
-                Key metrics
-              </h2>
             </div>
           </div>
-
-          {isUsersLoading ? (
-            <KPISectionSkeleton />
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-              <KPIStatCard
-                title="Total Users"
-                value={users.length}
-                subtitle="Real-time roster"
-                icon="groups"
-                accent
-                onClick={() => navigate('/users')}
-              />
-
-              <KPIStatCard
-                title="System Status"
-                value="Active"
-                subtitle="Operational"
-                icon="check_circle"
-                accent
-              />
-
-              <KPIStatCard
-                title="Integrations"
-                value="2"
-                subtitle="Connected sources"
-                icon="integration_instructions"
-                accent
-                onClick={() => setIsIntegrationModalOpen(true)}
-              />
-
-              <KPIStatCard
-                title="Automation Health"
-                value={
-                  <>
-                    99.2
-                    <span className="text-[13px] font-black text-primary align-top">
-                      %
-                    </span>
-                  </>
-                }
-                subtitle="Smart rules stable"
-                icon="verified"
-                accent
-              />
-            </div>
-          )}
         </section>
-
-        {/* Modal */}
-        <IntegrationSelectorModal
-          isOpen={isIntegrationModalOpen}
-          onClose={() => setIsIntegrationModalOpen(false)}
-        />
       </div>
     </div>
   );
