@@ -25,6 +25,7 @@ import {
 } from '../api';
 import CampaignConfigModal from '../components/CampaignConfigModal';
 import { useNotifications } from '../context/NotificationContext';
+import { useAuth } from '../context/AuthContext';
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 
@@ -762,6 +763,7 @@ const TABS = [
 
 const FacebookIntegrationPage = () => {
     const { addToast } = useNotifications();
+    const { user } = useAuth();
 
     // ── state ──
     const [activeTab,   setActiveTab]   = useState('overview');
@@ -807,15 +809,16 @@ const FacebookIntegrationPage = () => {
 
     // ── load Facebook leads from CRM ──
     const loadFbLeads = useCallback(async () => {
+        if (!user) return;
         setLeadsLoading(true);
         try {
-            const res = await getAllLeads({ source: 'facebook', limit: 500 });
+            const res = await getAllLeads({ source: 'facebook', limit: 500, userId: user.id, role: user.role });
             setFbLeads(res.data?.leads || res.data?.data || []);
             // Also capture userId from first lead
             const firstLead = (res.data?.leads || res.data?.data || [])[0];
             if (firstLead?.createdBy?.userId) userId.current = firstLead.createdBy.userId;
         } catch { /* ignore */ } finally { setLeadsLoading(false); }
-    }, []);
+    }, [user]);
 
     // ── on mount ──
     useEffect(() => {
