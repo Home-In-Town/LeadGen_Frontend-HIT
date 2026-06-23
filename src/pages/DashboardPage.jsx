@@ -216,7 +216,7 @@ const DashboardPage = () => {
 
             {/* Left: Add People (2 cols) */}
             <div className="lg:col-span-2 space-y-4">
-              <div className="flex items-center gap-2 mb-1">
+              <div className="flex items-center gap-2 mb-3">
                 <span className="material-symbols-outlined text-primary text-base">add_circle</span>
                 <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-600/60 dark:text-slate-300/60">Add People</h2>
               </div>
