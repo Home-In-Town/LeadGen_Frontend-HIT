@@ -55,6 +55,7 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
         { name: 'WhatsApp', path: '/whatsapp-setup', icon: 'chat', children: [
           { name: 'Templates', path: '/whatsapp-templates', icon: 'description' },
         ]},
+        { name: 'Email Templates', path: '/email-templates', icon: 'mail' },
         { name: 'Voice Calls', path: '/call-logs', icon: 'record_voice_over' },
       ],
     },
@@ -62,7 +63,6 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
       label: 'MARKETING',
       items: [
         { name: 'Campaigns', path: '/campaigns', icon: 'campaign' },
-        { name: 'Email Templates', path: '/email-templates', icon: 'mail' },
       ],
     },
     {
