@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   getVoiceSettings,
   updateVoiceSettings,
@@ -14,7 +14,35 @@ const LANGUAGE_OPTIONS = [
   { value: 'hinglish', label: 'Hinglish (Hindi + English)' },
   { value: 'hindi', label: 'Hindi Only' },
   { value: 'english', label: 'English Only' },
+  { value: 'marathi', label: 'Marathi (मराठी)' },
 ];
+
+const SECTOR_OPTIONS = [
+  { value: 'general', label: 'General' },
+  { value: 'real_estate', label: 'Real Estate' },
+  { value: 'insurance', label: 'Insurance' },
+  { value: 'education', label: 'Education' },
+  { value: 'healthcare', label: 'Healthcare' },
+  { value: 'financial_services', label: 'Financial Services' },
+  { value: 'automotive', label: 'Automotive' },
+];
+
+const SECTOR_CONTEXT_PREVIEW = {
+  real_estate: 'INDUSTRY CONTEXT — REAL ESTATE: Focus on site visits, possession timelines, carpet area, BHK configurations, RERA registration, builder reputation, amenities, floor plans, loan pre-approval, and location advantages. Push for site visit scheduling.',
+  insurance: 'INDUSTRY CONTEXT — INSURANCE: Focus on policy coverage, premium amounts, claim process, riders, term vs whole life, health vs motor, family floater plans, tax benefits under 80C/80D, policy maturity, and renewal timelines.',
+  education: 'INDUSTRY CONTEXT — EDUCATION: Focus on course curriculum, placement records, faculty credentials, campus facilities, admission deadlines, fee structure, scholarship options, entrance exam preparation, accreditation, and career outcomes.',
+  healthcare: 'INDUSTRY CONTEXT — HEALTHCARE: Focus on treatment options, doctor specializations, hospital facilities, appointment scheduling, insurance acceptance, patient reviews, recovery timelines, and preventive care packages.',
+  financial_services: 'INDUSTRY CONTEXT — FINANCIAL SERVICES: Focus on investment returns, risk profiles, SIP vs lumpsum, mutual funds, fixed deposits, portfolio diversification, tax-saving instruments, loan EMI, interest rates, and financial planning goals.',
+  automotive: 'INDUSTRY CONTEXT — AUTOMOTIVE: Focus on vehicle specifications, test drive scheduling, EMI options, exchange offers, fuel efficiency, safety features, warranty coverage, service network, resale value, and delivery timelines.',
+};
+
+const LANGUAGE_INSTRUCTION_PREVIEW = {
+  default: 'LANGUAGE: Auto-detect from caller speech (English/Hindi/Marathi) and respond accordingly.',
+  english: 'LANGUAGE: Always reply in clear, simple Indian English.',
+  hindi: 'LANGUAGE: Always reply in Hindi (Devanagari script mixed with English technical terms).',
+  hinglish: 'LANGUAGE: Always reply in Hinglish (Hindi words in Roman script mixed with English).',
+  marathi: 'LANGUAGE: Reply in Marathi (Devanagari script with English for technical terms). Use formal "तुम्ही".',
+};
 
 const DYNAMIC_VARIABLES = [
   { token: '{customerName}', label: 'Customer Name', icon: 'person' },
@@ -75,6 +103,11 @@ const VoiceSettingsPanel = () => {
   const [companyName, setCompanyName] = useState('');
   const [agentName, setAgentName] = useState('');
   const [language, setLanguage] = useState('default');
+  const [sector, setSector] = useState('general');
+
+  // Prompt preview state
+  const [promptPreview, setPromptPreview] = useState('');
+  const [isPreviewManuallyEdited, setIsPreviewManuallyEdited] = useState(false);
 
   // Documents state
   const [documents, setDocuments] = useState([]);
@@ -90,6 +123,7 @@ const VoiceSettingsPanel = () => {
 
   const fileInputRef = useRef(null);
   const promptRef = useRef(null);
+  const debounceRef = useRef(null);
 
   // Insert dynamic variable at cursor position in prompt textarea
   const insertVariable = (token) => {
@@ -112,6 +146,56 @@ const VoiceSettingsPanel = () => {
   // Load default prompt into textarea
   const loadDefaultPrompt = () => {
     setCustomPrompt(DEFAULT_PROMPT);
+  };
+
+  // Compose prompt preview from current settings
+  const composePromptPreview = useCallback(() => {
+    let preview = customPrompt || DEFAULT_PROMPT;
+
+    // Sector context
+    const sectorCtx = SECTOR_CONTEXT_PREVIEW[sector];
+    if (sectorCtx && sector !== 'general') {
+      preview += `\n\n${sectorCtx}`;
+    }
+
+    // Language instruction preview
+    const langInstruction = LANGUAGE_INSTRUCTION_PREVIEW[language] || LANGUAGE_INSTRUCTION_PREVIEW['default'];
+    preview += `\n\n${langInstruction}`;
+
+    // Campaign context placeholder
+    preview += `\n\n---\nCAMPAIGN-SPECIFIC CONTEXT:\n[Campaign-specific context will be appended here at call time from the active campaign configuration]`;
+
+    return preview;
+  }, [customPrompt, sector, language]);
+
+  // Debounced auto-update of prompt preview when settings change
+  useEffect(() => {
+    if (isPreviewManuallyEdited) return;
+
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+    debounceRef.current = setTimeout(() => {
+      setPromptPreview(composePromptPreview());
+    }, 300);
+
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, [composePromptPreview, isPreviewManuallyEdited]);
+
+  // Handle manual edit of prompt preview
+  const handlePreviewEdit = (e) => {
+    setPromptPreview(e.target.value);
+    setIsPreviewManuallyEdited(true);
+  };
+
+  // Reset prompt preview to auto-generated
+  const resetPreviewToAutoGenerated = () => {
+    setIsPreviewManuallyEdited(false);
+    setPromptPreview(composePromptPreview());
   };
 
   // Fetch settings on mount
@@ -138,6 +222,7 @@ const VoiceSettingsPanel = () => {
       setCompanyName(data.companyName || '');
       setAgentName(data.agentName || '');
       setLanguage(data.language || 'default');
+      setSector(data.sector || 'general');
     } catch (err) {
       console.error('Failed to fetch voice settings:', err);
     } finally {
@@ -158,14 +243,18 @@ const VoiceSettingsPanel = () => {
     setSaving(true);
     setErrors({});
 
+    // If the preview was manually edited, use it as the customPrompt
+    const finalPrompt = isPreviewManuallyEdited ? promptPreview : customPrompt;
+
     try {
       await updateVoiceSettings({
-        customPrompt,
+        customPrompt: finalPrompt,
         selectedVoice,
         greetingLine,
         companyName,
         agentName,
         language,
+        sector,
       });
       setSuccessMessage('Settings saved successfully!');
     } catch (err) {
@@ -197,6 +286,8 @@ const VoiceSettingsPanel = () => {
       setCompanyName('');
       setAgentName('');
       setLanguage('default');
+      setSector('general');
+      setIsPreviewManuallyEdited(false);
       setSuccessMessage('Settings reset to defaults!');
     } catch (err) {
       setErrors({ general: 'Failed to reset settings. Please try again.' });
@@ -279,6 +370,79 @@ const VoiceSettingsPanel = () => {
         </div>
       )}
 
+      {/* Voice Selection — promoted to top */}
+      <div className="rounded-[18px] border border-slate-200/70 dark:border-white/10 bg-white/70 dark:bg-white/[0.04] backdrop-blur-xl p-6 shadow-sm">
+        <label className="mb-3 block text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400">
+          TTS Voice
+        </label>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+          {VOICE_OPTIONS.map((voice) => (
+            <button
+              key={voice}
+              onClick={() => setSelectedVoice(voice)}
+              className={`rounded-[14px] border px-4 py-3 text-sm font-medium transition-all ${
+                selectedVoice === voice
+                  ? 'border-primary bg-primary/10 text-primary shadow-sm'
+                  : 'border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.04] text-slate-700 dark:text-slate-300 hover:border-primary/40'
+              }`}
+            >
+              {voice}
+            </button>
+          ))}
+        </div>
+        {errors.selectedVoice && (
+          <p className="mt-2 text-[11px] font-bold text-red-500">{errors.selectedVoice}</p>
+        )}
+      </div>
+
+      {/* Language & Sector Selectors */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        {/* Language Preference */}
+        <div className="rounded-[18px] border border-slate-200/70 dark:border-white/10 bg-white/70 dark:bg-white/[0.04] backdrop-blur-xl p-6 shadow-sm">
+          <label className="mb-3 block text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400">
+            Language
+          </label>
+          <select
+            value={language}
+            onChange={(e) => setLanguage(e.target.value)}
+            className="w-full rounded-[14px] border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.04] px-4 py-3 text-sm font-medium text-slate-900 dark:text-white outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10 appearance-none cursor-pointer"
+          >
+            {LANGUAGE_OPTIONS.map((lang) => (
+              <option key={lang.value} value={lang.value}>
+                {lang.label}
+              </option>
+            ))}
+          </select>
+          <p className="mt-2 text-[10px] font-bold text-slate-400">
+            Controls the AI agent's response language
+          </p>
+        </div>
+
+        {/* Sector Selector */}
+        <div className="rounded-[18px] border border-slate-200/70 dark:border-white/10 bg-white/70 dark:bg-white/[0.04] backdrop-blur-xl p-6 shadow-sm">
+          <label className="mb-3 block text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400">
+            Business Sector
+          </label>
+          <select
+            value={sector}
+            onChange={(e) => setSector(e.target.value)}
+            className="w-full rounded-[14px] border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.04] px-4 py-3 text-sm font-medium text-slate-900 dark:text-white outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10 appearance-none cursor-pointer"
+          >
+            {SECTOR_OPTIONS.map((s) => (
+              <option key={s.value} value={s.value}>
+                {s.label}
+              </option>
+            ))}
+          </select>
+          <p className="mt-2 text-[10px] font-bold text-slate-400">
+            Adds industry-specific vocabulary and objectives to the AI prompt
+          </p>
+          {errors.sector && (
+            <p className="mt-1 text-[11px] font-bold text-red-500">{errors.sector}</p>
+          )}
+        </div>
+      </div>
+
       {/* Custom Prompt */}
       <div className="rounded-[18px] border border-slate-200/70 dark:border-white/10 bg-white/70 dark:bg-white/[0.04] backdrop-blur-xl p-6 shadow-sm">
         <div className="mb-3 flex items-center justify-between">
@@ -347,48 +511,42 @@ const VoiceSettingsPanel = () => {
         </div>
       </div>
 
-      {/* Voice Selection, Language & Greeting */}
+      {/* Company Name, Agent Name & Greeting */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* Voice Selection */}
+        {/* Company Name */}
         <div className="rounded-[18px] border border-slate-200/70 dark:border-white/10 bg-white/70 dark:bg-white/[0.04] backdrop-blur-xl p-6 shadow-sm">
           <label className="mb-3 block text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400">
-            TTS Voice
+            Company Name
           </label>
-          <select
-            value={selectedVoice}
-            onChange={(e) => setSelectedVoice(e.target.value)}
-            className="w-full rounded-[14px] border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.04] px-4 py-3 text-sm font-medium text-slate-900 dark:text-white outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10 appearance-none cursor-pointer"
-          >
-            {VOICE_OPTIONS.map((voice) => (
-              <option key={voice} value={voice}>
-                {voice}
-              </option>
-            ))}
-          </select>
-          {errors.selectedVoice && (
-            <p className="mt-2 text-[11px] font-bold text-red-500">{errors.selectedVoice}</p>
+          <input
+            type="text"
+            value={companyName}
+            onChange={(e) => setCompanyName(e.target.value)}
+            placeholder="Your company name"
+            maxLength={200}
+            className="w-full rounded-[14px] border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.04] px-4 py-3 text-sm font-medium text-slate-900 dark:text-white placeholder:text-slate-400 outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10"
+          />
+          {errors.companyName && (
+            <p className="mt-2 text-[11px] font-bold text-red-500">{errors.companyName}</p>
           )}
         </div>
 
-        {/* Language Preference */}
+        {/* Agent Name */}
         <div className="rounded-[18px] border border-slate-200/70 dark:border-white/10 bg-white/70 dark:bg-white/[0.04] backdrop-blur-xl p-6 shadow-sm">
           <label className="mb-3 block text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400">
-            Language
+            Agent Name
           </label>
-          <select
-            value={language}
-            onChange={(e) => setLanguage(e.target.value)}
-            className="w-full rounded-[14px] border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.04] px-4 py-3 text-sm font-medium text-slate-900 dark:text-white outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10 appearance-none cursor-pointer"
-          >
-            {LANGUAGE_OPTIONS.map((lang) => (
-              <option key={lang.value} value={lang.value}>
-                {lang.label}
-              </option>
-            ))}
-          </select>
-          <p className="mt-2 text-[10px] font-bold text-slate-400">
-            Controls the AI agent's response language
-          </p>
+          <input
+            type="text"
+            value={agentName}
+            onChange={(e) => setAgentName(e.target.value)}
+            placeholder="Priya"
+            maxLength={100}
+            className="w-full rounded-[14px] border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.04] px-4 py-3 text-sm font-medium text-slate-900 dark:text-white placeholder:text-slate-400 outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10"
+          />
+          {errors.agentName && (
+            <p className="mt-2 text-[11px] font-bold text-red-500">{errors.agentName}</p>
+          )}
         </div>
 
         {/* Greeting Line */}
@@ -409,43 +567,6 @@ const VoiceSettingsPanel = () => {
           </p>
           {errors.greetingLine && (
             <p className="mt-1 text-[11px] font-bold text-red-500">{errors.greetingLine}</p>
-          )}
-        </div>
-      </div>
-
-      {/* Company Name & Agent Name */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="rounded-[18px] border border-slate-200/70 dark:border-white/10 bg-white/70 dark:bg-white/[0.04] backdrop-blur-xl p-6 shadow-sm">
-          <label className="mb-3 block text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400">
-            Company Name
-          </label>
-          <input
-            type="text"
-            value={companyName}
-            onChange={(e) => setCompanyName(e.target.value)}
-            placeholder="Your company name"
-            maxLength={200}
-            className="w-full rounded-[14px] border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.04] px-4 py-3 text-sm font-medium text-slate-900 dark:text-white placeholder:text-slate-400 outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10"
-          />
-          {errors.companyName && (
-            <p className="mt-2 text-[11px] font-bold text-red-500">{errors.companyName}</p>
-          )}
-        </div>
-
-        <div className="rounded-[18px] border border-slate-200/70 dark:border-white/10 bg-white/70 dark:bg-white/[0.04] backdrop-blur-xl p-6 shadow-sm">
-          <label className="mb-3 block text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400">
-            Agent Name
-          </label>
-          <input
-            type="text"
-            value={agentName}
-            onChange={(e) => setAgentName(e.target.value)}
-            placeholder="Priya"
-            maxLength={100}
-            className="w-full rounded-[14px] border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.04] px-4 py-3 text-sm font-medium text-slate-900 dark:text-white placeholder:text-slate-400 outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10"
-          />
-          {errors.agentName && (
-            <p className="mt-2 text-[11px] font-bold text-red-500">{errors.agentName}</p>
           )}
         </div>
       </div>
@@ -537,6 +658,52 @@ const VoiceSettingsPanel = () => {
             ))}
           </div>
         )}
+      </div>
+
+      {/* Prompt Preview */}
+      <div className="rounded-[18px] border border-slate-200/70 dark:border-white/10 bg-white/70 dark:bg-white/[0.04] backdrop-blur-xl p-6 shadow-sm">
+        <div className="mb-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-primary">preview</span>
+            <label className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400">
+              Prompt Preview
+            </label>
+            {isPreviewManuallyEdited && (
+              <span className="rounded-[6px] bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 text-[9px] font-bold text-amber-600 dark:text-amber-400">
+                Manually Edited
+              </span>
+            )}
+          </div>
+          {isPreviewManuallyEdited && (
+            <button
+              onClick={resetPreviewToAutoGenerated}
+              className="flex items-center gap-1 rounded-[10px] border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.03] px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.15em] text-slate-600 dark:text-slate-300 transition-all hover:border-primary hover:text-primary"
+            >
+              <span className="material-symbols-outlined text-[14px]">refresh</span>
+              Reset to Auto-Generated
+            </button>
+          )}
+        </div>
+
+        <p className="mb-3 text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+          This is the composed system prompt that will be sent to the AI at call time. 
+          It auto-updates based on your settings above. You can also edit it directly — edited content will be saved as your custom prompt.
+        </p>
+
+        <textarea
+          value={promptPreview}
+          onChange={handlePreviewEdit}
+          rows={14}
+          className="w-full rounded-[14px] border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.03] px-4 py-3 text-sm font-medium text-slate-900 dark:text-white outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10 resize-y font-mono"
+        />
+        <div className="mt-2 flex items-center justify-between">
+          <span className="text-[10px] font-bold text-slate-400">
+            {promptPreview.length} characters
+          </span>
+          <span className="text-[10px] font-bold text-slate-400">
+            {isPreviewManuallyEdited ? 'This edited content will be saved as your prompt' : 'Auto-composed from settings above'}
+          </span>
+        </div>
       </div>
 
       {/* Action Buttons */}
