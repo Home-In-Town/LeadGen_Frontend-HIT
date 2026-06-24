@@ -54,7 +54,7 @@ const CampaignConfigModal = ({ campaign, onClose, onSaved }) => {
 
     useEffect(() => {
         // Load available templates on mount
-        listWATemplates().then(r => setWaTemplates(r.data || [])).catch(() => {});
+        listWATemplates().then(r => setWaTemplates(r.data?.data || r.data || [])).catch(() => setWaTemplates([]));
         listEmailTemplates().then(r => setEmailTemplates(r.data?.data || [])).catch(() => {});
     }, []);
 
