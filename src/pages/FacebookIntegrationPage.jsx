@@ -150,6 +150,8 @@ function TabOverview({ status, campaigns, fbLeads, onConnect, onDisconnect, disc
         (s, p) => s + (p.forms || []).reduce((ss, f) => ss + (f.leads_count || 0), 0), 0
     );
     const activeCamps = campaigns.filter(c => c.status === 'ACTIVE').length;
+    // Use the DB count from status if available, otherwise fallback to fbLeads array length
+    const crmLeadCount = status?.dbLeadCount ?? fbLeads.length;
 
     const stats = [
         { label: 'Connected Pages',  value: (status?.pages || []).length,        icon: 'pages' },
@@ -157,7 +159,7 @@ function TabOverview({ status, campaigns, fbLeads, onConnect, onDisconnect, disc
         { label: 'Mapped Forms',     value: totalMapped,                           icon: 'link' },
         { label: 'Active Campaigns', value: activeCamps,                           icon: 'campaign' },
         { label: 'Total FB Leads',   value: totalLeads.toLocaleString('en-IN'),    icon: 'people' },
-        { label: 'Leads in CRM',     value: fbLeads.length.toLocaleString('en-IN'), icon: 'manage_accounts' },
+        { label: 'Leads in CRM',     value: crmLeadCount.toLocaleString('en-IN'),  icon: 'manage_accounts' },
     ];
 
     return (
