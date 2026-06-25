@@ -17,6 +17,7 @@ import {
     deleteFBMapping,
     initiateFBConnect,
     importFBHistorical,
+    subscribeFBWebhook,
     syncFBCampaigns,
     getFBCampaigns,
     getAllLeads,
@@ -670,6 +671,33 @@ function TabSettings({ isConnected, onSync, syncing, lastSynced, onDisconnect, d
                     </button>
                 </div>
             </div>
+
+            {/* Historical import section */}
+            {isConnected && (
+                <div className={`${cardClass} p-6`}>
+                    <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 mb-4">Real-time Lead Capture</h3>
+                    <div className="flex items-center justify-between gap-4 mb-4">
+                        <div>
+                            <p className="text-sm font-bold text-slate-900 dark:text-white">Enable Webhook for Live Leads</p>
+                            <p className="text-xs text-slate-500 mt-0.5">
+                                Subscribe your Facebook pages to receive leads in real-time. When a lead fills your form, it will appear instantly in CRM with automation triggered.
+                            </p>
+                        </div>
+                        <button onClick={async () => {
+                            try {
+                                const res = await subscribeFBWebhook();
+                                addToast(res.data?.message || 'Pages subscribed to webhook!', 'success');
+                            } catch (err) {
+                                addToast(err.response?.data?.error || 'Failed to subscribe webhook.', 'error');
+                            }
+                        }}
+                            className="flex items-center gap-2 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-black uppercase tracking-[0.2em] px-5 py-3 transition-all flex-shrink-0">
+                            <span className="material-symbols-outlined text-base">webhook</span>
+                            Activate
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {/* Historical import section */}
             {isConnected && (
