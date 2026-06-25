@@ -67,7 +67,11 @@ const DashboardPage = () => {
       if (usersRes.status === 'fulfilled') setUsers(usersRes.value.data || []);
       if (leadsRes.status === 'fulfilled') setLeads(leadsRes.value.data || { leads: [], total: 0 });
       if (campaignsRes.status === 'fulfilled') setCampaigns(campaignsRes.value.data || { campaigns: [], total: 0 });
-      if (chatsRes.status === 'fulfilled') setConversations(chatsRes.value.data || []);
+      if (chatsRes.status === 'fulfilled') {
+        const chatData = chatsRes.value.data;
+        // Handle both paginated response { success, data: [...] } and flat array
+        setConversations(Array.isArray(chatData) ? chatData : (chatData?.data || []));
+      }
       if (callsRes.status === 'fulfilled') setCallLogs(callsRes.value.data?.logs || callsRes.value.data || []);
       if (automationsRes.status === 'fulfilled') setAutomations(automationsRes.value.data || []);
     } catch (err) {
