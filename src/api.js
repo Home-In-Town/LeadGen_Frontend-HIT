@@ -192,6 +192,7 @@ export const toggleFBMapping    = (id)   => facebookApi.patch(`/mapping/${id}/to
 export const importFBHistorical = (days = 30, runAutomation = true) =>
     facebookApi.post(`/import-historical?days=${days}&runAutomation=${runAutomation}`);
 export const subscribeFBWebhook = () => facebookApi.post('/subscribe-webhook');
+export const getFBWebhookStatus = () => facebookApi.get('/webhook-status');
 // Campaign management
 export const syncFBCampaigns        = ()                  => facebookApi.post('/campaigns/sync');
 export const getFBCampaigns         = (params)            => facebookApi.get('/campaigns', { params });

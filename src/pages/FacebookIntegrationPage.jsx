@@ -18,6 +18,7 @@ import {
     initiateFBConnect,
     importFBHistorical,
     subscribeFBWebhook,
+    getFBWebhookStatus,
     syncFBCampaigns,
     getFBCampaigns,
     getAllLeads,
@@ -640,6 +641,30 @@ function TabSettings({ isConnected, onSync, syncing, lastSynced, onDisconnect, d
     const [importing, setImporting]     = useState(false);
     const [importDays, setImportDays]   = useState(30);
     const [runAutomation, setRunAuto]   = useState(false);
+    const [webhookActive, setWebhookActive] = useState(null); // null=loading, true/false
+    const [subscribing, setSubscribing] = useState(false);
+
+    // Check webhook status on mount
+    useEffect(() => {
+        if (isConnected) {
+            getFBWebhookStatus().then(r => setWebhookActive(r.data?.active || false)).catch(() => setWebhookActive(false));
+        }
+    }, [isConnected]);
+
+    const handleSubscribe = async () => {
+        setSubscribing(true);
+        try {
+            const res = await subscribeFBWebhook();
+            if (res.data?.alreadyActive) {
+                addToast('Real-time lead capture is already active!', 'success');
+            } else {
+                addToast(res.data?.message || 'Pages subscribed to webhook!', 'success');
+            }
+            setWebhookActive(true);
+        } catch (err) {
+            addToast(err.response?.data?.error || 'Failed to activate webhook.', 'error');
+        } finally { setSubscribing(false); }
+    };
 
     const handleImport = async () => {
         setImporting(true);
@@ -676,25 +701,29 @@ function TabSettings({ isConnected, onSync, syncing, lastSynced, onDisconnect, d
             {isConnected && (
                 <div className={`${cardClass} p-6`}>
                     <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 mb-4">Real-time Lead Capture</h3>
-                    <div className="flex items-center justify-between gap-4 mb-4">
+                    <div className="flex items-center justify-between gap-4">
                         <div>
-                            <p className="text-sm font-bold text-slate-900 dark:text-white">Enable Webhook for Live Leads</p>
+                            <p className="text-sm font-bold text-slate-900 dark:text-white">
+                                {webhookActive ? 'Live Lead Capture via Webhook is ON' : 'Enable Live Lead Capture'}
+                            </p>
                             <p className="text-xs text-slate-500 mt-0.5">
-                                Subscribe your Facebook pages to receive leads in real-time. When a lead fills your form, it will appear instantly in CRM with automation triggered.
+                                {webhookActive
+                                    ? 'Your pages are subscribed. New leads from Facebook forms will appear instantly in CRM with automation triggered.'
+                                    : 'Subscribe your Facebook pages to receive leads in real-time. When a lead fills your form, it appears instantly in CRM.'}
                             </p>
                         </div>
-                        <button onClick={async () => {
-                            try {
-                                const res = await subscribeFBWebhook();
-                                addToast(res.data?.message || 'Pages subscribed to webhook!', 'success');
-                            } catch (err) {
-                                addToast(err.response?.data?.error || 'Failed to subscribe webhook.', 'error');
-                            }
-                        }}
-                            className="flex items-center gap-2 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-black uppercase tracking-[0.2em] px-5 py-3 transition-all flex-shrink-0">
-                            <span className="material-symbols-outlined text-base">webhook</span>
-                            Activate
-                        </button>
+                        {webhookActive ? (
+                            <div className="flex items-center gap-2 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 px-4 py-2.5 flex-shrink-0">
+                                <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600 dark:text-emerald-400">Active</span>
+                            </div>
+                        ) : (
+                            <button onClick={handleSubscribe} disabled={subscribing}
+                                className="flex items-center gap-2 rounded-2xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-[11px] font-black uppercase tracking-[0.2em] px-5 py-3 transition-all flex-shrink-0">
+                                {subscribing ? <Spinner /> : <span className="material-symbols-outlined text-base">webhook</span>}
+                                {subscribing ? 'Activating…' : 'Activate'}
+                            </button>
+                        )}
                     </div>
                 </div>
             )}
