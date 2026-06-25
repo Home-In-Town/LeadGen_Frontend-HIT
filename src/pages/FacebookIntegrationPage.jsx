@@ -646,16 +646,18 @@ function TabSettings({ isConnected, onSync, syncing, lastSynced, onDisconnect, d
     const [webhookActive, setWebhookActive] = useState(null); // null=loading, true/false
     const [subscribing, setSubscribing] = useState(false);
 
-    // Check webhook status on mount
+    // Check webhook status on mount — if Facebook is connected, webhook is active
     useEffect(() => {
         if (isConnected) {
             getFBWebhookStatus()
                 .then(r => setWebhookActive(r.data?.active === true))
                 .catch(() => {
-                    // On API error, don't assume inactive — keep as null (loading)
-                    // The user can still click Activate to force subscription
-                    setWebhookActive(null);
+                    // If we can't check but Facebook IS connected, assume active
+                    // (webhook persists once set at Meta app level)
+                    setWebhookActive(true);
                 });
+        } else {
+            setWebhookActive(false);
         }
     }, [isConnected]);
 
