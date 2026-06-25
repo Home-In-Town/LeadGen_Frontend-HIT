@@ -683,7 +683,7 @@ export default function ChatDashboard() {
                             messages={messages}
                             typingActive={isTypingActive}
                             onSendMessage={handleSendMessage}
-                            onSendTemplate={handleSendTemplate}
+                            onSendTemplate={() => setShowTemplatePicker(true)}
                             onSendMedia={handleSendMedia}
                             onLoadOlderMessages={handleLoadOlderMessages}
                             hasOlderMessages={msgHasMore}
@@ -720,13 +720,17 @@ export default function ChatDashboard() {
                 />
             )}
 
-            {/* Template picker modal for bulk send */}
+            {/* Template picker modal (used for both individual send and bulk send) */}
             <TemplatePicker
                 open={showTemplatePicker}
                 onClose={() => setShowTemplatePicker(false)}
                 onSelectTemplate={(name) => {
                     setShowTemplatePicker(false);
-                    handleBulkSendTemplate(name);
+                    if (bulkMode && selectedLeadIds.size > 0) {
+                        handleBulkSendTemplate(name);
+                    } else if (activeLeadId) {
+                        handleSendTemplate(name);
+                    }
                 }}
             />
         </div>
