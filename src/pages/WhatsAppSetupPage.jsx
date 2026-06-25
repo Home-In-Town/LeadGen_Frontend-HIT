@@ -258,6 +258,17 @@ export default function WhatsAppSetupPage() {
                                         </div>
                                         <p className="text-xs text-slate-500 mt-0.5">{num.verified_name || num.verifiedName} • Quality: {num.quality_rating || num.qualityRating || '—'}</p>
                                     </div>
+                                    <button onClick={async () => {
+                                        try {
+                                            await waApi.post(`/phone-numbers/${num.id || num.phoneNumberId}/register`);
+                                            alert('Phone number registered for messaging successfully!');
+                                        } catch (e) {
+                                            alert('Registration failed: ' + (e.response?.data?.error || e.message));
+                                        }
+                                    }}
+                                        className="text-[9px] font-black uppercase tracking-wider px-3 py-1.5 rounded-xl border border-emerald-200 dark:border-emerald-900/30 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/10 transition-all">
+                                        Register
+                                    </button>
                                     {!num.isDefault && (
                                         <button onClick={() => handleSetDefault(num.id || num.phoneNumberId)}
                                             className="text-[9px] font-black uppercase tracking-wider px-3 py-1.5 rounded-xl border border-slate-200 dark:border-white/10 text-slate-500 hover:border-[#25D366] hover:text-[#25D366] transition-all">
