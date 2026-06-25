@@ -649,7 +649,13 @@ function TabSettings({ isConnected, onSync, syncing, lastSynced, onDisconnect, d
     // Check webhook status on mount
     useEffect(() => {
         if (isConnected) {
-            getFBWebhookStatus().then(r => setWebhookActive(r.data?.active || false)).catch(() => setWebhookActive(false));
+            getFBWebhookStatus()
+                .then(r => setWebhookActive(r.data?.active === true))
+                .catch(() => {
+                    // On API error, don't assume inactive — keep as null (loading)
+                    // The user can still click Activate to force subscription
+                    setWebhookActive(null);
+                });
         }
     }, [isConnected]);
 
@@ -718,6 +724,11 @@ function TabSettings({ isConnected, onSync, syncing, lastSynced, onDisconnect, d
                             <div className="flex items-center gap-2 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 px-4 py-2.5 flex-shrink-0">
                                 <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse" />
                                 <span className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600 dark:text-emerald-400">Active</span>
+                            </div>
+                        ) : webhookActive === null ? (
+                            <div className="flex items-center gap-2 rounded-2xl bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 px-4 py-2.5 flex-shrink-0">
+                                <span className="h-2.5 w-2.5 rounded-full bg-slate-400 animate-pulse" />
+                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Checking…</span>
                             </div>
                         ) : (
                             <button onClick={handleSubscribe} disabled={subscribing}
