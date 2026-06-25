@@ -106,9 +106,11 @@ export const getBuilderProjects = () => projectsApi.get('/list');
 
 // ====== CHAT ENDPOINTS ======
 const chatApi = createApiInstance('/chat');
-export const getChatConversations = (userId, role) => chatApi.get('/conversations', { params: { userId, role } });
-export const getChatMessages = (leadId) => chatApi.get(`/${leadId}/messages`);
+export const getChatConversations = (userId, role, cursor) => chatApi.get('/conversations', { params: { userId, role, ...(cursor ? { cursor } : {}) } });
+export const getChatMessages = (leadId, cursor) => chatApi.get(`/${leadId}/messages`, { params: { ...(cursor ? { cursor } : {}) } });
 export const sendChatMessage = (leadId, data) => chatApi.post(`/${leadId}/send`, data);
+export const sendChatTemplate = (leadId, data) => chatApi.post(`/${leadId}/send-template`, data);
+export const newChatConversation = (data) => chatApi.post('/new-conversation', data);
 export const markChatAsRead = (leadId) => chatApi.post(`/${leadId}/read`);
 
 // ====== EMAIL DASHBOARD ENDPOINTS ======
