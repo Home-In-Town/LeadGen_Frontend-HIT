@@ -22,7 +22,6 @@ import {
     getAllLeads,
     getLeadAutomationHistory,
     listEmailTemplates,
-    updateFBCampaignConfig,
 } from '../api';
 import CampaignConfigModal from '../components/CampaignConfigModal';
 import { useNotifications } from '../context/NotificationContext';
@@ -278,31 +277,6 @@ function CampaignCard({ campaign, onMappingCreated }) {
                     </div>
                 </button>
                 <div className="flex items-center gap-2 flex-shrink-0">
-                    {/* Quick automation toggle */}
-                    <button
-                        onClick={async (e) => {
-                            e.stopPropagation();
-                            const isCurrentlyOn = campaign.autoCallEnabled !== false || campaign.autoWaEnabled !== false;
-                            const newState = !isCurrentlyOn;
-                            try {
-                                await updateFBCampaignConfig(campaign.campaignId, {
-                                    autoCallEnabled: newState,
-                                    autoWaEnabled: newState,
-                                    autoEmailEnabled: newState
-                                });
-                                onMappingCreated(); // refresh
-                            } catch (err) {
-                                console.error('Toggle automation failed:', err);
-                            }
-                        }}
-                        title={campaign.autoCallEnabled !== false || campaign.autoWaEnabled !== false ? 'Automation ON — click to disable' : 'Automation OFF — click to enable'}
-                        className={`flex items-center justify-center h-8 w-8 rounded-xl border transition-all ${
-                            campaign.autoCallEnabled !== false || campaign.autoWaEnabled !== false
-                                ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20'
-                                : 'border-slate-200 dark:border-white/10 text-slate-400 hover:bg-slate-200 dark:hover:bg-white/10'
-                        }`}>
-                        <span className="material-symbols-outlined text-[18px]">bolt</span>
-                    </button>
                     <button
                         onClick={() => setShowConfig(true)}
                         title="Configure campaign"
