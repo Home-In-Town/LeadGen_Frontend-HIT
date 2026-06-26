@@ -103,8 +103,21 @@ export default function WhatsAppSetupPage() {
     const reloadPhoneNumbers = async () => {
         try {
             const res = await waApi.get('/phone-numbers');
-            if (res.data.success) setPhoneNumbers(res.data.data || []);
-        } catch {}
+            if (res.data.success && res.data.data?.length > 0) {
+                setPhoneNumbers(res.data.data);
+                setConnected(true);
+                setStep('connected');
+            } else {
+                setPhoneNumbers([]);
+                setConnected(false);
+                setStep('select');
+            }
+        } catch {
+            // API returns 400 when no numbers exist
+            setPhoneNumbers([]);
+            setConnected(false);
+            setStep('select');
+        }
     };
 
     const launchEmbeddedSignup = () => {
@@ -197,10 +210,7 @@ export default function WhatsAppSetupPage() {
         if (!window.confirm('Remove this WhatsApp number? Outreach for this number will stop.')) return;
         try {
             await waApi.delete(`/phone-numbers/${phoneNumberId}`);
-            await reloadPhoneNumbers();
-            const updated = await waApi.get('/phone-numbers');
-            const nums = updated.data.data || [];
-            if (nums.length === 0) { setConnected(false); setStep('select'); }
+            await reloadPhoneNumbers(); // This now handles state properly
             addToast('Number removed', 'success');
         } catch (err) {
             addToast(err.response?.data?.error || 'Failed to remove number', 'error');
