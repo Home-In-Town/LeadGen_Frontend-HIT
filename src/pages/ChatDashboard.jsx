@@ -622,7 +622,35 @@ export default function ChatDashboard() {
                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clipRule="evenodd" />
                     </svg>
                     <span>WhatsApp disconnected.</span>
-                    <a href="/settings/whatsapp" className="font-medium underline ml-1">Reconnect →</a>
+                    <a href="/whatsapp-setup" className="font-medium underline ml-1">Reconnect →</a>
+                </div>
+            )}
+
+            {/* WhatsApp Connection Status Bar */}
+            {activeWANumber !== undefined && (
+                <div className="px-4 py-2 border-b border-slate-200/70 dark:border-white/10 bg-slate-50/80 dark:bg-slate-800/50 flex items-center justify-between">
+                    {activeWANumber ? (
+                        <div className="flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                                {activeWANumber.displayPhoneNumber || activeWANumber.display_phone_number || 'Connected'}
+                            </span>
+                            <span className="text-[10px] text-slate-400">
+                                {activeWANumber.verifiedName || activeWANumber.verified_name || ''}
+                            </span>
+                        </div>
+                    ) : (
+                        <div className="flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-slate-400" />
+                            <span className="text-xs text-slate-500">No WhatsApp number connected</span>
+                        </div>
+                    )}
+                    <a
+                        href="/whatsapp-setup"
+                        className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline uppercase tracking-wider"
+                    >
+                        {activeWANumber ? '⚙ Manage' : '+ Connect'}
+                    </a>
                 </div>
             )}
 
