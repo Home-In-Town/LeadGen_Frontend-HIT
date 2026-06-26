@@ -19,7 +19,7 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
   const [isIntegrationModalOpen, setIsIntegrationModalOpen] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState(() => {
     // All groups expanded by default
-    return { DASHBOARD: true, 'LEAD MANAGEMENT': true, COMMUNICATION: true, MARKETING: true, ADMINISTRATION: true };
+    return { DASHBOARD: true, 'LEAD MANAGEMENT': true, COMMUNICATION: true, AUTOMATION: true };
   });
   const [expandedItems, setExpandedItems] = useState({});
 
@@ -45,31 +45,29 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
       label: 'LEAD MANAGEMENT',
       items: [
         { name: 'CRM', path: '/crm', icon: 'assignment' },
-        { name: 'Lead Automation', path: '/lead-automation', icon: 'settings_suggest' },
+        { name: 'Users', path: '/users', icon: 'group' },
+        { name: 'Campaigns', path: '/campaigns', icon: 'campaign' },
       ],
     },
     {
       label: 'COMMUNICATION',
       items: [
-        { name: 'Chat', path: '/chat', icon: 'chat' },
-        { name: 'WhatsApp', path: '/whatsapp-setup', icon: 'chat', children: [
+        { name: 'WhatsApp', path: '/chat/whatsapp', icon: 'chat', children: [
+          { name: 'Setup', path: '/whatsapp-setup', icon: 'settings' },
           { name: 'Templates', path: '/whatsapp-templates', icon: 'description' },
         ]},
-        { name: 'Email Templates', path: '/email-templates', icon: 'mail' },
+        { name: 'Email', path: '/chat/email', icon: 'mail', children: [
+          { name: 'Templates', path: '/email-templates', icon: 'description' },
+        ]},
         { name: 'Voice Calls', path: '/call-logs', icon: 'record_voice_over' },
       ],
     },
     {
-      label: 'MARKETING',
+      label: 'AUTOMATION',
       items: [
-        { name: 'Campaigns', path: '/campaigns', icon: 'campaign' },
-      ],
-    },
-    {
-      label: 'ADMINISTRATION',
-      items: [
-        { name: 'Users', path: '/users', icon: 'person' },
-        { name: 'Integrations', path: '/integrations', icon: 'integration_instructions', openModal: true },
+        { name: 'Lead Automation', path: '/lead-automation', icon: 'settings_suggest' },
+        { name: 'Facebook Ads', path: '/integrations/facebook', icon: 'data_exploration' },
+        { name: 'Google Ads', path: '/integrations/google', icon: 'ads_click' },
       ],
     },
   ];
