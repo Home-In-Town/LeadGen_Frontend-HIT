@@ -59,7 +59,7 @@ const DashboardPage = () => {
           api.getAllUsers(params),
           api.getAllLeads({ ...params, limit: 5 }),
           api.listCampaigns(params),
-          api.getChatConversations(user.id, user.role),
+          api.getChatConversations(),
           api.getCallLogs(params),
           api.getCreatorAutomations(user.id),
         ]);

@@ -175,7 +175,7 @@ export default function ChatDashboard() {
             try {
                 if (!append) setConvLoading(true);
 
-                const res = await getChatConversations(user?.id, user?.role, cursor);
+                const res = await getChatConversations(cursor);
                 const data = res.data;
 
                 // Support both paginated response shape and flat array (backward compat)

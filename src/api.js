@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://lead-filteration-backend-624770114041.asia-south1.run.app';
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://lead-filteration-backend-vvsvqafcoa-el.a.run.app';
 
 // Helper to create an axios instance with shared interceptors
 const createApiInstance = (path) => {
@@ -106,7 +106,7 @@ export const getBuilderProjects = () => projectsApi.get('/list');
 
 // ====== CHAT ENDPOINTS ======
 const chatApi = createApiInstance('/chat');
-export const getChatConversations = (userId, role, cursor) => chatApi.get('/conversations', { params: { userId, role, ...(cursor ? { cursor } : {}) } });
+export const getChatConversations = (cursor) => chatApi.get('/conversations', { params: { ...(cursor ? { cursor } : {}) } });
 export const getChatMessages = (leadId, cursor) => chatApi.get(`/${leadId}/messages`, { params: { ...(cursor ? { cursor } : {}) } });
 export const sendChatMessage = (leadId, data) => chatApi.post(`/${leadId}/send`, data);
 export const sendChatTemplate = (leadId, data) => chatApi.post(`/${leadId}/send-template`, data);
