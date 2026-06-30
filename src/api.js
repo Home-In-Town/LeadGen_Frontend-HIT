@@ -128,10 +128,11 @@ export const getMicrosoftAuthUrl = (ownerId) => `${BASE_URL}/api/auth/microsoft/
 
 // ====== CAMPAIGN ENDPOINTS ======
 const campaignApi = createApiInstance('/campaigns');
-export const uploadCampaign = (file, name) => {
+export const uploadCampaign = (file, name, linkedFbCampaignId) => {
     const formData = new FormData();
     formData.append('file', file);
     if (name) formData.append('name', name);
+    if (linkedFbCampaignId) formData.append('linkedFbCampaignId', linkedFbCampaignId);
     return campaignApi.post('/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
     });
@@ -143,6 +144,8 @@ export const retryCampaign = (id) => campaignApi.post(`/${id}/retry`);
 export const pauseCampaign = (id) => campaignApi.post(`/${id}/pause`);
 export const resumeCampaign = (id) => campaignApi.post(`/${id}/resume`);
 export const deleteCampaign = (id) => campaignApi.delete(`/${id}`);
+export const listFbCampaignsForUpload = () => campaignApi.get('/fb-campaigns');
+export const getCampaignLeads = (id, params) => campaignApi.get(`/${id}/leads`, { params });
 
 // ====== AUTH API (cookie-based, no 401 redirect) ======
 // Uses a plain axios instance — 401 here means wrong credentials, not expired session

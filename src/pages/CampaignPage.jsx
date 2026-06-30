@@ -22,6 +22,8 @@ import {
     resumeCampaign as apiResumeCampaign,
     deleteCampaign as apiDeleteCampaign,
 } from '../api';
+import CampaignSelector from '../components/CampaignSelector';
+import ImportedLeadsTab from '../components/ImportedLeadsTab';
 
 // ── Utility helpers ──────────────────────────────────────────────────────────
 
@@ -63,12 +65,13 @@ function ProgressBar({ value, color = 'bg-emerald-500' }) {
 // ── Upload Panel ─────────────────────────────────────────────────────────────
 
 function UploadPanel({ onSuccess }) {
-    const [file, setFile]       = useState(null);
-    const [dragging, setDragging] = useState(false);
-    const [loading, setLoading] = useState(false);
-    const [result, setResult]   = useState(null);
-    const [error, setError]     = useState(null);
-    const inputRef              = useRef(null);
+    const [file, setFile]               = useState(null);
+    const [dragging, setDragging]       = useState(false);
+    const [loading, setLoading]         = useState(false);
+    const [result, setResult]           = useState(null);
+    const [error, setError]             = useState(null);
+    const [linkedFbCampaignId, setLinkedFbCampaignId] = useState(null);
+    const inputRef                      = useRef(null);
 
     const MAX_SIZE_MB = 20;
 
@@ -105,9 +108,10 @@ function UploadPanel({ onSuccess }) {
         setError(null);
         setResult(null);
         try {
-            const res = await apiUpload(file);
+            const res = await apiUpload(file, null, linkedFbCampaignId);
             setResult(res.data);
             setFile(null);
+            setLinkedFbCampaignId(null);
             if (onSuccess) onSuccess(res.data);
         } catch (err) {
             const status = err.response?.status;
@@ -174,6 +178,11 @@ function UploadPanel({ onSuccess }) {
                     {error}
                 </div>
             )}
+
+            {/* Facebook campaign selector */}
+            <div className="mt-4">
+                <CampaignSelector value={linkedFbCampaignId} onChange={setLinkedFbCampaignId} />
+            </div>
 
             <button
                 onClick={handleSubmit}
@@ -493,6 +502,7 @@ function CampaignDetail({ campaign, onClose, onRetry, onStatusChange }) {
 export default function CampaignPage() {
     const { user }    = useAuth();
     const { socket }  = useNotifications();
+    const [activeTab, setActiveTab]         = useState('campaigns'); // 'campaigns' | 'imported'
     const [campaigns, setCampaigns]         = useState([]);
     const [loading, setLoading]             = useState(true);
     const [selectedCampaign, setSelected]   = useState(null);
@@ -521,16 +531,12 @@ export default function CampaignPage() {
     useEffect(() => {
         if (!socket) return;
 
-        const handleCreated = (data) => {
-            // Refresh list to show new campaign
-            fetchCampaigns(1);
-        };
+        const handleCreated = () => { fetchCampaigns(1); };
 
         const handleProgress = (data) => {
             setCampaigns(prev => prev.map(c =>
                 c.campaignId === data.campaignId ? { ...c, ...data } : c
             ));
-            // If detail panel is open, update it too
             setSelected(prev => prev && prev.campaignId === data.campaignId ? { ...prev, ...data } : prev);
         };
 
@@ -543,12 +549,9 @@ export default function CampaignPage() {
         };
     }, [socket, fetchCampaigns]);
 
-    const handleUploadSuccess = () => {
-        fetchCampaigns(1);
-    };
+    const handleUploadSuccess = () => { fetchCampaigns(1); };
 
     const handleSelectCampaign = async (campaign) => {
-        // Fetch latest progress before showing detail
         try {
             const res = await getCampaignProgress(campaign.campaignId);
             setSelected(res.data);
@@ -558,7 +561,6 @@ export default function CampaignPage() {
     };
 
     const handleRetry = (campaignId) => {
-        // Re-fetch to update counters
         getCampaignProgress(campaignId)
             .then(res => {
                 setCampaigns(prev => prev.map(c => c.campaignId === campaignId ? res.data : c));
@@ -576,6 +578,11 @@ export default function CampaignPage() {
         );
     };
 
+    const TABS = [
+        { id: 'campaigns', label: 'Active Campaigns', icon: 'campaign' },
+        { id: 'imported',  label: 'Imported Leads',   icon: 'groups' },
+    ];
+
     return (
         <div className="flex flex-col h-full">
             {/* Page header */}
@@ -587,94 +594,122 @@ export default function CampaignPage() {
                 <p className="text-xs text-slate-500 mt-0.5">Upload leads in bulk and track outreach progress in real time</p>
             </div>
 
-            <div className="flex-1 overflow-hidden flex gap-4 p-4 sm:p-6">
-                {/* Left column: upload + campaign list */}
-                <div className="flex flex-col gap-4 w-full lg:w-[420px] xl:w-[460px] flex-shrink-0 overflow-y-auto">
-                    <UploadPanel onSuccess={handleUploadSuccess} />
+            {/* Tab bar */}
+            <div className="flex gap-1 px-4 sm:px-6 pt-3 border-b border-slate-200/70 dark:border-white/10">
+                {TABS.map(tab => (
+                    <button
+                        key={tab.id}
+                        onClick={() => setActiveTab(tab.id)}
+                        className={`flex items-center gap-1.5 text-sm font-semibold px-3 py-2 rounded-t-lg transition-colors border-b-2 -mb-px ${
+                            activeTab === tab.id
+                                ? 'text-primary border-primary bg-primary/5'
+                                : 'text-slate-500 dark:text-slate-400 border-transparent hover:text-slate-700 dark:hover:text-slate-300'
+                        }`}
+                    >
+                        <span className="material-symbols-outlined text-base">{tab.icon}</span>
+                        {tab.label}
+                    </button>
+                ))}
+            </div>
 
-                    {/* Campaign list */}
-                    <div>
-                        <h2 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-2">
-                            <span className="material-symbols-outlined text-sm text-slate-400">list</span>
-                            Your Campaigns
-                        </h2>
+            {/* Tab content */}
+            <div className="flex-1 overflow-hidden">
 
-                        {loading ? (
-                            <div className="flex justify-center py-10">
-                                <span className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full" />
+                {/* ── Tab: Active Campaigns ── */}
+                {activeTab === 'campaigns' && (
+                    <div className="flex gap-4 p-4 sm:p-6 h-full overflow-hidden">
+                        {/* Left column: upload + campaign list */}
+                        <div className="flex flex-col gap-4 w-full lg:w-[420px] xl:w-[460px] flex-shrink-0 overflow-y-auto">
+                            <UploadPanel onSuccess={handleUploadSuccess} />
+
+                            {/* Campaign list */}
+                            <div>
+                                <h2 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-sm text-slate-400">list</span>
+                                    Your Campaigns
+                                </h2>
+
+                                {loading ? (
+                                    <div className="flex justify-center py-10">
+                                        <span className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full" />
+                                    </div>
+                                ) : campaigns.length === 0 ? (
+                                    <div className="text-center py-10 text-slate-500 dark:text-slate-400">
+                                        <span className="material-symbols-outlined text-4xl text-slate-300 dark:text-slate-600 block mb-2">folder_open</span>
+                                        <p className="text-sm">No campaigns yet. Upload your first file above.</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {campaigns.map(c => (
+                                            <CampaignCard
+                                                key={c.campaignId}
+                                                campaign={c}
+                                                onSelect={handleSelectCampaign}
+                                                isSelected={selectedCampaign?.campaignId === c.campaignId}
+                                            />
+                                        ))}
+                                    </div>
+                                )}
+
+                                {totalPages > 1 && (
+                                    <div className="flex justify-center gap-2 mt-4">
+                                        <button onClick={() => fetchCampaigns(page - 1)} disabled={page <= 1}
+                                            className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40">
+                                            <span className="material-symbols-outlined text-base">chevron_left</span>
+                                        </button>
+                                        <span className="flex items-center text-xs text-slate-500 px-2">{page} / {totalPages}</span>
+                                        <button onClick={() => fetchCampaigns(page + 1)} disabled={page >= totalPages}
+                                            className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40">
+                                            <span className="material-symbols-outlined text-base">chevron_right</span>
+                                        </button>
+                                    </div>
+                                )}
                             </div>
-                        ) : campaigns.length === 0 ? (
-                            <div className="text-center py-10 text-slate-500 dark:text-slate-400">
-                                <span className="material-symbols-outlined text-4xl text-slate-300 dark:text-slate-600 block mb-2">folder_open</span>
-                                <p className="text-sm">No campaigns yet. Upload your first file above.</p>
-                            </div>
-                        ) : (
-                            <div className="space-y-3">
-                                {campaigns.map(c => (
-                                    <CampaignCard
-                                        key={c.campaignId}
-                                        campaign={c}
-                                        onSelect={handleSelectCampaign}
-                                        isSelected={selectedCampaign?.campaignId === c.campaignId}
+                        </div>
+
+                        {/* Right column: detail panel */}
+                        <div className="flex-1 min-w-0 hidden lg:block">
+                            {selectedCampaign ? (
+                                <CampaignDetail
+                                    campaign={selectedCampaign}
+                                    onClose={() => setSelected(null)}
+                                    onRetry={handleRetry}
+                                    onStatusChange={handleStatusChange}
+                                />
+                            ) : (
+                                <div className="flex flex-col items-center justify-center h-full text-slate-400 dark:text-slate-600">
+                                    <span className="material-symbols-outlined text-5xl mb-3">analytics</span>
+                                    <p className="text-sm">Select a campaign to view details</p>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Mobile: detail panel as overlay */}
+                        {selectedCampaign && (
+                            <div className="lg:hidden fixed inset-0 bg-black/50 z-40 flex items-end" onClick={() => setSelected(null)}>
+                                <div className="w-full max-h-[80vh] overflow-auto" onClick={e => e.stopPropagation()}>
+                                    <CampaignDetail
+                                        campaign={selectedCampaign}
+                                        onClose={() => setSelected(null)}
+                                        onRetry={handleRetry}
+                                        onStatusChange={handleStatusChange}
                                     />
-                                ))}
+                                </div>
                             </div>
                         )}
-
-                        {/* Pagination */}
-                        {totalPages > 1 && (
-                            <div className="flex justify-center gap-2 mt-4">
-                                <button
-                                    onClick={() => fetchCampaigns(page - 1)}
-                                    disabled={page <= 1}
-                                    className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed"
-                                >
-                                    <span className="material-symbols-outlined text-base">chevron_left</span>
-                                </button>
-                                <span className="flex items-center text-xs text-slate-500 px-2">{page} / {totalPages}</span>
-                                <button
-                                    onClick={() => fetchCampaigns(page + 1)}
-                                    disabled={page >= totalPages}
-                                    className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed"
-                                >
-                                    <span className="material-symbols-outlined text-base">chevron_right</span>
-                                </button>
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                {/* Right column: detail panel (shown when a campaign is selected) */}
-                <div className="flex-1 min-w-0 hidden lg:block">
-                    {selectedCampaign ? (
-                        <CampaignDetail
-                            campaign={selectedCampaign}
-                            onClose={() => setSelected(null)}
-                            onRetry={handleRetry}
-                            onStatusChange={handleStatusChange}
-                        />
-                    ) : (
-                        <div className="flex flex-col items-center justify-center h-full text-slate-400 dark:text-slate-600">
-                            <span className="material-symbols-outlined text-5xl mb-3">analytics</span>
-                            <p className="text-sm">Select a campaign to view details</p>
-                        </div>
-                    )}
-                </div>
-
-                {/* Mobile: detail panel as overlay */}
-                {selectedCampaign && (
-                    <div className="lg:hidden fixed inset-0 bg-black/50 z-40 flex items-end" onClick={() => setSelected(null)}>
-                        <div className="w-full max-h-[80vh] overflow-auto" onClick={(e) => e.stopPropagation()}>
-                            <CampaignDetail
-                                campaign={selectedCampaign}
-                                onClose={() => setSelected(null)}
-                                onRetry={handleRetry}
-                                onStatusChange={handleStatusChange}
-                            />
-                        </div>
                     </div>
                 )}
+
+                {/* ── Tab: Imported Leads ── */}
+                {activeTab === 'imported' && (
+                    <div className="p-4 sm:p-6 overflow-y-auto h-full">
+                        <ImportedLeadsTab />
+                    </div>
+                )}
+
             </div>
         </div>
     );
 }
+
+
