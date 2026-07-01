@@ -112,7 +112,7 @@ function UploadPanel({ onSuccess }) {
             setResult(res.data);
             setFile(null);
             setLinkedFbCampaignId(null);
-            if (onSuccess) onSuccess(res.data);
+            if (res.data?.campaignId && onSuccess) onSuccess(res.data);
         } catch (err) {
             const status = err.response?.status;
             if (status === 413) setError('File too large. Maximum size is 20 MB.');
@@ -125,10 +125,32 @@ function UploadPanel({ onSuccess }) {
 
     return (
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/70 dark:border-white/10 p-6">
-            <h2 className="text-base font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                <span className="material-symbols-outlined text-primary text-lg">upload_file</span>
-                Upload Leads
-            </h2>
+            <div className="flex items-center justify-between mb-4">
+                <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span className="material-symbols-outlined text-primary text-lg">upload_file</span>
+                    Upload Leads
+                </h2>
+                <a
+                    href="/sample-leads.csv"
+                    download="sample-leads.csv"
+                    className="flex items-center gap-1.5 text-xs font-semibold text-primary hover:text-primary/80 transition-colors"
+                >
+                    <span className="material-symbols-outlined text-base">download</span>
+                    Download Sample
+                </a>
+            </div>
+
+            {/* Format guide */}
+            <div className="mb-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3 text-xs">
+                <p className="font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Required columns (any order, flexible names):</p>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-slate-500 dark:text-slate-400">
+                    <span><span className="font-semibold text-slate-700 dark:text-white">phone</span> / mobile / contact <span className="text-red-500">*</span></span>
+                    <span><span className="font-semibold text-slate-700 dark:text-white">name</span> / first_name <span className="text-red-500">*</span></span>
+                    <span><span className="text-slate-400">email</span> (optional)</span>
+                    <span><span className="text-slate-400">city</span> / location (optional)</span>
+                </div>
+                <p className="mt-1.5 text-slate-400">* At least one of phone or name is required per row.</p>
+            </div>
 
             {/* Drop zone */}
             <div
@@ -197,17 +219,30 @@ function UploadPanel({ onSuccess }) {
 
             {/* Success result */}
             {result && (
-                <div className="mt-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl p-4">
-                    <p className="text-sm font-bold text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5">
-                        <span className="material-symbols-outlined text-base">check_circle</span>
-                        Campaign created!
+                <div className={`mt-4 border rounded-xl p-4 ${
+                    result.totalCreated === 0
+                        ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800'
+                        : 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800'
+                }`}>
+                    <p className={`text-sm font-bold flex items-center gap-1.5 ${
+                        result.totalCreated === 0 ? 'text-amber-700 dark:text-amber-300' : 'text-emerald-700 dark:text-emerald-300'
+                    }`}>
+                        <span className="material-symbols-outlined text-base">
+                            {result.totalCreated === 0 ? 'warning' : 'check_circle'}
+                        </span>
+                        {result.totalCreated === 0 ? 'All duplicates — no campaign created' : 'Campaign created!'}
                     </p>
                     <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-slate-600 dark:text-slate-400">
-                        <div><span className="font-semibold text-slate-900 dark:text-white">{formatNumber(result.totalCreated)}</span> leads imported</div>
-                        <div><span className="font-semibold text-slate-900 dark:text-white">{formatNumber(result.duplicatesSkipped)}</span> duplicates skipped</div>
+                        <div><span className="font-semibold text-slate-900 dark:text-white">{result.totalCreated}</span> leads imported</div>
+                        <div><span className="font-semibold text-slate-900 dark:text-white">{result.duplicatesSkipped}</span> duplicates skipped</div>
                         {result.parseErrors > 0 && (
                             <div className="col-span-2 text-amber-600 dark:text-amber-400">
                                 {result.parseErrors} rows had parse errors
+                            </div>
+                        )}
+                        {result.totalCreated === 0 && (
+                            <div className="col-span-2 text-amber-600 dark:text-amber-400 mt-1">
+                                All phone numbers already exist in your CRM. Upload a file with new contacts.
                             </div>
                         )}
                     </div>

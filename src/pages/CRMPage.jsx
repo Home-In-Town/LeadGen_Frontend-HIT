@@ -168,18 +168,20 @@ useEffect(() => {
 const filteredLeads = useMemo(() => {
   return leads.filter((lead) => {
     const isAdsLead = ['facebook', 'google'].includes(lead.source);
+    const isBulkLead = lead.source === 'bulk_import';
 
     /* ------------------------------- TAB FILTER ------------------------------ */
 
     if (activeTab === 'automation') return false;
 
-    if (activeTab === 'ads' && !isAdsLead) {
-      return false;
-    }
+    if (activeTab === 'ads' && !isAdsLead) return false;
+    if (activeTab === 'ads' && isAdsLead) return true; // fall through to type filter
 
-    if (activeTab === 'site' && isAdsLead) {
-      return false;
-    }
+    if (activeTab === 'bulk' && !isBulkLead) return false;
+    if (activeTab === 'bulk' && isBulkLead) return true; // fall through to type filter
+
+    // 'site' tab: exclude ads leads and bulk import leads
+    if (activeTab === 'site' && (isAdsLead || isBulkLead)) return false;
 
     /* ---------------------------- LEAD TYPE FILTER --------------------------- */
 
@@ -447,6 +449,12 @@ const searchFilteredLeads = useMemo(() => {
               label: 'Ads Leads',
               icon: 'campaign',
               active: 'bg-primary text-white'
+            },
+            {
+              id: 'bulk',
+              label: 'Imported',
+              icon: 'upload_file',
+              active: 'bg-amber-500 text-white'
             },
             {
               id: 'automation',
@@ -843,6 +851,28 @@ const searchFilteredLeads = useMemo(() => {
                                 lead.createdAt || Date.now()
                               ).toLocaleDateString()}
                             </span>
+
+                            {/* Source badge */}
+                            {lead.source === 'bulk_import' && (
+                              <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.18em] text-amber-600 dark:text-amber-400">
+                                Bulk Import
+                              </span>
+                            )}
+                            {lead.source === 'facebook' && (
+                              <span className="rounded-full bg-blue-500/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.18em] text-blue-600 dark:text-blue-400">
+                                Facebook
+                              </span>
+                            )}
+                            {lead.source === 'google' && (
+                              <span className="rounded-full bg-green-500/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.18em] text-green-600 dark:text-green-400">
+                                Google Ads
+                              </span>
+                            )}
+                            {lead.campaignId && (
+                              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500 dark:bg-white/10 dark:text-slate-400 truncate max-w-[120px]" title="Campaign lead">
+                                📋 Campaign
+                              </span>
+                            )}
 
                             {user?.role === 'admin' &&
                               lead.createdBy?.name && (
