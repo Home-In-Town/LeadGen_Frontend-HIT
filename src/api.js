@@ -146,6 +146,7 @@ export const resumeCampaign = (id) => campaignApi.post(`/${id}/resume`);
 export const deleteCampaign = (id) => campaignApi.delete(`/${id}`);
 export const listFbCampaignsForUpload = () => campaignApi.get('/fb-campaigns');
 export const getCampaignLeads = (id, params) => campaignApi.get(`/${id}/leads`, { params });
+export const deleteAllCampaigns = (confirm) => campaignApi.delete('/delete-all', { data: { confirm } });
 
 // ====== AUTH API (cookie-based, no 401 redirect) ======
 // Uses a plain axios instance — 401 here means wrong credentials, not expired session
