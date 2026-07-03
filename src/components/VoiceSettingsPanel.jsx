@@ -8,7 +8,20 @@ import {
   deleteVoiceDocument,
 } from '../api';
 
-const VOICE_OPTIONS = ['Aoede', 'Puck', 'Charon', 'Kore', 'Fenrir', 'Leda'];
+// All 30 Chirp3 HD voices from Google TTS docs (June 2026)
+// All work with all Indian locales (en-IN, hi-IN, mr-IN, etc.)
+const VOICE_OPTIONS = {
+  female: ['Achernar', 'Aoede', 'Autonoe', 'Callirrhoe', 'Despina', 'Erinome',
+           'Gacrux', 'Kore', 'Laomedeia', 'Leda', 'Pulcherrima', 'Sulafat',
+           'Umbriel', 'Vindemiatrix', 'Zephyr'],
+  male:   ['Achird', 'Algenib', 'Algieba', 'Alnilam', 'Charon', 'Enceladus',
+           'Fenrir', 'Iapetus', 'Orus', 'Puck', 'Rasalgethi', 'Sadachbia',
+           'Sadaltager', 'Schedar', 'Zubenelgenubi'],
+};
+// Flat list used for validation in handleReset
+const ALL_VOICE_NAMES = [...VOICE_OPTIONS.female, ...VOICE_OPTIONS.male];
+// Default voice on reset
+const DEFAULT_VOICE_NAME = 'Aoede';
 const LANGUAGE_OPTIONS = [
   { value: 'default', label: 'Default (Auto-detect)' },
   { value: 'hinglish', label: 'Hinglish (Hindi + English)' },
@@ -378,17 +391,27 @@ const VoiceSettingsPanel = () => {
         </div>
       )}
 
-      {/* Voice Selection — promoted to top */}
+      {/* Voice Selection — all 30 Chirp3 HD voices, grouped by gender */}
       <div className="rounded-[18px] border border-slate-200/70 dark:border-white/10 bg-white/70 dark:bg-white/[0.04] backdrop-blur-xl p-6 shadow-sm">
-        <label className="mb-3 block text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400">
-          TTS Voice
-        </label>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-          {VOICE_OPTIONS.map((voice) => (
+        <div className="mb-3 flex items-center justify-between">
+          <label className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400">
+            TTS Voice
+          </label>
+          <span className="text-[10px] font-bold text-slate-400">
+            {selectedVoice} · {VOICE_OPTIONS.female.includes(selectedVoice) ? 'Female' : 'Male'} · Indian accent
+          </span>
+        </div>
+
+        {/* Female voices */}
+        <p className="mb-2 text-[9px] font-black uppercase tracking-[0.25em] text-slate-400 flex items-center gap-1.5">
+          <span className="material-symbols-outlined text-[13px]">face_3</span>Female
+        </p>
+        <div className="grid grid-cols-3 gap-2 sm:grid-cols-5 mb-4">
+          {VOICE_OPTIONS.female.map((voice) => (
             <button
               key={voice}
               onClick={() => setSelectedVoice(voice)}
-              className={`rounded-[14px] border px-4 py-3 text-sm font-medium transition-all ${
+              className={`rounded-[12px] border px-2 py-2 text-[11px] font-medium transition-all ${
                 selectedVoice === voice
                   ? 'border-primary bg-primary/10 text-primary shadow-sm'
                   : 'border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.04] text-slate-700 dark:text-slate-300 hover:border-primary/40'
@@ -398,6 +421,30 @@ const VoiceSettingsPanel = () => {
             </button>
           ))}
         </div>
+
+        {/* Male voices */}
+        <p className="mb-2 text-[9px] font-black uppercase tracking-[0.25em] text-slate-400 flex items-center gap-1.5">
+          <span className="material-symbols-outlined text-[13px]">face</span>Male
+        </p>
+        <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
+          {VOICE_OPTIONS.male.map((voice) => (
+            <button
+              key={voice}
+              onClick={() => setSelectedVoice(voice)}
+              className={`rounded-[12px] border px-2 py-2 text-[11px] font-medium transition-all ${
+                selectedVoice === voice
+                  ? 'border-primary bg-primary/10 text-primary shadow-sm'
+                  : 'border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.04] text-slate-700 dark:text-slate-300 hover:border-primary/40'
+              }`}
+            >
+              {voice}
+            </button>
+          ))}
+        </div>
+
+        <p className="mt-3 text-[10px] font-bold text-slate-400">
+          All voices support Indian accent for en-IN, hi-IN, mr-IN and other Indian locales.
+        </p>
         {errors.selectedVoice && (
           <p className="mt-2 text-[11px] font-bold text-red-500">{errors.selectedVoice}</p>
         )}
