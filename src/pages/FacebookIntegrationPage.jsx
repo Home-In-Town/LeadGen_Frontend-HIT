@@ -15,6 +15,7 @@ import {
     disconnectFacebook,
     createFBMapping,
     deleteFBMapping,
+    toggleFBMapping,
     initiateFBConnect,
     importFBHistorical,
     subscribeFBWebhook,
@@ -345,10 +346,19 @@ function CampaignCard({ campaign, onMappingCreated }) {
                                             </button>
                                         )}
                                         {form.isMapped && (
-                                            <span className="flex items-center gap-1 text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600 dark:text-emerald-400">
-                                                <span className="material-symbols-outlined text-[13px]">check_circle</span>
-                                                Active
-                                            </span>
+                                            <button onClick={async () => {
+                                                if (!form.mappingId) return;
+                                                try {
+                                                    await toggleFBMapping(form.mappingId);
+                                                    onMappingCreated(); // Refresh campaign list to update isMapped state
+                                                } catch (err) {
+                                                    console.error('Disable form failed:', err);
+                                                }
+                                            }}
+                                                className="flex items-center gap-1.5 rounded-xl border border-red-400/30 bg-red-400/5 hover:bg-red-400/10 text-red-500 dark:text-red-400 text-[10px] font-black uppercase tracking-[0.2em] px-3 py-1.5 transition-all">
+                                                <span className="material-symbols-outlined text-[13px]">toggle_off</span>
+                                                Disable
+                                            </button>
                                         )}
                                     </div>
                                 </div>

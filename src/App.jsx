@@ -1,9 +1,44 @@
-import { useState, useEffect, lazy, Suspense } from 'react';
+import { useState, useEffect, lazy, Suspense, Component } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { NotificationProvider } from './context/NotificationContext';
 import { AuthProvider } from './context/AuthContext';
 import { useNotifications } from './context/NotificationContext';
 import NotificationToastContainer from './components/NotificationToast';
+
+// ── Error Boundary — catches unhandled React errors in any page ───────────────
+// Prevents a single page crash from taking down the entire dashboard.
+class ErrorBoundary extends Component {
+    constructor(props) {
+        super(props);
+        this.state = { hasError: false, error: null };
+    }
+    static getDerivedStateFromError(error) {
+        return { hasError: true, error };
+    }
+    componentDidCatch(error, info) {
+        console.error('[ErrorBoundary] Caught error:', error, info);
+    }
+    render() {
+        if (this.state.hasError) {
+            return (
+                <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 p-8">
+                    <span className="material-symbols-outlined text-5xl text-red-400">error</span>
+                    <div className="text-center">
+                        <p className="text-lg font-black text-slate-900 dark:text-white">Something went wrong</p>
+                        <p className="text-sm text-slate-500 mt-1">{this.state.error?.message || 'An unexpected error occurred'}</p>
+                    </div>
+                    <button
+                        onClick={() => this.setState({ hasError: false, error: null })}
+                        className="rounded-2xl bg-primary px-5 py-2.5 text-[11px] font-black uppercase tracking-[0.2em] text-white transition-all hover:bg-charcoal"
+                    >
+                        Try Again
+                    </button>
+                </div>
+            );
+        }
+        return this.props.children;
+    }
+}
 
 // Eagerly loaded (above the fold / always needed)
 import LandingPage from './pages/LandingPage';
@@ -75,6 +110,7 @@ function App() {
         <Router>
           <ToastRenderer />
           <ChatSidebarController />
+          <ErrorBoundary>
           <Suspense fallback={<PageLoader />}>
             <Routes>
               {/* Public Routes */}
@@ -120,6 +156,7 @@ function App() {
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </Suspense>
+          </ErrorBoundary>
         </Router>
       </NotificationProvider>
     </AuthProvider>
