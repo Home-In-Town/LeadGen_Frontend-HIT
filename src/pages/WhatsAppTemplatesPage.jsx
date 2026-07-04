@@ -4,11 +4,8 @@
  * Requirements: 7.2, 7.4, 7.6, 7.7, 7.8, 7.9
  */
 import { useState, useEffect } from 'react';
-import axios from 'axios';
 import { useNotifications } from '../context/NotificationContext';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://lead-filteration-backend-624770114041.asia-south1.run.app';
-const waApi = axios.create({ baseURL: `${API_BASE_URL}/api/whatsapp`, withCredentials: true });
+import { listWATemplates, createWATemplate, deleteWATemplate } from '../api';
 
 const STATUSES = ['ALL', 'APPROVED', 'PENDING', 'REJECTED', 'PAUSED'];
 const CATEGORIES = ['ALL', 'MARKETING', 'UTILITY', 'AUTHENTICATION'];
@@ -40,7 +37,7 @@ export default function WhatsAppTemplatesPage() {
     const fetchTemplates = async () => {
         try {
             setLoading(true);
-            const res = await waApi.get('/templates');
+            const res = await listWATemplates();
             if (res.data.success) setTemplates(res.data.data);
         } catch (err) {
             if (err.response?.status !== 400) {
@@ -63,7 +60,7 @@ export default function WhatsAppTemplatesPage() {
         if (!window.confirm(`Delete template "${templateName}"? This cannot be undone.`)) return;
         try {
             setDeletingName(templateName);
-            await waApi.delete(`/templates/${templateName}`);
+            await deleteWATemplate(templateName);
             setTemplates(prev => prev.filter(t => t.name !== templateName));
             addToast('Template deleted', 'success');
         } catch (err) {
@@ -92,7 +89,7 @@ export default function WhatsAppTemplatesPage() {
         }
         try {
             setCreating(true);
-            const res = await waApi.post('/templates', {
+            const res = await createWATemplate({
                 name: form.name.trim().toLowerCase().replace(/\s+/g, '_'),
                 category: form.category,
                 language: form.language,

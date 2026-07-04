@@ -6,14 +6,20 @@
  */
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import { useNotifications } from '../context/NotificationContext';
+import {
+    listWAPhoneNumbers,
+    addWAPhoneNumber,
+    removeWAPhoneNumber,
+    setDefaultWAPhone,
+    connectMetaOAuth,
+} from '../api';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://lead-filteration-backend-624770114041.asia-south1.run.app';
-const META_APP_ID  = import.meta.env.VITE_META_APP_ID  || '1275388667714234';
+const META_APP_ID      = import.meta.env.VITE_META_APP_ID      || '1275388667714234';
 const SIGNUP_CONFIG_ID = import.meta.env.VITE_META_SIGNUP_CONFIG_ID || '1005112248795110';
-
-const waApi = axios.create({ baseURL: `${API_BASE_URL}/api/whatsapp`, withCredentials: true });
+// Use the correct backend URL from env for register endpoint (needs raw axios for the one non-standard call)
+import axios from 'axios';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://lead-filteration-backend-vvsvqafcoa-el.a.run.app';
 
 function StatusBadge({ connected }) {
     if (connected === null) return null;
@@ -72,7 +78,7 @@ export default function WhatsAppSetupPage() {
     const inputClass = 'w-full rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#1e293b] px-4 py-3.5 text-sm font-semibold text-slate-900 dark:text-slate-300 outline-none transition-all focus:border-[#25D366] focus:bg-white dark:focus:bg-[#1e293b]';
 
     useEffect(() => {
-        waApi.get('/phone-numbers')
+        listWAPhoneNumbers()
             .then(res => {
                 if (res.data.success && res.data.data?.length > 0) {
                     setPhoneNumbers(res.data.data);
@@ -102,7 +108,7 @@ export default function WhatsAppSetupPage() {
 
     const reloadPhoneNumbers = async () => {
         try {
-            const res = await waApi.get('/phone-numbers');
+            const res = await listWAPhoneNumbers();
             if (res.data.success && res.data.data?.length > 0) {
                 setPhoneNumbers(res.data.data);
                 setConnected(true);
@@ -129,7 +135,7 @@ export default function WhatsAppSetupPage() {
         // FB.login does NOT support async callbacks — use .then() chain instead
         window.FB.login((response) => {
             if (response?.authResponse?.code) {
-                waApi.post('/connect/meta-oauth', { code: response.authResponse.code })
+                connectMetaOAuth(response.authResponse.code)
                     .then(res => {
                         if (res.data.success) {
                             addToast(`Connected ${res.data.data.addedPhoneNumbers?.length || 0} number(s) successfully!`, 'success');
@@ -172,7 +178,7 @@ export default function WhatsAppSetupPage() {
         if (!validateManual()) return;
         try {
             setSaving(true);
-            const res = await waApi.post('/phone-numbers', {
+            const res = await addWAPhoneNumber({
                 phoneNumberId: manual.phoneNumberId.trim(),
                 wabaId: manual.wabaId.trim(),
                 accessToken: manual.accessToken.trim(),
@@ -209,7 +215,7 @@ export default function WhatsAppSetupPage() {
     const handleDisconnect = async (phoneNumberId) => {
         if (!window.confirm('Remove this WhatsApp number? Outreach for this number will stop.')) return;
         try {
-            await waApi.delete(`/phone-numbers/${phoneNumberId}`);
+            await removeWAPhoneNumber(phoneNumberId);
             await reloadPhoneNumbers(); // This now handles state properly
             addToast('Number removed', 'success');
         } catch (err) {
@@ -219,7 +225,7 @@ export default function WhatsAppSetupPage() {
 
     const handleSetDefault = async (phoneNumberId) => {
         try {
-            await waApi.patch(`/phone-numbers/${phoneNumberId}/default`);
+            await setDefaultWAPhone(phoneNumberId);
             await reloadPhoneNumbers();
             addToast('Default number updated', 'success');
         } catch {
@@ -270,8 +276,12 @@ export default function WhatsAppSetupPage() {
                                     </div>
                                     <button onClick={async () => {
                                         try {
-                                            await waApi.post(`/phone-numbers/${num.id || num.phoneNumberId}/register`);
-                                            alert('Phone number registered for messaging successfully!');
+                                            await axios.post(
+                                                `${API_BASE_URL}/api/whatsapp/phone-numbers/${num.id || num.phoneNumberId}/register`,
+                                                {},
+                                                { withCredentials: true }
+                                            );
+                                            addToast('Phone number registered for messaging successfully!', 'success');
                                         } catch (e) {
                                             alert('Registration failed: ' + (e.response?.data?.error || e.message));
                                         }
