@@ -2,18 +2,14 @@ import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useNotifications } from '../context/NotificationContext';
+import { listWAPhoneNumbers } from '../api';
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
-  'https://lead-filteration-backend-624770114041.asia-south1.run.app';
+  'https://lead-filteration-backend-vvsvqafcoa-el.a.run.app';
 
 const ownersApi = axios.create({
   baseURL: `${API_BASE_URL}/api/owners`,
-  withCredentials: true,
-});
-
-const whatsappApi = axios.create({
-  baseURL: `${API_BASE_URL}/api/whatsapp`,
   withCredentials: true,
 });
 
@@ -21,28 +17,15 @@ const IntegrationsPage = () => {
   const { addToast } = useNotifications();
   const navigate = useNavigate();
 
-  /* ---------------------------------- */
-  /* STATE */
-  /* ---------------------------------- */
-
   const [activeTab, setActiveTab] = useState('whatsapp');
-
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
 
+  // WhatsApp — status only (no legacy credentials form)
   const [waPhoneNumbers, setWaPhoneNumbers] = useState([]);
 
-  const [visibility, setVisibility] = useState({
-    whatsappVendor: false,
-    whatsappApi: false,
-    externalSecret: false,
-  });
-
-  const [whatsappSettings, setWhatsappSettings] = useState({
-    vendorUid: '',
-    apiKey: '',
-  });
+  const [visibility, setVisibility] = useState({ externalSecret: false });
 
   const [externalSource, setExternalSource] = useState({
     sourceUrl: '',
@@ -85,61 +68,20 @@ const IntegrationsPage = () => {
     try {
       setLoading(true);
 
+      // Load external source + project settings only (WA credentials come from phone-numbers endpoint)
       const response = await ownersApi.get('/integrations');
+      if (response.data.externalSource) setExternalSource(response.data.externalSource);
+      if (response.data.projectSettings) setProjectSettings(response.data.projectSettings);
 
-      setWhatsappSettings(response.data.whatsapp || {});
-
-      if (response.data.externalSource) {
-        setExternalSource(response.data.externalSource);
-      }
-
-      if (response.data.projectSettings) {
-        setProjectSettings(response.data.projectSettings);
-      }
-
-      whatsappApi.get('/phone-numbers')
+      // Load connected WA phone numbers via shared api.js (correct URL)
+      listWAPhoneNumbers()
         .then(res => { if (res.data.success) setWaPhoneNumbers(res.data.data || []); })
         .catch(() => {});
     } catch (error) {
       console.error(error);
-
-      addToast(
-        'Failed to load integration settings',
-        'error'
-      );
+      addToast('Failed to load integration settings', 'error');
     } finally {
       setLoading(false);
-    }
-  };
-
-  /* ---------------------------------- */
-  /* SAVE */
-  /* ---------------------------------- */
-
-  const handleSaveWhatsapp = async (e) => {
-    e.preventDefault();
-
-    try {
-      setSaving(true);
-
-      await ownersApi.put(
-        '/integrations/whatsapp',
-        whatsappSettings
-      );
-
-      addToast(
-        'WhatsApp settings saved successfully',
-        'success'
-      );
-    } catch (error) {
-      console.error(error);
-
-      addToast(
-        'Failed to save WhatsApp settings',
-        'error'
-      );
-    } finally {
-      setSaving(false);
     }
   };
 

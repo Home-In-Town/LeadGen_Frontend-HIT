@@ -4,10 +4,12 @@ import { useNavigate } from 'react-router-dom';
 import * as api from '../api';
 import { useAuth } from '../context/AuthContext';
 import { getFBCampaigns } from '../api';
+import { useNotifications } from '../context/NotificationContext';
 
 const UsersPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { addToast } = useNotifications();
 
   const [users, setUsers] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -119,10 +121,10 @@ const UsersPage = () => {
 
     try {
       const res = await getFBCampaigns({ limit: 200 });
-      const campaignList = res.data?.data || [];
+      const campaignList = res.data?.campaigns || res.data?.data || [];
 
       if (!campaignList.length) {
-        alert('No campaigns found. Sync your Facebook campaigns first.');
+        addToast('No campaigns found. Sync your Facebook campaigns first.', 'warning');
         return;
       }
 
@@ -130,7 +132,7 @@ const UsersPage = () => {
       setShowProjectModal(true);
     } catch (err) {
       console.error('Failed to fetch campaigns:', err);
-      alert('Failed to fetch campaigns. Make sure Facebook is connected.');
+      addToast('Failed to fetch campaigns. Make sure Facebook is connected.', 'error');
     } finally {
       setFetchingProjects(false);
     }
@@ -142,49 +144,44 @@ const UsersPage = () => {
 
     try {
       if (!user) {
-        alert('Please login first.');
+        addToast('Please login first.', 'error');
         return;
       }
 
       const creatorData = {
-        creatorId: user.id || user._id,
-        creatorName:
-          user.name ||
-          `${user.first_name || ''} ${user.last_name || ''}`.trim(),
+        creatorId:   user.id || user._id,
+        creatorName: user.name || `${user.first_name || ''} ${user.last_name || ''}`.trim(),
         creatorRole: user.role || 'agent',
         projectSlug: campaignId,
         projectName: campaignName,
       };
 
       const userIds = Array.from(selectedUsers);
-
+      const CONCURRENCY = 5; // 5 parallel API calls — fast but won't overwhelm the backend
       let successCount = 0;
       let failCount = 0;
+      let processed = 0;
 
-      for (let i = 0; i < userIds.length; i++) {
-        setProcessingMessage(
-          `PROCESSING ${i + 1}/${userIds.length}...`
+      // Process in concurrent batches — 10x faster than serial with 800ms sleep
+      for (let i = 0; i < userIds.length; i += CONCURRENCY) {
+        const batch = userIds.slice(i, i + CONCURRENCY);
+        const results = await Promise.allSettled(
+          batch.map(id => api.createLeadFromUser(id, creatorData))
         );
-
-        try {
-          await api.createLeadFromUser(userIds[i], creatorData);
-          successCount++;
-        } catch (err) {
-          console.error(err);
-          failCount++;
-        }
-
-        await new Promise((resolve) => setTimeout(resolve, 800));
+        successCount += results.filter(r => r.status === 'fulfilled').length;
+        failCount    += results.filter(r => r.status === 'rejected').length;
+        processed    += batch.length;
+        setProcessingMessage(`Processing ${processed}/${userIds.length}...`);
       }
 
-      alert(
-        `PROCESS COMPLETE!\n\nSUCCESS: ${successCount}\nFAILED: ${failCount}`
+      addToast(
+        `Done! ${successCount} lead${successCount !== 1 ? 's' : ''} created${failCount > 0 ? ` · ${failCount} failed` : ''}`,
+        successCount > 0 ? 'success' : 'error'
       );
-
       setSelectedUsers(new Set());
     } catch (err) {
       console.error('Bulk create failed:', err);
-      alert('FAILED TO PROCESS SOME REQUESTS.');
+      addToast('Failed to process some requests.', 'error');
     } finally {
       setProcessing(false);
       setProcessingMessage('');
@@ -198,35 +195,20 @@ const UsersPage = () => {
   const handleBulkDelete = async () => {
     if (selectedUsers.size === 0) return;
 
-    if (
-      !window.confirm(
-        `Delete ${selectedUsers.size} selected users?`
-      )
-    ) {
-      return;
-    }
+    if (!window.confirm(`Delete ${selectedUsers.size} selected users? This cannot be undone.`)) return;
 
     setProcessing(true);
 
     try {
-      const promises = Array.from(selectedUsers).map((userId) =>
-        api.deleteUser(userId).catch((err) => ({
-          error: err,
-          userId,
-        }))
+      await Promise.allSettled(
+        Array.from(selectedUsers).map(userId => api.deleteUser(userId))
       );
-
-      await Promise.all(promises);
-
-      setUsers((prev) =>
-        prev.filter((u) => !selectedUsers.has(u.id))
-      );
-
+      setUsers(prev => prev.filter(u => !selectedUsers.has(u.id)));
       setSelectedUsers(new Set());
+      addToast(`${selectedUsers.size} user${selectedUsers.size !== 1 ? 's' : ''} deleted.`, 'success');
     } catch (err) {
       console.error('Bulk delete failed:', err);
-
-      alert('Failed to delete some users.');
+      addToast('Failed to delete some users.', 'error');
     } finally {
       setProcessing(false);
     }
