@@ -283,7 +283,7 @@ export default function WhatsAppSetupPage() {
                                             );
                                             addToast('Phone number registered for messaging successfully!', 'success');
                                         } catch (e) {
-                                            alert('Registration failed: ' + (e.response?.data?.error || e.message));
+                                            addToast('Registration failed: ' + (e.response?.data?.error || e.message), 'error');
                                         }
                                     }}
                                         className="text-[9px] font-black uppercase tracking-wider px-3 py-1.5 rounded-xl border border-emerald-200 dark:border-emerald-900/30 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/10 transition-all">
