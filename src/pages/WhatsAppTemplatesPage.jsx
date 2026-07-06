@@ -4,6 +4,7 @@
  * Requirements: 7.2, 7.4, 7.6, 7.7, 7.8, 7.9
  */
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useNotifications } from '../context/NotificationContext';
 import { listWATemplates, createWATemplate, deleteWATemplate } from '../api';
 
@@ -19,6 +20,7 @@ const STATUS_STYLES = {
 
 export default function WhatsAppTemplatesPage() {
     const { addToast } = useNotifications();
+    const navigate = useNavigate();
     const [templates, setTemplates] = useState([]);
     const [loading, setLoading] = useState(true);
     const [statusFilter, setStatusFilter] = useState('ALL');
@@ -26,6 +28,8 @@ export default function WhatsAppTemplatesPage() {
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [deletingName, setDeletingName] = useState(null);
     const [creating, setCreating] = useState(false);
+    const [notConnected, setNotConnected] = useState(false);
+    const [tokenInvalid, setTokenInvalid] = useState(false);
     const [form, setForm] = useState({
         name: '', category: 'MARKETING', language: 'en',
         bodyText: '', headerText: '', footerText: '',
@@ -37,10 +41,18 @@ export default function WhatsAppTemplatesPage() {
     const fetchTemplates = async () => {
         try {
             setLoading(true);
+            setNotConnected(false);
+            setTokenInvalid(false);
             const res = await listWATemplates();
-            if (res.data.success) setTemplates(res.data.data);
+            if (res.data.success) setTemplates(res.data.data || []);
         } catch (err) {
-            if (err.response?.status !== 400) {
+            const code = err.response?.data?.code;
+            const status = err.response?.status;
+            if (status === 400 || code === 'NOT_CONNECTED') {
+                setNotConnected(true);
+            } else if (code === 'TOKEN_INVALID') {
+                setTokenInvalid(true);
+            } else {
                 addToast(err.response?.data?.error || 'Failed to load templates', 'error');
             }
         } finally {
@@ -129,11 +141,19 @@ export default function WhatsAppTemplatesPage() {
                                 <p className="mt-1 text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400">Manage your message templates</p>
                             </div>
                         </div>
-                        <button onClick={() => setShowCreateModal(true)}
-                            className="flex items-center gap-2 rounded-2xl bg-[#25D366] px-5 py-3 text-[10px] font-black uppercase tracking-[0.2em] text-white shadow-md hover:bg-[#20b858] transition-all">
-                            <span className="material-symbols-outlined text-base">add</span>
-                            Create Template
-                        </button>
+                        <div className="flex items-center gap-3 flex-wrap">
+                            {/* Sync from Meta */}
+                            <button onClick={fetchTemplates} disabled={loading}
+                                className="flex items-center gap-2 rounded-2xl border border-[#25D366]/30 bg-[#25D366]/5 px-4 py-2.5 text-[10px] font-black uppercase tracking-[0.2em] text-[#25D366] hover:bg-[#25D366]/10 disabled:opacity-50 transition-all">
+                                <span className={`material-symbols-outlined text-base ${loading ? 'animate-spin' : ''}`}>sync</span>
+                                Sync from Meta
+                            </button>
+                            <button onClick={() => setShowCreateModal(true)}
+                                className="flex items-center gap-2 rounded-2xl bg-[#25D366] px-5 py-3 text-[10px] font-black uppercase tracking-[0.2em] text-white shadow-md hover:bg-[#20b858] transition-all">
+                                <span className="material-symbols-outlined text-base">add</span>
+                                Create Template
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -160,12 +180,39 @@ export default function WhatsAppTemplatesPage() {
                     </div>
                 </div>
 
+                {/* Not connected / token invalid banners */}
+                {(notConnected || tokenInvalid) && (
+                    <div className={`${cardClass} mb-6 p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4`}>
+                        <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-amber-100 dark:bg-amber-900/20">
+                            <span className="material-symbols-outlined text-amber-500 text-2xl">warning</span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            {notConnected ? (
+                                <>
+                                    <p className="text-sm font-black text-slate-900 dark:text-white">WhatsApp not connected</p>
+                                    <p className="text-xs text-slate-500 mt-0.5">Connect your WhatsApp Business Account to view and manage templates.</p>
+                                </>
+                            ) : (
+                                <>
+                                    <p className="text-sm font-black text-slate-900 dark:text-white">WhatsApp token expired or invalid</p>
+                                    <p className="text-xs text-slate-500 mt-0.5">Your access token has expired or was encrypted with a different key. Remove and re-connect your WhatsApp number to fix this.</p>
+                                </>
+                            )}
+                        </div>
+                        <button onClick={() => navigate('/whatsapp-setup')}
+                            className="flex-shrink-0 flex items-center gap-2 rounded-2xl bg-[#25D366] px-5 py-2.5 text-[10px] font-black uppercase tracking-[0.2em] text-white hover:bg-[#20b858] transition-all">
+                            <span className="material-symbols-outlined text-base">settings</span>
+                            {notConnected ? 'Connect WhatsApp' : 'Re-connect WhatsApp'}
+                        </button>
+                    </div>
+                )}
+
                 {/* Template list */}
                 {loading ? (
                     <div className="flex items-center justify-center py-20">
                         <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#25D366] border-t-transparent" />
                     </div>
-                ) : filtered.length === 0 ? (
+                ) : (!notConnected && !tokenInvalid && filtered.length === 0) ? (
                     <div className={`${cardClass} p-12 text-center`}>
                         <span className="material-symbols-outlined text-slate-300 text-5xl mb-3 block">description</span>
                         <p className="text-slate-500 text-sm">No templates found</p>
@@ -178,8 +225,7 @@ export default function WhatsAppTemplatesPage() {
                         )}
                     </div>
                 ) : (
-                    <div className="grid gap-4 sm:grid-cols-2">
-                        {filtered.map(t => (
+                    <div className="grid gap-4 sm:grid-cols-2">                        {filtered.map(t => (
                             <div key={t.id || t.name} className={`${cardClass} p-5`}>
                                 <div className="flex items-start justify-between gap-3 mb-3">
                                     <div className="min-w-0">
