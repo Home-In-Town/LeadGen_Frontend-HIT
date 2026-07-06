@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as api from '../api';
 import { useAuth } from '../context/AuthContext';
+import { syncIntegrationStatus } from '../api';
 
 const THEME_STORAGE_KEY = 'hit-landing-theme';
 
@@ -39,6 +40,11 @@ const DashboardPage = () => {
   const [manualLoading, setManualLoading] = useState(false);
   const [fileLoading, setFileLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Integration sync state
+  const [syncData, setSyncData] = useState(null);
+  const [syncing, setSyncing] = useState(false);
+  const [syncedAt, setSyncedAt] = useState(null);
 
   /* -------------------- */
   /* FETCH ALL DATA */
@@ -84,6 +90,21 @@ const DashboardPage = () => {
   useEffect(() => {
     fetchDashboardData();
   }, [fetchDashboardData]);
+
+  const handleSync = useCallback(async () => {
+    setSyncing(true);
+    try {
+      const res = await syncIntegrationStatus();
+      if (res.data.success) {
+        setSyncData(res.data.integrations);
+        setSyncedAt(new Date(res.data.synced_at));
+      }
+    } catch (err) {
+      console.error('Sync failed:', err);
+    } finally {
+      setSyncing(false);
+    }
+  }, []);
 
   /* -------------------- */
   /* DERIVED DATA */
@@ -216,8 +237,175 @@ const DashboardPage = () => {
 
         {/* Main Grid: Add People + Recent Leads */}
         <section className="mx-auto max-w-5xl px-4 sm:px-6 mb-6">
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
 
+        {/* ── Integration Sync Panel ─────────────────────────────────────── */}
+        <section className="mx-auto max-w-5xl px-4 sm:px-6 mb-6">
+          <div className="bg-white/80 dark:bg-white/[0.04] border border-slate-200/80 dark:border-white/10 backdrop-blur-xl rounded-[18px] shadow-sm overflow-hidden">
+            {/* Header row */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-white/[0.06]">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary text-base">sync</span>
+                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-600 dark:text-slate-300">Integration Status</span>
+                {syncedAt && (
+                  <span className="text-[9px] text-slate-400 ml-1">· synced {timeAgo(syncedAt)}</span>
+                )}
+              </div>
+              <button
+                onClick={handleSync}
+                disabled={syncing}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-[10px] bg-primary text-white text-[9px] font-black uppercase tracking-[0.2em] hover:brightness-110 disabled:opacity-50 transition-all"
+              >
+                <span className={`material-symbols-outlined text-sm ${syncing ? 'animate-spin' : ''}`}>sync</span>
+                {syncing ? 'Syncing…' : 'Sync All'}
+              </button>
+            </div>
+
+            {/* Integration cards */}
+            {!syncData && !syncing && (
+              <div className="px-5 py-5 text-center">
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Click Sync All to check live status of all your integrations</p>
+              </div>
+            )}
+
+            {syncing && !syncData && (
+              <div className="px-5 py-5 flex items-center justify-center gap-3">
+                <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Checking integrations…</p>
+              </div>
+            )}
+
+            {syncData && (
+              <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-slate-100 dark:divide-white/[0.06]">
+                {/* WhatsApp */}
+                {(() => {
+                  const wa = syncData.whatsapp;
+                  const ok = wa.connected && wa.tokenValid && wa.metaStatus !== 'TOKEN_EXPIRED';
+                  const warn = wa.connected && (!wa.tokenValid || wa.metaStatus === 'TOKEN_EXPIRED');
+                  return (
+                    <div
+                      className="flex flex-col gap-2 p-4 cursor-pointer hover:bg-slate-50 dark:hover:bg-white/[0.03] transition-colors"
+                      onClick={() => navigate('/whatsapp-setup')}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="w-8 h-8 rounded-[8px] bg-[#25D366]/10 flex items-center justify-center">
+                          <span className="material-symbols-outlined text-[#25D366] text-base">chat</span>
+                        </div>
+                        <span className={`text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                          ok ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400'
+                            : warn ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400'
+                            : 'bg-slate-100 text-slate-500 dark:bg-white/10 dark:text-slate-400'
+                        }`}>
+                          {ok ? 'OK' : warn ? 'Fix needed' : 'Not connected'}
+                        </span>
+                      </div>
+                      <p className="text-xs font-black text-slate-900 dark:text-white">WhatsApp</p>
+                      <p className="text-[9px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                        {ok ? `${wa.displayNumber || 'Connected'} · ${wa.metaStatus || 'Active'}` :
+                         warn ? 'Token invalid — re-connect' : 'No number connected'}
+                      </p>
+                    </div>
+                  );
+                })()}
+
+                {/* Facebook */}
+                {(() => {
+                  const fb = syncData.facebook;
+                  const ok = fb.connected && fb.tokenValid;
+                  const warn = fb.connected && (!fb.tokenValid || fb.tokenExpired);
+                  return (
+                    <div
+                      className="flex flex-col gap-2 p-4 cursor-pointer hover:bg-slate-50 dark:hover:bg-white/[0.03] transition-colors"
+                      onClick={() => navigate('/integrations/facebook')}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="w-8 h-8 rounded-[8px] bg-blue-600/10 flex items-center justify-center">
+                          <span className="text-sm font-black text-blue-600">f</span>
+                        </div>
+                        <span className={`text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                          ok ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400'
+                            : warn ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400'
+                            : 'bg-slate-100 text-slate-500 dark:bg-white/10 dark:text-slate-400'
+                        }`}>
+                          {ok ? 'OK' : warn ? 'Token expired' : 'Not connected'}
+                        </span>
+                      </div>
+                      <p className="text-xs font-black text-slate-900 dark:text-white">Facebook</p>
+                      <p className="text-[9px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                        {ok ? `${fb.pageName || 'Connected'} · ${fb.pageCount} page${fb.pageCount !== 1 ? 's' : ''}` :
+                         warn ? 'Token expired — reconnect FB' : 'No Facebook account connected'}
+                      </p>
+                    </div>
+                  );
+                })()}
+
+                {/* Email */}
+                {(() => {
+                  const em = syncData.email;
+                  const ok = em.connected && em.healthy;
+                  const warn = em.connected && !em.healthy;
+                  return (
+                    <div
+                      className="flex flex-col gap-2 p-4 cursor-pointer hover:bg-slate-50 dark:hover:bg-white/[0.03] transition-colors"
+                      onClick={() => navigate('/integrations')}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="w-8 h-8 rounded-[8px] bg-violet-500/10 flex items-center justify-center">
+                          <span className="material-symbols-outlined text-violet-500 text-base">mail</span>
+                        </div>
+                        <span className={`text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                          ok ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400'
+                            : warn ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400'
+                            : 'bg-slate-100 text-slate-500 dark:bg-white/10 dark:text-slate-400'
+                        }`}>
+                          {ok ? 'OK' : warn ? 'Revoked' : 'Not connected'}
+                        </span>
+                      </div>
+                      <p className="text-xs font-black text-slate-900 dark:text-white">Email</p>
+                      <p className="text-[9px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                        {ok ? `${em.email || ''} · ${em.provider || ''}` :
+                         warn ? 'Token revoked — re-auth' : 'Gmail / Outlook not connected'}
+                      </p>
+                    </div>
+                  );
+                })()}
+
+                {/* AI Voice */}
+                {(() => {
+                  const v = syncData.voice;
+                  const ok = v.configured;
+                  return (
+                    <div
+                      className="flex flex-col gap-2 p-4 cursor-pointer hover:bg-slate-50 dark:hover:bg-white/[0.03] transition-colors"
+                      onClick={() => navigate('/call-logs')}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="w-8 h-8 rounded-[8px] bg-primary/10 flex items-center justify-center">
+                          <span className="material-symbols-outlined text-primary text-base">record_voice_over</span>
+                        </div>
+                        <span className={`text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                          ok ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400'
+                             : 'bg-slate-100 text-slate-500 dark:bg-white/10 dark:text-slate-400'
+                        }`}>
+                          {ok ? 'Configured' : 'Default'}
+                        </span>
+                      </div>
+                      <p className="text-xs font-black text-slate-900 dark:text-white">AI Voice</p>
+                      <p className="text-[9px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                        {ok
+                          ? `${v.agentName || 'Agent'} · ${v.sector} · ${v.documentsCount} doc${v.documentsCount !== 1 ? 's' : ''}`
+                          : 'Using default settings'}
+                      </p>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* Main Grid: Add People + Recent Leads */}
+        <section className="mx-auto max-w-5xl px-4 sm:px-6 mb-6">
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
             {/* Left: Add People (2 cols) */}
             <div className="lg:col-span-2 space-y-4">
               <div className="flex items-center gap-2 mb-3">

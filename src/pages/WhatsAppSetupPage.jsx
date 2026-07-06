@@ -11,6 +11,7 @@ import {
     listWAPhoneNumbers,
     addWAPhoneNumber,
     removeWAPhoneNumber,
+    disconnectAllWA,
     setDefaultWAPhone,
     connectMetaOAuth,
 } from '../api';
@@ -213,13 +214,31 @@ export default function WhatsAppSetupPage() {
     };
 
     const handleDisconnect = async (phoneNumberId) => {
-        if (!window.confirm('Remove this WhatsApp number? Outreach for this number will stop.')) return;
+        if (!window.confirm('Remove this WhatsApp number? This will clear credentials from your account.')) return;
         try {
+            // First try individual remove (works for array entries)
             await removeWAPhoneNumber(phoneNumberId);
-            await reloadPhoneNumbers(); // This now handles state properly
-            addToast('Number removed', 'success');
         } catch (err) {
-            addToast(err.response?.data?.error || 'Failed to remove number', 'error');
+            // If individual remove fails (e.g. legacy-only number), use disconnect-all
+            try {
+                await disconnectAllWA();
+            } catch (err2) {
+                addToast(err2.response?.data?.error || 'Failed to remove number', 'error');
+                return;
+            }
+        }
+        await reloadPhoneNumbers();
+        addToast('WhatsApp number removed and credentials cleared', 'success');
+    };
+
+    const handleDisconnectAll = async () => {
+        if (!window.confirm('Clear ALL WhatsApp credentials from your account? You will need to re-connect.')) return;
+        try {
+            await disconnectAllWA();
+            await reloadPhoneNumbers();
+            addToast('All WhatsApp credentials cleared. You can now reconnect.', 'success');
+        } catch (err) {
+            addToast(err.response?.data?.error || 'Failed to clear credentials', 'error');
         }
     };
 
@@ -302,11 +321,18 @@ export default function WhatsAppSetupPage() {
                                 </div>
                             ))}
                         </div>
-                        <button onClick={() => setStep('select')}
-                            className="mt-5 flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors">
-                            <span className="material-symbols-outlined text-base">add_circle</span>
-                            Add another number
-                        </button>
+                        <div className="mt-5 flex items-center justify-between">
+                            <button onClick={() => setStep('select')}
+                                className="flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors">
+                                <span className="material-symbols-outlined text-base">add_circle</span>
+                                Add another number
+                            </button>
+                            <button onClick={handleDisconnectAll}
+                                className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-wider text-red-500 hover:text-red-600 transition-colors">
+                                <span className="material-symbols-outlined text-sm">delete_sweep</span>
+                                Clear All &amp; Reset
+                            </button>
+                        </div>
                     </div>
                 )}
 

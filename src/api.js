@@ -216,12 +216,18 @@ export const deleteAllEmailTemplates = ()          => emailTemplateApi.delete('/
 // ====== AUTOMATION HISTORY ======
 export const getLeadAutomationHistory = (leadId) => leadsApi.get(`/${leadId}/automation-history`);
 
+// ====== OWNER / INTEGRATIONS ======
+const ownersApi = createApiInstance('/owners');
+export const getIntegrations      = ()     => ownersApi.get('/integrations');
+export const syncIntegrationStatus = ()    => ownersApi.get('/integrations/sync-status');
+
 const whatsappApi = createApiInstance('/whatsapp');
 
 // Phone number management
 export const listWAPhoneNumbers   = ()     => whatsappApi.get('/phone-numbers');
 export const addWAPhoneNumber     = (data) => whatsappApi.post('/phone-numbers', data);
 export const removeWAPhoneNumber  = (id)   => whatsappApi.delete(`/phone-numbers/${id}`);
+export const disconnectAllWA      = ()     => whatsappApi.delete('/phone-numbers/disconnect-all');
 export const setDefaultWAPhone    = (id)   => whatsappApi.patch(`/phone-numbers/${id}/default`);
 export const connectMetaOAuth     = (code) => whatsappApi.post('/connect/meta-oauth', { code });
 
