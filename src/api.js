@@ -206,11 +206,12 @@ export const updateFBCampaignConfig = (campaignId, data)  => facebookApi.put(`/c
 
 // ====== EMAIL TEMPLATE ENDPOINTS ======
 const emailTemplateApi = createApiInstance('/email-templates');
-export const listEmailTemplates   = ()       => emailTemplateApi.get('');
-export const createEmailTemplate  = (data)   => emailTemplateApi.post('', data);
-export const updateEmailTemplate  = (id, data) => emailTemplateApi.put(`/${id}`, data);
-export const deleteEmailTemplate  = (id)     => emailTemplateApi.delete(`/${id}`);
-export const testEmailTemplate    = (id)     => emailTemplateApi.post(`/${id}/test`);
+export const listEmailTemplates      = ()          => emailTemplateApi.get('');
+export const createEmailTemplate     = (data)      => emailTemplateApi.post('', data);
+export const updateEmailTemplate     = (id, data)  => emailTemplateApi.put(`/${id}`, data);
+export const deleteEmailTemplate     = (id)        => emailTemplateApi.delete(`/${id}`);
+export const testEmailTemplate       = (id)        => emailTemplateApi.post(`/${id}/test`);
+export const deleteAllEmailTemplates = ()          => emailTemplateApi.delete('/delete-all');
 
 // ====== AUTOMATION HISTORY ======
 export const getLeadAutomationHistory = (leadId) => leadsApi.get(`/${leadId}/automation-history`);

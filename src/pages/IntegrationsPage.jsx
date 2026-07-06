@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useNotifications } from '../context/NotificationContext';
-import { listWAPhoneNumbers } from '../api';
+import { listWAPhoneNumbers, removeWAPhoneNumber } from '../api';
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
@@ -24,6 +24,7 @@ const IntegrationsPage = () => {
 
   // WhatsApp — status only (no legacy credentials form)
   const [waPhoneNumbers, setWaPhoneNumbers] = useState([]);
+  const [disconnectingWa, setDisconnectingWa] = useState(null); // phoneNumberId being removed
 
   const [visibility, setVisibility] = useState({ externalSecret: false });
 
@@ -64,8 +65,36 @@ const IntegrationsPage = () => {
     fetchIntegrations();
   }, []);
 
-  const fetchIntegrations = async () => {
+  const reloadWANumbers = async () => {
     try {
+      const res = await listWAPhoneNumbers();
+      if (res.data.success) setWaPhoneNumbers(res.data.data || []);
+      else setWaPhoneNumbers([]);
+    } catch {
+      setWaPhoneNumbers([]);
+    }
+  };
+
+  const handleWADisconnect = async (phoneNumberId) => {
+    if (!window.confirm('Remove this WhatsApp number? This will clear its credentials from your account and stop outreach from this number.')) return;
+    setDisconnectingWa(phoneNumberId);
+    try {
+      await removeWAPhoneNumber(phoneNumberId);
+      addToast('WhatsApp number disconnected and credentials cleared', 'success');
+      await reloadWANumbers();
+    } catch (err) {
+      const msg = err.response?.data?.error || 'Failed to disconnect';
+      if (err.response?.status === 400 || msg.toLowerCase().includes('default')) {
+        addToast('Cannot remove the default number while others exist. Go to WhatsApp Setup to set a new default first.', 'warning');
+      } else {
+        addToast(msg, 'error');
+      }
+    } finally {
+      setDisconnectingWa(null);
+    }
+  };
+
+  const fetchIntegrations = async () => {    try {
       setLoading(true);
 
       // Load external source + project settings only (WA credentials come from phone-numbers endpoint)
@@ -377,6 +406,13 @@ const IntegrationsPage = () => {
                                     {num.isDefault && (
                                         <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#25D366]/10 text-[#25D366]">Default</span>
                                     )}
+                                    <button
+                                        onClick={() => handleWADisconnect(num.id || num.phoneNumberId)}
+                                        disabled={disconnectingWa === (num.id || num.phoneNumberId)}
+                                        className="text-[9px] font-black uppercase tracking-wider px-3 py-1.5 rounded-xl border border-red-200 dark:border-red-900/30 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex-shrink-0"
+                                    >
+                                        {disconnectingWa === (num.id || num.phoneNumberId) ? 'Removing…' : 'Disconnect'}
+                                    </button>
                                 </div>
                             ))}
                         </div>
@@ -385,6 +421,13 @@ const IntegrationsPage = () => {
                             <span className="material-symbols-outlined text-slate-300 text-4xl mb-2 block">chat_bubble_outline</span>
                             <p className="text-sm text-slate-500">No WhatsApp numbers connected yet</p>
                             <p className="text-xs text-slate-400 mt-1">Connect your WhatsApp Business Account to start sending messages</p>
+                            <button
+                                onClick={() => navigate('/whatsapp-setup')}
+                                className="mt-4 inline-flex items-center gap-2 rounded-2xl bg-[#25D366] px-5 py-2.5 text-[10px] font-black uppercase tracking-[0.25em] text-white hover:bg-[#20b858] transition-all"
+                            >
+                                <span className="material-symbols-outlined text-base">add_circle</span>
+                                Connect WhatsApp
+                            </button>
                         </div>
                     )}
 
