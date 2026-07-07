@@ -235,9 +235,6 @@ const DashboardPage = () => {
           </div>
         </section>
 
-        {/* Main Grid: Add People + Recent Leads */}
-        <section className="mx-auto max-w-5xl px-4 sm:px-6 mb-6">
-
         {/* ── Integration Sync Panel ─────────────────────────────────────── */}
         <section className="mx-auto max-w-5xl px-4 sm:px-6 mb-6">
           <div className="bg-white/80 dark:bg-white/[0.04] border border-slate-200/80 dark:border-white/10 backdrop-blur-xl rounded-[18px] shadow-sm overflow-hidden">
