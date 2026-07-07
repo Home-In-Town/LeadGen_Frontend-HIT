@@ -108,94 +108,167 @@ function buildComponents(form) {
 
 // ─── WhatsApp Preview ─────────────────────────────────────────────────────────
 function WAPreview({ form }) {
-  const headerComp = form.headerType !== 'NONE';
   const hasBody    = !!form.bodyText.trim();
   const hasFooter  = !!form.footerText.trim();
   const hasButtons = form.buttons.length > 0;
-  const varIndices = extractVarIndices(form.bodyText);
 
   const previewBody = applyVars(form.bodyText, form.bodyExamples);
+
+  // Extract domain from URL button for display (like real WA shows "www.homeintown.in")
+  const urlBtn = form.buttons.find(b => b.type === 'URL' && b.url);
+  let urlDomain = '';
+  if (urlBtn?.url) {
+    try { urlDomain = new URL(urlBtn.url).hostname; } catch { urlDomain = urlBtn.url; }
+  }
 
   return (
     <div className="sticky top-4">
       <p className={`${label} mb-3`}>Live Preview</p>
-      <div className="rounded-2xl bg-[#e5ddd5] dark:bg-[#1a1a2e] p-3 min-h-[160px]">
-        {/* Phone chrome */}
-        <div className="bg-[#128C7E] rounded-t-xl px-3 py-2 flex items-center gap-2 mb-1">
-          <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center">
+
+      {/* Phone frame */}
+      <div className="rounded-3xl border-4 border-slate-800 shadow-2xl overflow-hidden max-w-[280px] mx-auto">
+
+        {/* WhatsApp header bar */}
+        <div className="bg-[#075E54] px-3 py-2.5 flex items-center gap-2.5">
+          <span className="material-symbols-outlined text-white text-base">arrow_back</span>
+          <div className="w-8 h-8 rounded-full bg-[#25D366] flex items-center justify-center flex-shrink-0">
             <span className="material-symbols-outlined text-white text-sm">storefront</span>
           </div>
-          <span className="text-white text-xs font-bold truncate">Your Business</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-white text-xs font-bold leading-none truncate">
+              {form.name ? form.name.replace(/_/g, ' ') : 'Your Business'}
+            </p>
+            <p className="text-[10px] text-emerald-300 leading-none mt-0.5">Online</p>
+          </div>
+          <span className="material-symbols-outlined text-white text-base">more_vert</span>
         </div>
 
-        {/* Message bubble */}
-        <div className="bg-white dark:bg-[#1f2d3d] rounded-b-xl rounded-tr-xl shadow-sm overflow-hidden max-w-[90%]">
+        {/* Chat wallpaper — exact WA pattern bg */}
+        <div className="bg-[#ECE5DD] relative" style={{
+          minHeight: '280px',
+          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23c9b99a' fill-opacity='0.15'%3E%3Cpath d='M30 0C13.4 0 0 13.4 0 30s13.4 30 30 30 30-13.4 30-30S46.6 0 30 0zm0 4c14.4 0 26 11.6 26 26S44.4 56 30 56 4 44.4 4 30 15.6 4 30 4z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+          backgroundSize: '60px 60px',
+        }}>
+          <div className="p-3 pt-4">
 
-          {/* Header */}
-          {form.headerType === 'TEXT' && form.headerText && (
-            <div className="px-3 pt-3 pb-1">
-              <p className="text-sm font-black text-slate-900 dark:text-white">{form.headerText}</p>
+            {/* Date chip */}
+            <div className="flex justify-center mb-3">
+              <span className="bg-white/80 text-[9px] font-bold text-slate-600 px-3 py-1 rounded-full shadow-sm">
+                Today
+              </span>
             </div>
-          )}
-          {form.headerType === 'IMAGE' && (
-            <div className="bg-slate-100 dark:bg-slate-700 h-28 flex items-center justify-center">
-              {form.headerMediaUrl
-                ? <img src={form.headerMediaUrl} alt="header" className="h-full w-full object-cover" onError={e => { e.target.style.display='none'; }} />
-                : <span className="material-symbols-outlined text-slate-400 text-3xl">image</span>
-              }
-            </div>
-          )}
-          {form.headerType === 'VIDEO' && (
-            <div className="bg-slate-100 dark:bg-slate-700 h-28 flex items-center justify-center">
-              <span className="material-symbols-outlined text-slate-400 text-3xl">play_circle</span>
-            </div>
-          )}
-          {form.headerType === 'DOCUMENT' && (
-            <div className="bg-slate-100 dark:bg-slate-700 px-3 py-2 flex items-center gap-2">
-              <span className="material-symbols-outlined text-slate-400">description</span>
-              <span className="text-xs text-slate-500">Document</span>
-            </div>
-          )}
 
-          {/* Body */}
-          <div className="px-3 py-2">
-            {hasBody ? (
-              <p className="text-xs text-slate-700 dark:text-slate-200 leading-relaxed whitespace-pre-wrap">
-                {previewBody || <span className="text-slate-400 italic">Body text…</span>}
-              </p>
-            ) : (
-              <p className="text-xs text-slate-400 italic">Body text will appear here…</p>
-            )}
-          </div>
+            {/* Message card */}
+            <div className="max-w-[85%] ml-auto">
+              <div className="bg-white rounded-2xl rounded-tr-sm overflow-hidden shadow-sm">
 
-          {/* Footer */}
-          {hasFooter && (
-            <div className="px-3 pb-2">
-              <p className="text-[10px] text-slate-400 dark:text-slate-500">{form.footerText}</p>
-            </div>
-          )}
+                {/* Image header */}
+                {form.headerType === 'IMAGE' && (
+                  <div className="relative w-full bg-slate-200" style={{ height: '140px' }}>
+                    {form.headerMediaUrl ? (
+                      <img
+                        src={form.headerMediaUrl}
+                        alt="header"
+                        className="w-full h-full object-cover"
+                        onError={e => { e.target.parentNode.style.background = '#c8d6df'; e.target.style.display = 'none'; }}
+                      />
+                    ) : (
+                      <div className="w-full h-full flex flex-col items-center justify-center bg-[#c8d6df]">
+                        <span className="material-symbols-outlined text-white text-4xl">image</span>
+                        <p className="text-white text-[10px] font-bold mt-1">Image preview</p>
+                      </div>
+                    )}
+                  </div>
+                )}
 
-          {/* Timestamp */}
-          <div className="px-3 pb-1.5 text-right">
-            <span className="text-[9px] text-slate-400">12:00 ✓✓</span>
-          </div>
-        </div>
+                {/* Video header */}
+                {form.headerType === 'VIDEO' && (
+                  <div className="w-full bg-slate-800 flex items-center justify-center" style={{ height: '120px' }}>
+                    <div className="flex flex-col items-center gap-1">
+                      <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+                        <span className="material-symbols-outlined text-white text-2xl">play_arrow</span>
+                      </div>
+                      <p className="text-white text-[9px]">Video</p>
+                    </div>
+                  </div>
+                )}
 
-        {/* Buttons */}
-        {hasButtons && (
-          <div className="mt-1 space-y-1 max-w-[90%]">
-            {form.buttons.map((btn, i) => (
-              <div key={i} className="bg-white dark:bg-[#1f2d3d] rounded-xl py-2 text-center shadow-sm">
-                <span className="text-xs font-bold text-[#128C7E] flex items-center justify-center gap-1">
-                  {btn.type === 'URL'          && <span className="material-symbols-outlined text-sm">open_in_new</span>}
-                  {btn.type === 'PHONE_NUMBER' && <span className="material-symbols-outlined text-sm">call</span>}
-                  {btn.type === 'COPY_CODE'    && <span className="material-symbols-outlined text-sm">content_copy</span>}
-                  {btn.text || (btn.type === 'COPY_CODE' ? 'Copy Code' : 'Button')}
-                </span>
+                {/* Document header */}
+                {form.headerType === 'DOCUMENT' && (
+                  <div className="flex items-center gap-2 px-3 py-3 bg-slate-50 border-b border-slate-100">
+                    <div className="w-8 h-8 rounded bg-red-500 flex items-center justify-center flex-shrink-0">
+                      <span className="material-symbols-outlined text-white text-sm">description</span>
+                    </div>
+                    <p className="text-xs font-bold text-slate-700 truncate">Document.pdf</p>
+                  </div>
+                )}
+
+                {/* Text header */}
+                {form.headerType === 'TEXT' && form.headerText && (
+                  <div className="px-3 pt-3">
+                    <p className="text-sm font-black text-slate-900 leading-tight">{form.headerText}</p>
+                  </div>
+                )}
+
+                {/* URL domain line (like WA shows "www.homeintown.in") */}
+                {urlDomain && (
+                  <div className="px-3 pt-2">
+                    <p className="text-[10px] text-[#128C7E]">{urlDomain}</p>
+                  </div>
+                )}
+
+                {/* Body */}
+                <div className="px-3 py-2">
+                  {hasBody
+                    ? <p className="text-[12px] text-slate-800 leading-relaxed whitespace-pre-wrap">{previewBody}</p>
+                    : <p className="text-[12px] text-slate-400 italic">Body text will appear here…</p>
+                  }
+                </div>
+
+                {/* Footer */}
+                {hasFooter && (
+                  <div className="px-3 pb-1">
+                    <p className="text-[10px] text-slate-400">{form.footerText}</p>
+                  </div>
+                )}
+
+                {/* Timestamp */}
+                <div className="px-3 pb-2 flex justify-end items-center gap-1">
+                  <span className="text-[9px] text-slate-400">1:03 pm</span>
+                  <span className="text-[#34B7F1] text-[10px]">✓✓</span>
+                </div>
               </div>
-            ))}
+
+              {/* CTA Buttons — exactly like WA shows them below the card */}
+              {hasButtons && (
+                <div className="mt-1 space-y-0.5">
+                  {form.buttons.map((btn, i) => (
+                    <div key={i} className="bg-white rounded-xl py-2.5 text-center shadow-sm border-t border-slate-100">
+                      <span className="text-[12px] font-semibold text-[#128C7E] flex items-center justify-center gap-1.5">
+                        {btn.type === 'URL' && <span className="material-symbols-outlined text-[14px]">open_in_new</span>}
+                        {btn.type === 'PHONE_NUMBER' && <span className="material-symbols-outlined text-[14px]">call</span>}
+                        {btn.type === 'COPY_CODE' && <span className="material-symbols-outlined text-[14px]">content_copy</span>}
+                        {btn.type === 'QUICK_REPLY' && <span className="material-symbols-outlined text-[14px]">reply</span>}
+                        {btn.text || (btn.type === 'COPY_CODE' ? 'Copy Code' : btn.type === 'URL' ? 'Visit Website' : btn.type === 'PHONE_NUMBER' ? 'Call Us' : 'Reply')}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-        )}
+        </div>
+
+        {/* WA message input bar */}
+        <div className="bg-[#F0F0F0] px-3 py-2 flex items-center gap-2">
+          <div className="flex-1 bg-white rounded-full px-3 py-1.5 flex items-center gap-2">
+            <span className="material-symbols-outlined text-slate-400 text-lg">sentiment_satisfied</span>
+            <span className="text-[11px] text-slate-400">Message</span>
+          </div>
+          <div className="w-9 h-9 rounded-full bg-[#25D366] flex items-center justify-center">
+            <span className="material-symbols-outlined text-white text-base">mic</span>
+          </div>
+        </div>
       </div>
     </div>
   );
