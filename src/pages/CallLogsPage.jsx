@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { getCallLogs } from '../api';
 import VoiceSettingsPanel from '../components/VoiceSettingsPanel';
+import WhatsAppAiPanel from '../components/WhatsAppAiPanel';
 
 const STATUS_STYLES = {
   completed:
@@ -297,6 +298,24 @@ const CallLogsPage = () => {
                 <span className="material-symbols-outlined text-[18px]">settings_voice</span>
                 Voice Settings
               </button>
+
+              <button
+                onClick={() => setActiveView('whatsapp-ai')}
+                className={`
+                  flex items-center gap-2 rounded-[10px] px-4 py-2
+                  text-[10px] font-black uppercase tracking-[0.15em]
+                  transition-all duration-200
+                  ${
+                    activeView === 'whatsapp-ai'
+                      ? 'bg-white dark:bg-white/[0.08] shadow-sm'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                  }
+                `}
+                style={activeView === 'whatsapp-ai' ? { color: '#25D366' } : {}}
+              >
+                <span className="material-symbols-outlined text-[18px]">smart_toy</span>
+                WhatsApp AI
+              </button>
             </div>
 
             {/* Search (only visible in logs view) */}
@@ -334,6 +353,9 @@ const CallLogsPage = () => {
 
       {/* Voice Settings View */}
       {activeView === 'settings' && <VoiceSettingsPanel />}
+
+      {/* WhatsApp AI View */}
+      {activeView === 'whatsapp-ai' && <WhatsAppAiPanel />}
 
       {/* Call Logs View */}
       {activeView === 'logs' && (
