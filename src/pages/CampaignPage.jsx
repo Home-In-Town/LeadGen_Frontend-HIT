@@ -21,6 +21,7 @@ import {
     pauseCampaign as apiPauseCampaign,
     resumeCampaign as apiResumeCampaign,
     deleteCampaign as apiDeleteCampaign,
+    getChannelStatus,
 } from '../api';
 import CampaignSelector from '../components/CampaignSelector';
 import ImportedLeadsTab from '../components/ImportedLeadsTab';
@@ -73,7 +74,31 @@ function UploadPanel({ onSuccess }) {
     const [linkedFbCampaignId, setLinkedFbCampaignId] = useState(null);
     const inputRef                      = useRef(null);
 
+    // Channel connectivity — controls which automation channels are shown/locked
+    const [channelStatus, setChannelStatus] = useState({ voice: true, whatsapp: null, email: null });
+
+    useEffect(() => {
+        getChannelStatus()
+            .then(r => { if (r.data?.success) setChannelStatus(r.data); })
+            .catch(() => {}); // non-blocking — don't break upload if this fails
+    }, []);
+
     const MAX_SIZE_MB = 20;
+    // Max rows we'll try to parse client-side for preview validation
+    const MAX_PREVIEW_ROWS = 5;
+
+    /**
+     * Client-side phone validation — mirrors server rules.
+     * Strips country code prefix (+91/91/091), then checks 10-digit Indian mobile.
+     */
+    const normalizePhone = (raw) => {
+        const digits = (raw || '').toString().replace(/\D/g, '');
+        if (digits.length === 12 && digits.startsWith('91')) return digits.slice(2);
+        if (digits.length === 13 && digits.startsWith('091')) return digits.slice(3);
+        return digits;
+    };
+    const isValidIndianMobile = (raw) => /^[6-9]\d{9}$/.test(normalizePhone(raw));
+    const isValidEmail = (raw) => !raw || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw.trim());
 
     const validateFile = (f) => {
         if (!f) return null;
@@ -84,7 +109,25 @@ function UploadPanel({ onSuccess }) {
         if (f.size > MAX_SIZE_MB * 1024 * 1024) {
             return `File too large. Maximum size is ${MAX_SIZE_MB} MB.`;
         }
+        if (f.size < 50) {
+            return 'File appears to be empty.';
+        }
         return null;
+    };
+
+    /**
+     * Parse CSV text to check column headers client-side.
+     * Returns { hasPhone, hasName, sampleRows }
+     */
+    const previewCsvHeaders = (text) => {
+        const lines = text.split('\n').filter(l => l.trim());
+        if (!lines.length) return { hasPhone: false, hasName: false };
+        const headers = lines[0].split(',').map(h => h.replace(/"/g, '').toLowerCase().trim());
+        const PHONE_HEADERS = ['phone', 'mobile', 'phone_number', 'mobile_number', 'contact', 'number', 'phonenumber', 'whatsapp'];
+        const NAME_HEADERS  = ['name', 'first_name', 'firstname', 'full_name', 'fullname', 'customer_name', 'lead_name'];
+        const hasPhone = headers.some(h => PHONE_HEADERS.some(p => h.includes(p)));
+        const hasName  = headers.some(h => NAME_HEADERS.some(n => h.includes(n)));
+        return { hasPhone, hasName, headers };
     };
 
     const handleFile = (f) => {
@@ -92,7 +135,39 @@ function UploadPanel({ onSuccess }) {
         if (err) { setError(err); setFile(null); return; }
         setError(null);
         setResult(null);
-        setFile(f);
+
+        // For CSV files: read first few bytes to check headers client-side
+        const ext = f.name.split('.').pop().toLowerCase();
+        if (ext === 'csv') {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const text = e.target?.result || '';
+                const { hasPhone, hasName, headers } = previewCsvHeaders(text);
+                if (!hasPhone) {
+                    setError(
+                        `No phone column found in your CSV. ` +
+                        `Detected headers: [${(headers || []).join(', ')}]. ` +
+                        `Add a column named "phone", "mobile", or "phone_number".`
+                    );
+                    setFile(null);
+                    return;
+                }
+                if (!hasName) {
+                    setError(
+                        `No name column found in your CSV. ` +
+                        `Add a column named "name", "first_name", or "full_name".`
+                    );
+                    setFile(null);
+                    return;
+                }
+                setFile(f);
+            };
+            // Read only first 2KB — enough for headers
+            reader.readAsText(f.slice(0, 2048));
+        } else {
+            // For Excel files we can't parse client-side without a full library — let server handle it
+            setFile(f);
+        }
     };
 
     const handleDrop = (e) => {
@@ -146,10 +221,15 @@ function UploadPanel({ onSuccess }) {
                 <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-slate-500 dark:text-slate-400">
                     <span><span className="font-semibold text-slate-700 dark:text-white">phone</span> / mobile / contact <span className="text-red-500">*</span></span>
                     <span><span className="font-semibold text-slate-700 dark:text-white">name</span> / first_name <span className="text-red-500">*</span></span>
-                    <span><span className="text-slate-400">email</span> (optional)</span>
+                    <span><span className="text-slate-400">email</span> (optional — must be valid format)</span>
                     <span><span className="text-slate-400">city</span> / location (optional)</span>
                 </div>
-                <p className="mt-1.5 text-slate-400">* At least one of phone or name is required per row.</p>
+                <div className="mt-2 space-y-0.5 text-slate-400">
+                    <p><span className="text-red-400">*</span> Phone is required. Rows with missing or invalid phone numbers are skipped.</p>
+                    <p>✅ Accepted formats: <code className="bg-slate-200 dark:bg-slate-700 px-1 rounded">9876543210</code> &nbsp; <code className="bg-slate-200 dark:bg-slate-700 px-1 rounded">+919876543210</code> &nbsp; <code className="bg-slate-200 dark:bg-slate-700 px-1 rounded">919876543210</code></p>
+                    <p>❌ Landlines, 8-digit numbers, or non-Indian numbers are skipped.</p>
+                    <p>📧 Invalid email addresses are ignored — call &amp; WhatsApp automation still runs.</p>
+                </div>
             </div>
 
             {/* Drop zone */}
@@ -203,8 +283,31 @@ function UploadPanel({ onSuccess }) {
 
             {/* Facebook campaign selector */}
             <div className="mt-4">
-                <CampaignSelector value={linkedFbCampaignId} onChange={setLinkedFbCampaignId} />
+                <CampaignSelector value={linkedFbCampaignId} onChange={setLinkedFbCampaignId} channelStatus={channelStatus} />
             </div>
+
+            {/* Channel availability banner — shown when any integration is not connected */}
+            {(channelStatus.whatsapp === false || channelStatus.email === false) && (
+                <div className="mt-3 rounded-[12px] border border-amber-500/30 bg-amber-50 dark:bg-amber-900/10 px-4 py-3 space-y-1.5">
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
+                        <span className="material-symbols-outlined text-[14px]">warning</span>
+                        Some automation channels are unavailable
+                    </p>
+                    {channelStatus.whatsapp === false && (
+                        <p className="text-[11px] text-slate-600 dark:text-slate-400">
+                            💬 <strong>WhatsApp not connected</strong> — WhatsApp messages won't be sent.{' '}
+                            <a href="/whatsapp-setup" className="text-primary underline hover:no-underline">Connect now →</a>
+                        </p>
+                    )}
+                    {channelStatus.email === false && (
+                        <p className="text-[11px] text-slate-600 dark:text-slate-400">
+                            ✉️ <strong>Email not connected</strong> — Email automation won't run.{' '}
+                            <a href="/integrations" className="text-primary underline hover:no-underline">Connect now →</a>
+                        </p>
+                    )}
+                    <p className="text-[10px] text-slate-400">Voice calls will still run for all leads.</p>
+                </div>
+            )}
 
             <button
                 onClick={handleSubmit}
@@ -237,7 +340,7 @@ function UploadPanel({ onSuccess }) {
                         <div><span className="font-semibold text-slate-900 dark:text-white">{result.duplicatesSkipped}</span> duplicates skipped</div>
                         {result.parseErrors > 0 && (
                             <div className="col-span-2 text-amber-600 dark:text-amber-400">
-                                {result.parseErrors} rows had parse errors
+                                {result.parseErrors} rows skipped (invalid phone / missing data)
                             </div>
                         )}
                         {result.totalCreated === 0 && (

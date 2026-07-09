@@ -6,6 +6,7 @@ import {
   uploadVoiceDocument,
   listVoiceDocuments,
   deleteVoiceDocument,
+  getChannelStatus,
 } from '../api';
 
 // All 30 Chirp3 HD voices from Google TTS docs (June 2026)
@@ -126,6 +127,13 @@ const VoiceSettingsPanel = () => {
   const [language, setLanguage] = useState('default');
   const [sector, setSector] = useState('general');
 
+  // WhatsApp AI auto-reply state
+  const [whatsappAiEnabled, setWhatsappAiEnabled] = useState(false);
+  const [whatsappAiPrompt, setWhatsappAiPrompt]   = useState('');
+  const [whatsappAiDelayMs, setWhatsappAiDelayMs] = useState(300000); // 5 min default
+  // WA connectivity — locks the AI toggle when WA is not connected
+  const [waConnected, setWaConnected] = useState(null); // null = loading, true/false = known
+
   // Prompt preview state
   const [promptPreview, setPromptPreview] = useState('');
   const [isPreviewManuallyEdited, setIsPreviewManuallyEdited] = useState(false);
@@ -223,6 +231,10 @@ const VoiceSettingsPanel = () => {
   useEffect(() => {
     fetchSettings();
     fetchDocuments();
+    // Check WA connectivity to lock/unlock the AI auto-reply toggle
+    getChannelStatus()
+      .then(r => { if (r.data?.success) setWaConnected(r.data.whatsapp === true); })
+      .catch(() => setWaConnected(null)); // on error, don't block the panel
   }, []);
 
   // Auto-dismiss success toast
@@ -244,6 +256,10 @@ const VoiceSettingsPanel = () => {
       setAgentName(data.agentName || '');
       setLanguage(data.language || 'default');
       setSector(data.sector || 'general');
+      // WA AI fields
+      setWhatsappAiEnabled(data.whatsappAiEnabled === true);
+      setWhatsappAiPrompt(data.whatsappAiPrompt || '');
+      setWhatsappAiDelayMs(data.whatsappAiDelayMs || 300000);
     } catch (err) {
       console.error('Failed to fetch voice settings:', err);
     } finally {
@@ -276,6 +292,9 @@ const VoiceSettingsPanel = () => {
         agentName,
         language,
         sector,
+        whatsappAiEnabled,
+        whatsappAiPrompt,
+        whatsappAiDelayMs,
       });
       setSuccessMessage('Settings saved successfully!');
     } catch (err) {
@@ -308,6 +327,9 @@ const VoiceSettingsPanel = () => {
       setAgentName('');
       setLanguage('default');
       setSector('general');
+      setWhatsappAiEnabled(false);
+      setWhatsappAiPrompt('');
+      setWhatsappAiDelayMs(300000);
       setIsPreviewManuallyEdited(false);
       setSuccessMessage('Settings reset to defaults!');
     } catch (err) {
@@ -715,9 +737,130 @@ const VoiceSettingsPanel = () => {
         )}
       </div>
 
-      {/* Prompt Preview */}
+      {/* ── WhatsApp AI Auto-Reply ─────────────────────────────────────────── */}
       <div className="rounded-[18px] border border-slate-200/70 dark:border-white/10 bg-white/70 dark:bg-white/[0.04] backdrop-blur-xl p-6 shadow-sm">
-        <div className="mb-3 flex items-center justify-between">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-[#25D366]">smart_toy</span>
+            <div>
+              <label className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400">
+                WhatsApp AI Auto-Reply
+              </label>
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                AI replies on your behalf if no manual reply within the delay window
+              </p>
+            </div>
+          </div>
+
+          {/* Master toggle — locked when WA not connected */}
+          <div className="flex flex-col items-end gap-1">
+            <button
+              type="button"
+              onClick={() => waConnected && setWhatsappAiEnabled(prev => !prev)}
+              disabled={waConnected === false}
+              className={`relative inline-flex h-7 items-center rounded-full transition-colors flex-shrink-0 ${
+                waConnected === false
+                  ? 'bg-slate-200 dark:bg-slate-700 cursor-not-allowed opacity-50'
+                  : whatsappAiEnabled
+                    ? 'bg-[#25D366] cursor-pointer'
+                    : 'bg-slate-300 dark:bg-slate-600 cursor-pointer'
+              }`}
+              style={{ width: '52px' }}
+              title={
+                waConnected === false
+                  ? 'Connect WhatsApp first to enable AI auto-reply'
+                  : whatsappAiEnabled
+                    ? 'Click to disable AI auto-reply'
+                    : 'Click to enable AI auto-reply'
+              }
+            >
+              <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
+                whatsappAiEnabled && waConnected !== false ? 'translate-x-7' : 'translate-x-1'
+              }`} />
+            </button>
+            {waConnected === false && (
+              <span className="text-[9px] font-bold text-amber-600 dark:text-amber-400 flex items-center gap-0.5">
+                <span className="material-symbols-outlined text-[11px]">lock</span>
+                Connect WA first
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* WA not connected banner */}
+        {waConnected === false && (
+          <div className="rounded-[12px] border border-amber-500/30 bg-amber-50 dark:bg-amber-900/10 px-4 py-3 flex items-start gap-2">
+            <span className="material-symbols-outlined text-amber-500 text-[16px] mt-0.5">warning</span>
+            <div>
+              <p className="text-[11px] font-bold text-amber-700 dark:text-amber-400">WhatsApp not connected</p>
+              <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5">
+                Connect a WhatsApp number in{' '}
+                <a href="/whatsapp-setup" className="text-primary underline hover:no-underline">WhatsApp Setup</a>
+                {' '}to enable AI auto-reply.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {whatsappAiEnabled && waConnected !== false && (
+          <div className="space-y-4 border-t border-slate-200/70 dark:border-white/10 pt-4">
+            {/* Info banner */}
+            <div className="rounded-[10px] border border-[#25D366]/20 bg-[#25D366]/5 px-4 py-3 flex items-start gap-2">
+              <span className="material-symbols-outlined text-[#25D366] text-[16px] mt-0.5">info</span>
+              <div className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed space-y-1">
+                <p><strong>How it works:</strong> When a WhatsApp message arrives, a timer starts. If no team member replies manually within the delay window, the AI sends a reply automatically.</p>
+                <p>Manual replies always cancel the AI timer. The AI focuses on: <strong>booking visits · pitching product · answering questions</strong>.</p>
+              </div>
+            </div>
+
+            {/* Delay selector */}
+            <div>
+              <label className="block text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400 mb-2">
+                Reply Delay
+              </label>
+              <select
+                value={whatsappAiDelayMs}
+                onChange={(e) => setWhatsappAiDelayMs(Number(e.target.value))}
+                className="w-full rounded-[14px] border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.04] px-4 py-3 text-sm font-medium text-slate-900 dark:text-white outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10 appearance-none cursor-pointer"
+              >
+                <option value={60000}>1 minute</option>
+                <option value={180000}>3 minutes</option>
+                <option value={300000}>5 minutes (recommended)</option>
+                <option value={600000}>10 minutes</option>
+                <option value={900000}>15 minutes</option>
+                <option value={1800000}>30 minutes</option>
+              </select>
+              <p className="mt-1.5 text-[10px] font-bold text-slate-400">
+                AI waits this long after receiving a message before replying
+              </p>
+            </div>
+
+            {/* WA-specific prompt override */}
+            <div>
+              <label className="block text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400 mb-2">
+                WhatsApp-Specific Prompt (optional)
+              </label>
+              <textarea
+                value={whatsappAiPrompt}
+                onChange={(e) => setWhatsappAiPrompt(e.target.value)}
+                placeholder="Leave blank to use your main Custom System Prompt above. Or add WhatsApp-specific instructions here — e.g. product details, pricing, availability."
+                rows={4}
+                maxLength={2000}
+                className="w-full rounded-[14px] border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.04] px-4 py-3 text-sm font-medium text-slate-900 dark:text-white placeholder:text-slate-400/60 placeholder:text-[11px] outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10 resize-y font-mono"
+              />
+              <div className="mt-1.5 flex justify-between">
+                <p className="text-[10px] font-bold text-slate-400">
+                  This is appended after the base prompt for WA conversations
+                </p>
+                <span className="text-[10px] font-bold text-slate-400">{whatsappAiPrompt.length}/2000</span>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Prompt Preview */}
+      <div className="rounded-[18px] border border-slate-200/70 dark:border-white/10 bg-white/70 dark:bg-white/[0.04] backdrop-blur-xl p-6 shadow-sm">        <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-primary">preview</span>
             <label className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400">

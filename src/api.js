@@ -220,6 +220,7 @@ export const getLeadAutomationHistory = (leadId) => leadsApi.get(`/${leadId}/aut
 const ownersApi = createApiInstance('/owners');
 export const getIntegrations      = ()     => ownersApi.get('/integrations');
 export const syncIntegrationStatus = ()    => ownersApi.get('/integrations/sync-status');
+export const getChannelStatus      = ()    => ownersApi.get('/integrations/channel-status');
 
 const whatsappApi = createApiInstance('/whatsapp');
 

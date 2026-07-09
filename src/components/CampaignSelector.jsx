@@ -4,13 +4,23 @@
  * Dropdown for selecting an optional Facebook campaign to link to a CSV upload.
  * Shows each campaign's name, status, and which automation channels are enabled.
  * Passes the selected campaignId (or null) to parent via onChange.
+ *
+ * Props:
+ *   value           - selected campaignId or null
+ *   onChange        - callback(campaignId | null)
+ *   channelStatus   - { voice: bool, whatsapp: bool, email: bool } from /channel-status
+ *                     When a channel is false (not connected), its badge is shown as locked.
  */
 
 import { useState, useEffect } from 'react';
 import { listFbCampaignsForUpload } from '../api';
 
 // Small badge showing which channels are active for a campaign
-function ChannelBadges({ c }) {
+// Dims/locks badges for channels that are not connected at the owner level
+function ChannelBadges({ c, channelStatus }) {
+    const waConnected    = channelStatus?.whatsapp !== false;
+    const emailConnected = channelStatus?.email    !== false;
+
     return (
         <span className="flex items-center gap-1 flex-shrink-0">
             {c.autoCallEnabled !== false && (
@@ -19,20 +29,34 @@ function ChannelBadges({ c }) {
                 </span>
             )}
             {c.autoWaEnabled !== false && (
-                <span title="WhatsApp enabled" className="text-[10px] bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 px-1.5 py-0.5 rounded font-semibold">
-                    💬
+                <span
+                    title={waConnected ? 'WhatsApp enabled' : 'WhatsApp not connected — will be skipped'}
+                    className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${
+                        waConnected
+                            ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
+                            : 'bg-slate-100 text-slate-400 dark:bg-slate-800 line-through opacity-60'
+                    }`}
+                >
+                    💬{!waConnected && ' 🔒'}
                 </span>
             )}
             {c.autoEmailEnabled === true && (
-                <span title="Email enabled" className="text-[10px] bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300 px-1.5 py-0.5 rounded font-semibold">
-                    ✉️
+                <span
+                    title={emailConnected ? 'Email enabled' : 'Email not connected — will be skipped'}
+                    className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${
+                        emailConnected
+                            ? 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300'
+                            : 'bg-slate-100 text-slate-400 dark:bg-slate-800 line-through opacity-60'
+                    }`}
+                >
+                    ✉️{!emailConnected && ' 🔒'}
                 </span>
             )}
         </span>
     );
 }
 
-export default function CampaignSelector({ value, onChange }) {
+export default function CampaignSelector({ value, onChange, channelStatus }) {
     const [campaigns, setCampaigns] = useState([]);
     const [loading, setLoading]     = useState(true);
     const [error, setError]         = useState(null);
@@ -83,7 +107,7 @@ export default function CampaignSelector({ value, onChange }) {
             {selected && (
                 <div className="mt-2 flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
                     <span>Automation:</span>
-                    <ChannelBadges c={selected} />
+                    <ChannelBadges c={selected} channelStatus={channelStatus} />
                     {selected.aiPromptEnabled && selected.aiPrompt && (
                         <span className="text-[10px] bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 px-1.5 py-0.5 rounded font-semibold">
                             Custom AI prompt
