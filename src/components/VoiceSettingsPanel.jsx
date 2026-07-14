@@ -137,7 +137,7 @@ const SuccessToast = ({ message, onClose }) => (
 const VoiceSettingsPanel = () => {
   // Form state
   const [customPrompt, setCustomPrompt] = useState('');
-  const [selectedVoice, setSelectedVoice] = useState('Aoede');
+  const [selectedVoice, setSelectedVoice] = useState(DEFAULT_SARVAM_VOICE); // Sarvam default
   const [greetingLine, setGreetingLine] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [agentName, setAgentName] = useState('');
@@ -443,29 +443,51 @@ const VoiceSettingsPanel = () => {
           <button
             type="button"
             onClick={() => setSelectedVoice(DEFAULT_SARVAM_VOICE)}
-            className={`flex-1 flex items-center justify-center gap-2 rounded-[10px] px-4 py-2.5 text-[10px] font-black uppercase tracking-[0.15em] transition-all ${
+            className={`flex-1 flex flex-col items-center justify-center gap-0.5 rounded-[10px] px-4 py-3 text-center transition-all ${
               isSarvamVoice(selectedVoice)
-                ? 'bg-white dark:bg-white/[0.08] text-orange-600 dark:text-orange-400 shadow-sm'
+                ? 'bg-white dark:bg-white/[0.08] shadow-sm'
                 : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
             }`}
+            style={isSarvamVoice(selectedVoice) ? { color: '#ea580c' } : {}}
           >
-            <span className="material-symbols-outlined text-[16px]">record_voice_over</span>
-            Sarvam
-            <span className="rounded-full bg-orange-100 dark:bg-orange-900/30 px-1.5 py-0.5 text-[8px] font-black text-orange-600 dark:text-orange-400">
-              Default
+            <div className="flex items-center gap-1.5">
+              <span className="material-symbols-outlined text-[15px]">record_voice_over</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.15em]">Sarvam</span>
+              <span className={`rounded-full px-1.5 py-0.5 text-[8px] font-black ${
+                isSarvamVoice(selectedVoice)
+                  ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400'
+                  : 'bg-slate-200 dark:bg-white/10 text-slate-500'
+              }`}>DEFAULT</span>
+            </div>
+            <span className={`text-[9px] font-bold ${
+              isSarvamVoice(selectedVoice) ? 'text-orange-500/80' : 'text-slate-400'
+            }`}>
+              Premium · Indian AI · ~₹0.08/min
             </span>
           </button>
           <button
             type="button"
             onClick={() => setSelectedVoice('Aoede')}
-            className={`flex-1 flex items-center justify-center gap-2 rounded-[10px] px-4 py-2.5 text-[10px] font-black uppercase tracking-[0.15em] transition-all ${
+            className={`flex-1 flex flex-col items-center justify-center gap-0.5 rounded-[10px] px-4 py-3 text-center transition-all ${
               !isSarvamVoice(selectedVoice)
                 ? 'bg-white dark:bg-white/[0.08] text-primary shadow-sm'
                 : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
             }`}
           >
-            <span className="material-symbols-outlined text-[16px]">voice_chat</span>
-            Google Chirp3 HD
+            <div className="flex items-center gap-1.5">
+              <span className="material-symbols-outlined text-[15px]">voice_chat</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.15em]">Google</span>
+              <span className={`rounded-full px-1.5 py-0.5 text-[8px] font-black ${
+                !isSarvamVoice(selectedVoice)
+                  ? 'bg-primary/10 text-primary'
+                  : 'bg-slate-200 dark:bg-white/10 text-slate-500'
+              }`}>CHEAPER</span>
+            </div>
+            <span className={`text-[9px] font-bold ${
+              !isSarvamVoice(selectedVoice) ? 'text-primary/60' : 'text-slate-400'
+            }`}>
+              Standard · Chirp3 HD · ~₹0.01/min
+            </span>
           </button>
         </div>
 
