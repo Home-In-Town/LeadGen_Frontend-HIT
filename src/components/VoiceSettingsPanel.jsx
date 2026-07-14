@@ -22,6 +22,24 @@ const VOICE_OPTIONS = {
 const ALL_VOICE_NAMES = [...VOICE_OPTIONS.female, ...VOICE_OPTIONS.male];
 // Default voice on reset
 const DEFAULT_VOICE_NAME = 'Aoede';
+
+// ── Sarvam bulbul:v3 voices ───────────────────────────────────────────────────
+// Stored with "sarvam:" prefix, e.g. "sarvam:priya"
+const SARVAM_VOICES = {
+  female: ['ritu', 'priya', 'neha', 'pooja', 'simran', 'kavya', 'ishita',
+           'shreya', 'roopa', 'tanya', 'shruti', 'suhani', 'kavitha', 'rupali'],
+  male:   ['shubh', 'aditya', 'rahul', 'rohan', 'amit', 'dev', 'ratan',
+           'varun', 'manan', 'sumit', 'kabir', 'aayan', 'ashutosh', 'advait',
+           'anand', 'tarun', 'sunny', 'mani', 'gokul', 'vijay', 'mohit',
+           'rehan', 'soham'],
+};
+// Default Sarvam voice — warm female Indian voice, good for sales calls
+const DEFAULT_SARVAM_VOICE = 'sarvam:priya';
+
+// Helper: is the current selectedVoice a Sarvam voice?
+const isSarvamVoice = (v) => typeof v === 'string' && v.startsWith('sarvam:');
+// Helper: extract display name from "sarvam:priya" → "priya"
+const sarvamDisplayName = (v) => v?.replace('sarvam:', '') || '';
 const LANGUAGE_OPTIONS = [
   { value: 'default', label: 'Default (Auto-detect)' },
   { value: 'hinglish', label: 'Hinglish (Hindi + English)' },
@@ -238,7 +256,7 @@ const VoiceSettingsPanel = () => {
       const res = await getVoiceSettings();
       const data = res.data?.data || res.data || {};
       setCustomPrompt(data.customPrompt || '');
-      setSelectedVoice(data.selectedVoice || 'Aoede');
+      setSelectedVoice(data.selectedVoice || DEFAULT_SARVAM_VOICE);
       setGreetingLine(data.greetingLine || '');
       setCompanyName(data.companyName || '');
       setAgentName(data.agentName || '');
@@ -302,7 +320,7 @@ const VoiceSettingsPanel = () => {
     try {
       await resetVoiceSettings();
       setCustomPrompt('');
-      setSelectedVoice('Aoede');
+      setSelectedVoice(DEFAULT_SARVAM_VOICE);
       setGreetingLine('');
       setCompanyName('');
       setAgentName('');
@@ -391,60 +409,180 @@ const VoiceSettingsPanel = () => {
         </div>
       )}
 
-      {/* Voice Selection — all 30 Chirp3 HD voices, grouped by gender */}
+      {/* ── TTS Voice Selection ──────────────────────────────────────────── */}
+      {/* Two providers: Sarvam (Indian AI voices, default) and Google Chirp3 HD */}
       <div className="rounded-[18px] border border-slate-200/70 dark:border-white/10 bg-white/70 dark:bg-white/[0.04] backdrop-blur-xl p-6 shadow-sm">
-        <div className="mb-3 flex items-center justify-between">
-          <label className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400">
-            TTS Voice
-          </label>
-          <span className="text-[10px] font-bold text-slate-400">
-            {selectedVoice} · {VOICE_OPTIONS.female.includes(selectedVoice) ? 'Female' : 'Male'} · Indian accent
+
+        {/* Header + active voice badge */}
+        <div className="mb-4 flex items-center justify-between flex-wrap gap-2">
+          <div>
+            <label className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400">
+              TTS Voice
+            </label>
+            <p className="mt-0.5 text-[11px] text-slate-400">
+              {isSarvamVoice(selectedVoice)
+                ? `Sarvam · ${sarvamDisplayName(selectedVoice)} · Indian AI voice`
+                : `Google Chirp3 HD · ${selectedVoice} · ${VOICE_OPTIONS.female.includes(selectedVoice) ? 'Female' : 'Male'}`
+              }
+            </p>
+          </div>
+          <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[9px] font-black uppercase tracking-wider ${
+            isSarvamVoice(selectedVoice)
+              ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300'
+              : 'bg-primary/10 text-primary'
+          }`}>
+            <span className="material-symbols-outlined text-[12px]">
+              {isSarvamVoice(selectedVoice) ? 'record_voice_over' : 'voice_chat'}
+            </span>
+            {isSarvamVoice(selectedVoice) ? 'Sarvam bulbul:v3' : 'Google Chirp3 HD'}
           </span>
         </div>
 
-        {/* Female voices */}
-        <p className="mb-2 text-[9px] font-black uppercase tracking-[0.25em] text-slate-400 flex items-center gap-1.5">
-          <span className="material-symbols-outlined text-[13px]">face_3</span>Female
-        </p>
-        <div className="grid grid-cols-3 gap-2 sm:grid-cols-5 mb-4">
-          {VOICE_OPTIONS.female.map((voice) => (
-            <button
-              key={voice}
-              onClick={() => setSelectedVoice(voice)}
-              className={`rounded-[12px] border px-2 py-2 text-[11px] font-medium transition-all ${
-                selectedVoice === voice
-                  ? 'border-primary bg-primary/10 text-primary shadow-sm'
-                  : 'border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.04] text-slate-700 dark:text-slate-300 hover:border-primary/40'
-              }`}
-            >
-              {voice}
-            </button>
-          ))}
+        {/* Provider tabs */}
+        <div className="mb-5 flex gap-2 rounded-[14px] border border-slate-200/70 dark:border-white/10 bg-slate-50/70 dark:bg-white/[0.03] p-1">
+          <button
+            type="button"
+            onClick={() => setSelectedVoice(DEFAULT_SARVAM_VOICE)}
+            className={`flex-1 flex items-center justify-center gap-2 rounded-[10px] px-4 py-2.5 text-[10px] font-black uppercase tracking-[0.15em] transition-all ${
+              isSarvamVoice(selectedVoice)
+                ? 'bg-white dark:bg-white/[0.08] text-orange-600 dark:text-orange-400 shadow-sm'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+            }`}
+          >
+            <span className="material-symbols-outlined text-[16px]">record_voice_over</span>
+            Sarvam
+            <span className="rounded-full bg-orange-100 dark:bg-orange-900/30 px-1.5 py-0.5 text-[8px] font-black text-orange-600 dark:text-orange-400">
+              Default
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setSelectedVoice('Aoede')}
+            className={`flex-1 flex items-center justify-center gap-2 rounded-[10px] px-4 py-2.5 text-[10px] font-black uppercase tracking-[0.15em] transition-all ${
+              !isSarvamVoice(selectedVoice)
+                ? 'bg-white dark:bg-white/[0.08] text-primary shadow-sm'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+            }`}
+          >
+            <span className="material-symbols-outlined text-[16px]">voice_chat</span>
+            Google Chirp3 HD
+          </button>
         </div>
 
-        {/* Male voices */}
-        <p className="mb-2 text-[9px] font-black uppercase tracking-[0.25em] text-slate-400 flex items-center gap-1.5">
-          <span className="material-symbols-outlined text-[13px]">face</span>Male
-        </p>
-        <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
-          {VOICE_OPTIONS.male.map((voice) => (
-            <button
-              key={voice}
-              onClick={() => setSelectedVoice(voice)}
-              className={`rounded-[12px] border px-2 py-2 text-[11px] font-medium transition-all ${
-                selectedVoice === voice
-                  ? 'border-primary bg-primary/10 text-primary shadow-sm'
-                  : 'border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.04] text-slate-700 dark:text-slate-300 hover:border-primary/40'
-              }`}
-            >
-              {voice}
-            </button>
-          ))}
-        </div>
+        {/* ── Sarvam voices ────────────────────────────────────────────────── */}
+        {isSarvamVoice(selectedVoice) && (
+          <div>
+            {/* Info banner */}
+            <div className="mb-4 rounded-[10px] border border-orange-500/20 bg-orange-500/5 px-4 py-3 flex items-start gap-2">
+              <span className="material-symbols-outlined text-orange-500 text-[15px] mt-0.5 flex-shrink-0">info</span>
+              <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                <strong>Sarvam bulbul:v3</strong> — purpose-built for Indian languages. Natively handles
+                Hindi, Hinglish, Marathi, Tamil, Telugu and more with natural pronunciation.
+                Uses REST API (~400ms latency vs Google's ~80ms streaming).
+              </p>
+            </div>
 
-        <p className="mt-3 text-[10px] font-bold text-slate-400">
-          All voices support Indian accent for en-IN, hi-IN, mr-IN and other Indian locales.
-        </p>
+            {/* Female voices */}
+            <p className="mb-2 text-[9px] font-black uppercase tracking-[0.25em] text-slate-400 flex items-center gap-1.5">
+              <span className="material-symbols-outlined text-[13px]">face_3</span>Female
+            </p>
+            <div className="grid grid-cols-3 gap-2 sm:grid-cols-5 mb-4">
+              {SARVAM_VOICES.female.map((v) => {
+                const key = `sarvam:${v}`;
+                return (
+                  <button
+                    key={key}
+                    onClick={() => setSelectedVoice(key)}
+                    className={`rounded-[12px] border px-2 py-2 text-[11px] font-medium capitalize transition-all ${
+                      selectedVoice === key
+                        ? 'border-orange-400 bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 shadow-sm'
+                        : 'border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.04] text-slate-700 dark:text-slate-300 hover:border-orange-300 hover:text-orange-600'
+                    }`}
+                  >
+                    {v}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Male voices */}
+            <p className="mb-2 text-[9px] font-black uppercase tracking-[0.25em] text-slate-400 flex items-center gap-1.5">
+              <span className="material-symbols-outlined text-[13px]">face</span>Male
+            </p>
+            <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
+              {SARVAM_VOICES.male.map((v) => {
+                const key = `sarvam:${v}`;
+                return (
+                  <button
+                    key={key}
+                    onClick={() => setSelectedVoice(key)}
+                    className={`rounded-[12px] border px-2 py-2 text-[11px] font-medium capitalize transition-all ${
+                      selectedVoice === key
+                        ? 'border-orange-400 bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 shadow-sm'
+                        : 'border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.04] text-slate-700 dark:text-slate-300 hover:border-orange-300 hover:text-orange-600'
+                    }`}
+                  >
+                    {v}
+                  </button>
+                );
+              })}
+            </div>
+
+            <p className="mt-3 text-[10px] font-bold text-slate-400">
+              37 voices · supports Hindi, Hinglish, Marathi, Tamil, Telugu, Bengali and more.
+            </p>
+          </div>
+        )}
+
+        {/* ── Google Chirp3 HD voices ───────────────────────────────────────── */}
+        {!isSarvamVoice(selectedVoice) && (
+          <div>
+            {/* Female voices */}
+            <p className="mb-2 text-[9px] font-black uppercase tracking-[0.25em] text-slate-400 flex items-center gap-1.5">
+              <span className="material-symbols-outlined text-[13px]">face_3</span>Female
+            </p>
+            <div className="grid grid-cols-3 gap-2 sm:grid-cols-5 mb-4">
+              {VOICE_OPTIONS.female.map((voice) => (
+                <button
+                  key={voice}
+                  onClick={() => setSelectedVoice(voice)}
+                  className={`rounded-[12px] border px-2 py-2 text-[11px] font-medium transition-all ${
+                    selectedVoice === voice
+                      ? 'border-primary bg-primary/10 text-primary shadow-sm'
+                      : 'border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.04] text-slate-700 dark:text-slate-300 hover:border-primary/40'
+                  }`}
+                >
+                  {voice}
+                </button>
+              ))}
+            </div>
+
+            {/* Male voices */}
+            <p className="mb-2 text-[9px] font-black uppercase tracking-[0.25em] text-slate-400 flex items-center gap-1.5">
+              <span className="material-symbols-outlined text-[13px]">face</span>Male
+            </p>
+            <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
+              {VOICE_OPTIONS.male.map((voice) => (
+                <button
+                  key={voice}
+                  onClick={() => setSelectedVoice(voice)}
+                  className={`rounded-[12px] border px-2 py-2 text-[11px] font-medium transition-all ${
+                    selectedVoice === voice
+                      ? 'border-primary bg-primary/10 text-primary shadow-sm'
+                      : 'border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.04] text-slate-700 dark:text-slate-300 hover:border-primary/40'
+                  }`}
+                >
+                  {voice}
+                </button>
+              ))}
+            </div>
+
+            <p className="mt-3 text-[10px] font-bold text-slate-400">
+              30 voices · all support en-IN, hi-IN, mr-IN and other Indian locales · ~80ms first audio chunk.
+            </p>
+          </div>
+        )}
+
         {errors.selectedVoice && (
           <p className="mt-2 text-[11px] font-bold text-red-500">{errors.selectedVoice}</p>
         )}
