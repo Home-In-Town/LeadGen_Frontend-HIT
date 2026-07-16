@@ -68,6 +68,9 @@ const CampaignPage = lazy(() => import('./pages/CampaignPage'));
 const WhatsAppSetupPage = lazy(() => import('./pages/WhatsAppSetupPage'));
 const WhatsAppTemplatesPage = lazy(() => import('./pages/WhatsAppTemplatesPage'));
 const EmailTemplatesPage    = lazy(() => import('./pages/EmailTemplatesPage'));
+const ProfilePage           = lazy(() => import('./pages/ProfilePage'));
+const ProjectsPage          = lazy(() => import('./pages/ProjectsPage'));
+const ProjectSettingsPage   = lazy(() => import('./pages/ProjectSettingsPage'));
 
 function PageLoader() {
     return (
@@ -143,6 +146,9 @@ function App() {
                 <Route path="/whatsapp-setup" element={<WhatsAppSetupPage />} />
                 <Route path="/whatsapp-templates" element={<WhatsAppTemplatesPage />} />
                 <Route path="/email-templates" element={<EmailTemplatesPage />} />
+                <Route path="/profile" element={<ProfilePage />} />
+                <Route path="/projects" element={<ProjectsPage />} />
+                <Route path="/projects/:hitProjectId" element={<ProjectSettingsPage />} />
               </Route>
 
               {/* Legacy redirects */}

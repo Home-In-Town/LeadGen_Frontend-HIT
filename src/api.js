@@ -236,3 +236,38 @@ export const connectMetaOAuth     = (code) => whatsappApi.post('/connect/meta-oa
 export const listWATemplates      = ()          => whatsappApi.get('/templates');
 export const createWATemplate     = (data)      => whatsappApi.post('/templates', data);
 export const deleteWATemplate     = (name)      => whatsappApi.delete(`/templates/${name}`);
+
+
+// ====== PROFILE ENDPOINTS ======
+export const getProfile              = ()     => ownersApi.get('/profile');
+export const updateProfile           = (data) => ownersApi.put('/profile', data);
+export const changePin               = (data) => ownersApi.put('/change-pin', data);
+
+// ====== HOMEINTOWN LINKING ENDPOINTS ======
+export const getHomeinTownStatus     = ()     => ownersApi.get('/homeintown-status');
+export const verifyHitAccount        = (data) => ownersApi.post('/link-homeintown', data);
+export const confirmLinkHomeintown   = (data) => ownersApi.post('/confirm-link-homeintown', data);
+export const unlinkHomeintown        = ()     => ownersApi.post('/unlink-homeintown');
+
+// ====== HIT PROJECTS ENDPOINTS ======
+export const getHitProjects          = ()     => ownersApi.get('/projects');
+
+
+// ====== PROJECT ENDPOINTS (HIT-connected users) ======
+const projectApi = createApiInstance('/projects');
+export const listProjects            = ()                   => projectApi.get('');
+export const getProjectDetails       = (hitProjectId)       => projectApi.get(`/${hitProjectId}`);
+export const getProjectSettings      = (hitProjectId)       => projectApi.get(`/${hitProjectId}/settings`);
+export const updateProjectSettings   = (hitProjectId, data) => projectApi.put(`/${hitProjectId}/settings`, data);
+export const getProjectCampaigns     = (hitProjectId)       => projectApi.get(`/${hitProjectId}/campaigns`);
+export const getProjectLeads         = (hitProjectId, params) => projectApi.get(`/${hitProjectId}/leads`, { params });
+export const uploadProjectCampaign   = (hitProjectId, file, name) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (name) formData.append('name', name);
+    return projectApi.post(`/${hitProjectId}/campaigns/upload`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+    });
+};
+
+export const syncProjects             = ()     => projectApi.post('/sync');
