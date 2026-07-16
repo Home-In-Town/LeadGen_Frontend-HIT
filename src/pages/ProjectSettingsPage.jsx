@@ -70,8 +70,14 @@ const ProjectSettingsPage = () => {
 
       // Fetch templates in parallel (non-blocking)
       Promise.allSettled([listWATemplates(), listEmailTemplates()]).then(([waRes, emailRes]) => {
-        if (waRes.status === 'fulfilled') setWaTemplates(waRes.value.data?.templates || waRes.value.data || []);
-        if (emailRes.status === 'fulfilled') setEmailTemplates(emailRes.value.data || []);
+        if (waRes.status === 'fulfilled') {
+          const waData = waRes.value.data;
+          setWaTemplates(Array.isArray(waData) ? waData : Array.isArray(waData?.templates) ? waData.templates : Array.isArray(waData?.data) ? waData.data : []);
+        }
+        if (emailRes.status === 'fulfilled') {
+          const emData = emailRes.value.data;
+          setEmailTemplates(Array.isArray(emData) ? emData : Array.isArray(emData?.templates) ? emData.templates : Array.isArray(emData?.data) ? emData.data : []);
+        }
       });
     } catch (err) {
       addToast(err.response?.data?.error || 'Failed to load project', 'error');
@@ -263,7 +269,7 @@ const ProjectSettingsPage = () => {
                 className={inputClass}
               >
                 <option value="">— No template (skip WA) —</option>
-                {waTemplates.map(t => (
+                {Array.isArray(waTemplates) && waTemplates.map(t => (
                   <option key={t.name || t.id} value={t.name}>{t.name} ({t.status || 'APPROVED'})</option>
                 ))}
               </select>
@@ -279,7 +285,7 @@ const ProjectSettingsPage = () => {
               className={inputClass}
             >
               <option value="">— No template (skip email) —</option>
-              {emailTemplates.map(t => (
+              {Array.isArray(emailTemplates) && emailTemplates.map(t => (
                 <option key={t._id} value={t._id}>{t.name || t.subject}</option>
               ))}
             </select>

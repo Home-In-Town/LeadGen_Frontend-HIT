@@ -25,6 +25,8 @@ import {
     getAllLeads,
     getLeadAutomationHistory,
     listEmailTemplates,
+    listProjects,
+    updateFBCampaignConfig,
 } from '../api';
 import CampaignConfigModal from '../components/CampaignConfigModal';
 import { useNotifications } from '../context/NotificationContext';
@@ -236,9 +238,11 @@ function TabOverview({ status, campaigns, fbLeads, onConnect, onDisconnect, disc
 
 // ─── Tab 2: Campaigns & Forms ────────────────────────────────────────────────
 
-function CampaignCard({ campaign, onMappingCreated }) {
+function CampaignCard({ campaign, onMappingCreated, hitLinked, projects }) {
     const [expanded, setExpanded]         = useState(false);
     const [showConfig, setShowConfig]     = useState(false);
+    const [assigningProject, setAssigningProject] = useState(false);
+    const { addToast } = useNotifications();
 
     const statusColor = campaign.status === 'ACTIVE' ? 'green'
         : campaign.status === 'PAUSED' ? 'yellow' : 'slate';
@@ -248,6 +252,24 @@ function CampaignCard({ campaign, onMappingCreated }) {
     const budgetStr = campaign.budget
         ? `${campaign.currency || '₹'} ${Number(campaign.budget / 100).toLocaleString('en-IN')}`
         : '—';
+
+    const handleProjectAssign = async (projectId) => {
+        try {
+            setAssigningProject(true);
+            const selectedProject = (projects || []).find(p => p.hitProjectId === projectId);
+            await updateFBCampaignConfig(campaign.campaignId, {
+                linkedHitProjectId: projectId || null,
+                linkedHitProjectName: selectedProject?.projectName || null,
+            });
+            campaign.linkedHitProjectId = projectId || null;
+            campaign.linkedHitProjectName = selectedProject?.projectName || null;
+            addToast(projectId ? `Assigned to ${selectedProject?.projectName}` : 'Project unassigned', 'success');
+        } catch (err) {
+            addToast('Failed to assign project', 'error');
+        } finally {
+            setAssigningProject(false);
+        }
+    };
 
     return (
         <>
@@ -299,6 +321,30 @@ function CampaignCard({ campaign, onMappingCreated }) {
 
             {expanded && (
                 <div className="p-4 space-y-3">
+                    {/* Project Assignment (HIT-connected users) */}
+                    {hitLinked && (
+                        <div className="flex items-center gap-3 p-3 rounded-xl bg-primary/5 dark:bg-primary/10 border border-primary/20 dark:border-primary/30">
+                            <span className="material-symbols-outlined text-primary text-lg">apartment</span>
+                            <div className="flex-1 min-w-0">
+                                <p className="text-[10px] font-black uppercase tracking-wider text-primary/70 dark:text-primary/80">Assign to Project</p>
+                                <select
+                                    value={campaign.linkedHitProjectId || ''}
+                                    onChange={(e) => handleProjectAssign(e.target.value)}
+                                    disabled={assigningProject}
+                                    className="mt-1 w-full rounded-lg border border-primary/20 dark:border-primary/30 bg-white dark:bg-slate-800/60 px-3 py-1.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/40"
+                                >
+                                    <option value="">— Not assigned (use campaign settings) —</option>
+                                    {(projects || []).map(p => (
+                                        <option key={p.hitProjectId} value={p.hitProjectId}>{p.projectName} ({p.city || ''})</option>
+                                    ))}
+                                </select>
+                            </div>
+                            {campaign.linkedHitProjectName && (
+                                <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-500/15 px-2 py-0.5 rounded-full uppercase">Linked</span>
+                            )}
+                        </div>
+                    )}
+
                     {(campaign.forms || []).length === 0 ? (
                         <div className="text-center py-8 text-slate-400">
                             <span className="material-symbols-outlined text-3xl mb-2 block">description</span>
@@ -380,7 +426,7 @@ function CampaignCard({ campaign, onMappingCreated }) {
     );
 }
 
-function TabCampaigns({ campaigns, campaignsLoading, onSync, syncing, isConnected, onMappingCreated }) {
+function TabCampaigns({ campaigns, campaignsLoading, onSync, syncing, isConnected, onMappingCreated, hitLinked, hitProjects }) {
     const ORDER = { ACTIVE: 0, PAUSED: 1, ARCHIVED: 2, DELETED: 3 };
     const sorted = [...campaigns].sort((a, b) => {
         const ao = ORDER[a.status] ?? 9;
@@ -428,6 +474,8 @@ function TabCampaigns({ campaigns, campaignsLoading, onSync, syncing, isConnecte
                     key={camp.campaignId}
                     campaign={camp}
                     onMappingCreated={onMappingCreated}
+                    hitLinked={hitLinked}
+                    projects={hitProjects}
                 />
             ))}
         </div>
@@ -861,6 +909,16 @@ const FacebookIntegrationPage = () => {
     const syncIntervalRef = useRef(null);
     const userId = useRef(null);
 
+    // ── HIT Projects (for project assignment) ──
+    const [hitProjects, setHitProjects] = useState([]);
+    useEffect(() => {
+        if (user?.hitLinked) {
+            listProjects().then(res => {
+                setHitProjects(res.data?.projects || []);
+            }).catch(() => {}); // silent — projects list is optional
+        }
+    }, [user?.hitLinked]);
+
     // ── load FB status ──
     const loadStatus = useCallback(async (quiet = false) => {
         if (!quiet) setStatus(null);
@@ -1048,6 +1106,8 @@ const FacebookIntegrationPage = () => {
                         syncing={syncing}
                         isConnected={isConnected}
                         onMappingCreated={handleMappingCreated}
+                        hitLinked={user?.hitLinked || false}
+                        hitProjects={hitProjects}
                     />
                 )}
                 {activeTab === 'leads' && (

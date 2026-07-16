@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import NotificationCenter from './NotificationCenter';
 import { useAuth } from '../context/AuthContext';
 
 const Header = ({ onMenuClick }) => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { user } = useAuth();
 
   const roleColors = {
@@ -123,7 +124,11 @@ const toggleTheme = () => {
             <NotificationCenter />
           </div>
 
-          <div className="flex items-center gap-2 rounded-[12px] border border-slate-200/80 dark:border-white/10 bg-white/75 dark:bg-white/[0.04] pl-2 pr-2.5 py-1.5 backdrop-blur-sm shadow-sm">
+          <div
+            onClick={() => navigate('/profile')}
+            className="flex items-center gap-2 rounded-[12px] border border-slate-200/80 dark:border-white/10 bg-white/75 dark:bg-white/[0.04] pl-2 pr-2.5 py-1.5 backdrop-blur-sm shadow-sm cursor-pointer hover:border-primary/40 hover:shadow-md transition-all"
+            title="Profile Settings"
+          >
             <div className="flex flex-col items-end justify-center leading-none">
               <div className={`mb-1 px-1.5 py-0.5 border rounded-full font-mono text-[7px] font-bold uppercase tracking-widest ${roleColors[user?.role] || roleColors.admin}`}>
                 {user?.role}
