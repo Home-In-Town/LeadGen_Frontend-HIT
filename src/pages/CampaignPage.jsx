@@ -22,6 +22,8 @@ import {
     resumeCampaign as apiResumeCampaign,
     deleteCampaign as apiDeleteCampaign,
     getChannelStatus,
+    listProjects,
+    uploadProjectCampaign,
 } from '../api';
 import CampaignSelector from '../components/CampaignSelector';
 import ImportedLeadsTab from '../components/ImportedLeadsTab';
@@ -66,12 +68,16 @@ function ProgressBar({ value, color = 'bg-emerald-500' }) {
 // ── Upload Panel ─────────────────────────────────────────────────────────────
 
 function UploadPanel({ onSuccess }) {
+    const { user } = useAuth();
+    const hitLinked = user?.hitLinked || false;
     const [file, setFile]               = useState(null);
     const [dragging, setDragging]       = useState(false);
     const [loading, setLoading]         = useState(false);
     const [result, setResult]           = useState(null);
     const [error, setError]             = useState(null);
     const [linkedFbCampaignId, setLinkedFbCampaignId] = useState(null);
+    const [selectedProjectId, setSelectedProjectId] = useState('');
+    const [projects, setProjects]       = useState([]);
     const inputRef                      = useRef(null);
 
     // Channel connectivity — controls which automation channels are shown/locked
@@ -80,8 +86,12 @@ function UploadPanel({ onSuccess }) {
     useEffect(() => {
         getChannelStatus()
             .then(r => { if (r.data?.success) setChannelStatus(r.data); })
-            .catch(() => {}); // non-blocking — don't break upload if this fails
-    }, []);
+            .catch(() => {});
+        // Fetch projects for HIT-connected users
+        if (hitLinked) {
+            listProjects().then(r => setProjects(r.data?.projects || [])).catch(() => {});
+        }
+    }, [hitLinked]);
 
     const MAX_SIZE_MB = 20;
     // Max rows we'll try to parse client-side for preview validation
@@ -183,10 +193,18 @@ function UploadPanel({ onSuccess }) {
         setError(null);
         setResult(null);
         try {
-            const res = await apiUpload(file, null, linkedFbCampaignId);
+            let res;
+            if (hitLinked && selectedProjectId) {
+                // Upload under project — inherits project automation settings
+                res = await uploadProjectCampaign(selectedProjectId, file);
+            } else {
+                // Standard upload (non-HIT users or no project selected)
+                res = await apiUpload(file, null, linkedFbCampaignId);
+            }
             setResult(res.data);
             setFile(null);
             setLinkedFbCampaignId(null);
+            setSelectedProjectId('');
             if (res.data?.campaignId && onSuccess) onSuccess(res.data);
         } catch (err) {
             const status = err.response?.status;
@@ -281,9 +299,34 @@ function UploadPanel({ onSuccess }) {
                 </div>
             )}
 
-            {/* Facebook campaign selector */}
+            {/* Project selector (HIT users) OR Facebook campaign selector */}
             <div className="mt-4">
-                <CampaignSelector value={linkedFbCampaignId} onChange={setLinkedFbCampaignId} channelStatus={channelStatus} />
+                {hitLinked ? (
+                    <div>
+                        <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 mb-1.5">
+                            Assign to Project
+                        </label>
+                        <select
+                            value={selectedProjectId}
+                            onChange={(e) => setSelectedProjectId(e.target.value)}
+                            className="w-full rounded-xl border border-slate-200 dark:border-white/15 bg-white dark:bg-slate-800/60 px-4 py-3 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all"
+                        >
+                            <option value="">— Select a project (uses project automation settings) —</option>
+                            {projects.map(p => (
+                                <option key={p.hitProjectId} value={p.hitProjectId}>
+                                    {p.projectName} ({p.city || 'No city'})
+                                </option>
+                            ))}
+                        </select>
+                        {selectedProjectId && (
+                            <p className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-1 font-semibold">
+                                Leads will use this project's AI prompt, WA template, and email template.
+                            </p>
+                        )}
+                    </div>
+                ) : (
+                    <CampaignSelector value={linkedFbCampaignId} onChange={setLinkedFbCampaignId} channelStatus={channelStatus} />
+                )}
             </div>
 
             {/* Channel availability banner — shown when any integration is not connected */}

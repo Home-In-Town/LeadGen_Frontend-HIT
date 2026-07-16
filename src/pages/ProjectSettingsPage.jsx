@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useNotifications } from '../context/NotificationContext';
 import {
@@ -6,28 +6,26 @@ import {
   getProjectSettings,
   updateProjectSettings,
   getProjectCampaigns,
-  uploadProjectCampaign,
   listWATemplates,
   listEmailTemplates,
+  getChannelStatus,
+  getFBCampaigns,
 } from '../api';
 
 const cardClass = 'rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200/70 dark:border-white/10 shadow-sm';
 const inputClass = 'w-full rounded-xl border border-slate-200 dark:border-white/15 bg-white dark:bg-slate-800/60 px-4 py-3 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all';
-const labelClass = 'block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 mb-1.5';
 const btnPrimary = 'inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary to-emerald-600 px-5 py-2.5 text-[11px] font-black uppercase tracking-[0.15em] text-white shadow-lg shadow-primary/25 hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed';
 const btnOutline = 'inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 dark:border-white/15 px-4 py-2 text-[11px] font-black uppercase tracking-[0.15em] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/5 transition-all disabled:opacity-50';
 
 const TABS = [
   { id: 'settings', label: 'Automation', icon: 'settings_suggest' },
-  { id: 'campaigns', label: 'Campaigns', icon: 'campaign' },
-  { id: 'upload', label: 'Upload Leads', icon: 'upload_file' },
+  { id: 'campaigns', label: 'Linked Sources', icon: 'campaign' },
 ];
 
 const ProjectSettingsPage = () => {
   const { hitProjectId } = useParams();
   const navigate = useNavigate();
   const { addToast } = useNotifications();
-  const fileRef = useRef(null);
 
   const [tab, setTab] = useState('settings');
   const [loading, setLoading] = useState(true);
@@ -36,54 +34,66 @@ const ProjectSettingsPage = () => {
   const [config, setConfig] = useState(null);
   const [dirty, setDirty] = useState(false);
 
-  // Campaign & upload state
+  // Campaign & FB data
   const [campaigns, setCampaigns] = useState([]);
+  const [fbCampaignsLinked, setFbCampaignsLinked] = useState([]);
   const [campaignsLoading, setCampaignsLoading] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [uploadFile, setUploadFile] = useState(null);
 
   // Template options
   const [waTemplates, setWaTemplates] = useState([]);
   const [emailTemplates, setEmailTemplates] = useState([]);
 
+  // Channel connectivity
+  const [channelStatus, setChannelStatus] = useState({ voice: true, whatsapp: null, email: null });
+
   // ── Fetch project + settings ────────────────────────────────────────────────
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      const [projRes, settingsRes] = await Promise.all([
+      const [projRes, settingsRes, channelRes] = await Promise.allSettled([
         getProjectDetails(hitProjectId),
         getProjectSettings(hitProjectId),
+        getChannelStatus(),
       ]);
-      setProject(projRes.data?.project || null);
-      setConfig(settingsRes.data?.settings || {
-        autoCallEnabled: true,
-        autoWaEnabled: true,
-        autoEmailEnabled: false,
-        voiceSettings: { aiPrompt: '', selectedVoice: '', greetingLine: '', language: '', sector: '' },
-        waTemplateName: '',
-        waTemplateEnabled: false,
-        emailTemplateName: '',
-        emailTemplateEnabled: false,
-        linkedFbFormIds: [],
-        isActive: true,
-      });
 
-      // Fetch templates in parallel (non-blocking)
+      if (projRes.status === 'fulfilled') {
+        setProject(projRes.value.data?.project || null);
+      } else {
+        addToast('Failed to load project', 'error');
+        navigate('/projects');
+        return;
+      }
+
+      if (settingsRes.status === 'fulfilled') {
+        setConfig(settingsRes.value.data?.settings || {
+          autoCallEnabled: true,
+          autoWaEnabled: false,
+          autoEmailEnabled: false,
+          voiceSettings: { aiPrompt: '' },
+          waTemplateName: '',
+          emailTemplateName: '',
+          isActive: true,
+        });
+      }
+
+      if (channelRes.status === 'fulfilled' && channelRes.value.data?.success) {
+        setChannelStatus(channelRes.value.data);
+      }
+
+      // Fetch templates (non-blocking)
       Promise.allSettled([listWATemplates(), listEmailTemplates()]).then(([waRes, emailRes]) => {
         if (waRes.status === 'fulfilled') {
-          const waData = waRes.value.data;
-          setWaTemplates(Array.isArray(waData) ? waData : Array.isArray(waData?.templates) ? waData.templates : Array.isArray(waData?.data) ? waData.data : []);
+          const d = waRes.value.data;
+          setWaTemplates(Array.isArray(d) ? d : Array.isArray(d?.templates) ? d.templates : Array.isArray(d?.data) ? d.data : []);
         }
         if (emailRes.status === 'fulfilled') {
-          const emData = emailRes.value.data;
-          setEmailTemplates(Array.isArray(emData) ? emData : Array.isArray(emData?.templates) ? emData.templates : Array.isArray(emData?.data) ? emData.data : []);
+          const d = emailRes.value.data;
+          setEmailTemplates(Array.isArray(d) ? d : Array.isArray(d?.templates) ? d.templates : Array.isArray(d?.data) ? d.data : []);
         }
       });
     } catch (err) {
-      addToast(err.response?.data?.error || 'Failed to load project', 'error');
-      if (err.response?.status === 404 || err.response?.status === 403) {
-        navigate('/projects');
-      }
+      addToast('Failed to load project', 'error');
+      navigate('/projects');
     } finally {
       setLoading(false);
     }
@@ -92,11 +102,22 @@ const ProjectSettingsPage = () => {
   const fetchCampaigns = useCallback(async () => {
     try {
       setCampaignsLoading(true);
-      const res = await getProjectCampaigns(hitProjectId);
-      setCampaigns(res.data?.campaigns || []);
-    } catch {
-      /* silent */
-    } finally {
+      const [bulkRes, fbRes] = await Promise.allSettled([
+        getProjectCampaigns(hitProjectId),
+        getFBCampaigns({ limit: 200 }),
+      ]);
+
+      if (bulkRes.status === 'fulfilled') {
+        setCampaigns(bulkRes.value.data?.campaigns || []);
+      }
+
+      // Filter FB campaigns that are linked to this project
+      if (fbRes.status === 'fulfilled') {
+        const allFb = fbRes.value.data?.data || fbRes.value.data?.campaigns || [];
+        const linked = allFb.filter(c => c.linkedHitProjectId === hitProjectId);
+        setFbCampaignsLinked(linked);
+      }
+    } catch { /* silent */ } finally {
       setCampaignsLoading(false);
     }
   }, [hitProjectId]);
@@ -110,7 +131,7 @@ const ProjectSettingsPage = () => {
       const copy = { ...prev };
       if (path.includes('.')) {
         const [parent, child] = path.split('.');
-        copy[parent] = { ...copy[parent], [child]: value };
+        copy[parent] = { ...(copy[parent] || {}), [child]: value };
       } else {
         copy[path] = value;
       }
@@ -136,24 +157,6 @@ const ProjectSettingsPage = () => {
     }
   };
 
-  const handleUpload = async () => {
-    if (!uploadFile) { addToast('Please select a file', 'error'); return; }
-    try {
-      setUploading(true);
-      const res = await uploadProjectCampaign(hitProjectId, uploadFile);
-      const data = res.data;
-      addToast(`Campaign created: ${data.inserted} leads imported`, 'success');
-      setUploadFile(null);
-      if (fileRef.current) fileRef.current.value = '';
-      fetchCampaigns();
-      setTab('campaigns');
-    } catch (err) {
-      addToast(err.response?.data?.error || 'Upload failed', 'error');
-    } finally {
-      setUploading(false);
-    }
-  };
-
   // ── Loading ─────────────────────────────────────────────────────────────────
   if (loading) {
     return (
@@ -171,6 +174,9 @@ const ProjectSettingsPage = () => {
       </div>
     );
   }
+
+  const waConnected = channelStatus.whatsapp === true;
+  const emailConnected = channelStatus.email === true;
 
   return (
     <div className="max-w-4xl mx-auto p-4 sm:p-6 space-y-6">
@@ -210,86 +216,117 @@ const ProjectSettingsPage = () => {
         ))}
       </div>
 
-      {/* ═══════ Settings Tab ═══════ */}
+      {/* ═══════ Automation Tab ═══════ */}
       {tab === 'settings' && (
         <div className="space-y-5">
-          {/* Automation Toggles */}
+          {/* Automation Toggles with lock */}
           <div className={`${cardClass} p-5`}>
             <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-4">Automation Channels</h3>
             <div className="grid gap-3 sm:grid-cols-3">
-              {[
-                { key: 'autoCallEnabled', label: 'AI Voice Call', icon: 'call', color: 'blue' },
-                { key: 'autoWaEnabled', label: 'WhatsApp', icon: 'chat', color: 'green' },
-                { key: 'autoEmailEnabled', label: 'Email', icon: 'mail', color: 'purple' },
-              ].map(ch => (
-                <label
-                  key={ch.key}
-                  className={`flex items-center gap-3 rounded-xl border p-3 cursor-pointer transition-all ${
-                    config[ch.key]
-                      ? `border-${ch.color}-200 dark:border-${ch.color}-500/30 bg-${ch.color}-50/50 dark:bg-${ch.color}-500/5`
-                      : 'border-slate-200 dark:border-white/10'
-                  }`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={config[ch.key] || false}
-                    onChange={(e) => updateConfig(ch.key, e.target.checked)}
-                    className="rounded border-slate-300 text-primary focus:ring-primary/40"
-                  />
-                  <span className={`material-symbols-outlined text-base ${config[ch.key] ? `text-${ch.color}-500` : 'text-slate-400'}`}>{ch.icon}</span>
-                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{ch.label}</span>
-                </label>
-              ))}
+              {/* Voice — always available */}
+              <label className={`flex items-center gap-3 rounded-xl border p-3 cursor-pointer transition-all ${
+                config?.autoCallEnabled ? 'border-blue-200 dark:border-blue-500/30 bg-blue-50/50 dark:bg-blue-500/5' : 'border-slate-200 dark:border-white/10'
+              }`}>
+                <input type="checkbox" checked={config?.autoCallEnabled || false} onChange={(e) => updateConfig('autoCallEnabled', e.target.checked)}
+                  className="rounded border-slate-300 text-primary focus:ring-primary/40" />
+                <span className={`material-symbols-outlined text-base ${config?.autoCallEnabled ? 'text-blue-500' : 'text-slate-400'}`}>call</span>
+                <span className="text-xs font-bold text-slate-700 dark:text-slate-300">AI Voice Call</span>
+              </label>
+
+              {/* WhatsApp — locked if not connected */}
+              <label className={`flex items-center gap-3 rounded-xl border p-3 transition-all ${
+                !waConnected ? 'border-slate-200 dark:border-white/10 opacity-50 cursor-not-allowed' :
+                config?.autoWaEnabled ? 'border-green-200 dark:border-green-500/30 bg-green-50/50 dark:bg-green-500/5 cursor-pointer' : 'border-slate-200 dark:border-white/10 cursor-pointer'
+              }`}>
+                <input type="checkbox" checked={waConnected ? (config?.autoWaEnabled || false) : false}
+                  onChange={(e) => updateConfig('autoWaEnabled', e.target.checked)}
+                  disabled={!waConnected}
+                  className="rounded border-slate-300 text-primary focus:ring-primary/40" />
+                <span className={`material-symbols-outlined text-base ${waConnected && config?.autoWaEnabled ? 'text-green-500' : 'text-slate-400'}`}>chat</span>
+                <div>
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300 block">WhatsApp</span>
+                  {!waConnected && <span className="text-[9px] text-amber-600 font-bold">Not connected</span>}
+                </div>
+              </label>
+
+              {/* Email — locked if not connected */}
+              <label className={`flex items-center gap-3 rounded-xl border p-3 transition-all ${
+                !emailConnected ? 'border-slate-200 dark:border-white/10 opacity-50 cursor-not-allowed' :
+                config?.autoEmailEnabled ? 'border-purple-200 dark:border-purple-500/30 bg-purple-50/50 dark:bg-purple-500/5 cursor-pointer' : 'border-slate-200 dark:border-white/10 cursor-pointer'
+              }`}>
+                <input type="checkbox" checked={emailConnected ? (config?.autoEmailEnabled || false) : false}
+                  onChange={(e) => updateConfig('autoEmailEnabled', e.target.checked)}
+                  disabled={!emailConnected}
+                  className="rounded border-slate-300 text-primary focus:ring-primary/40" />
+                <span className={`material-symbols-outlined text-base ${emailConnected && config?.autoEmailEnabled ? 'text-purple-500' : 'text-slate-400'}`}>mail</span>
+                <div>
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300 block">Email</span>
+                  {!emailConnected && <span className="text-[9px] text-amber-600 font-bold">Not connected</span>}
+                </div>
+              </label>
             </div>
+
+            {/* Connection warnings */}
+            {(!waConnected || !emailConnected) && (
+              <div className="mt-3 rounded-lg bg-amber-50 dark:bg-amber-900/10 border border-amber-200/60 dark:border-amber-500/20 px-3 py-2">
+                <p className="text-[10px] text-amber-700 dark:text-amber-400 font-bold">
+                  {!waConnected && !emailConnected ? 'WhatsApp & Email not connected — ' :
+                   !waConnected ? 'WhatsApp not connected — ' : 'Email not connected — '}
+                  <a href="/integrations" className="underline hover:no-underline">Connect in Integrations</a>
+                </p>
+              </div>
+            )}
           </div>
 
           {/* AI Voice Prompt */}
           <div className={`${cardClass} p-5`}>
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-3">AI Voice Prompt</h3>
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-1">AI Voice Prompt</h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
-              What should the AI agent pitch when calling leads for this project? Describe the project USPs, pricing, and call-to-action.
+              This prompt is added to the base voice settings for all leads in this project. Describe project USPs, pricing, and what action the AI should push for.
             </p>
             <textarea
-              value={config.voiceSettings?.aiPrompt || ''}
+              value={config?.voiceSettings?.aiPrompt || ''}
               onChange={(e) => updateConfig('voiceSettings.aiPrompt', e.target.value)}
               className={`${inputClass} min-h-[120px] resize-y`}
-              placeholder="Example: This campaign is for Aaditya Residency, 2BHK starting at ₹45L, RERA approved, ready possession, located in Manish Nagar, Nagpur. Goal: book a site visit."
+              placeholder="Example: This project is Aaditya Residency, 2BHK starting at ₹45L, RERA approved, ready possession, Manish Nagar Nagpur. Push for site visit booking."
               maxLength={5000}
             />
-            <p className="text-[10px] text-slate-400 mt-1 text-right">{(config.voiceSettings?.aiPrompt || '').length}/5000</p>
+            <p className="text-[10px] text-slate-400 mt-1 text-right">{(config?.voiceSettings?.aiPrompt || '').length}/5000</p>
           </div>
 
-          {/* WA Template */}
-          <div className={`${cardClass} p-5`}>
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-3">WhatsApp Template</h3>
-            <div className="flex items-center gap-3">
+          {/* WA Template — only show if connected */}
+          {waConnected && (
+            <div className={`${cardClass} p-5`}>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-3">WhatsApp Template</h3>
               <select
-                value={config.waTemplateName || ''}
+                value={config?.waTemplateName || ''}
                 onChange={(e) => { updateConfig('waTemplateName', e.target.value); updateConfig('waTemplateEnabled', !!e.target.value); }}
                 className={inputClass}
               >
-                <option value="">— No template (skip WA) —</option>
+                <option value="">— No template (skip WA message) —</option>
                 {Array.isArray(waTemplates) && waTemplates.map(t => (
                   <option key={t.name || t.id} value={t.name}>{t.name} ({t.status || 'APPROVED'})</option>
                 ))}
               </select>
             </div>
-          </div>
+          )}
 
-          {/* Email Template */}
-          <div className={`${cardClass} p-5`}>
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-3">Email Template</h3>
-            <select
-              value={config.emailTemplateName || ''}
-              onChange={(e) => { updateConfig('emailTemplateName', e.target.value); updateConfig('emailTemplateEnabled', !!e.target.value); }}
-              className={inputClass}
-            >
-              <option value="">— No template (skip email) —</option>
-              {Array.isArray(emailTemplates) && emailTemplates.map(t => (
-                <option key={t._id} value={t._id}>{t.name || t.subject}</option>
-              ))}
-            </select>
-          </div>
+          {/* Email Template — only show if connected */}
+          {emailConnected && (
+            <div className={`${cardClass} p-5`}>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-3">Email Template</h3>
+              <select
+                value={config?.emailTemplateName || ''}
+                onChange={(e) => { updateConfig('emailTemplateName', e.target.value); updateConfig('emailTemplateEnabled', !!e.target.value); }}
+                className={inputClass}
+              >
+                <option value="">— No template (skip email) —</option>
+                {Array.isArray(emailTemplates) && emailTemplates.map(t => (
+                  <option key={t._id} value={t._id}>{t.name || t.subject}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* Save */}
           <div className="flex justify-end">
@@ -301,83 +338,100 @@ const ProjectSettingsPage = () => {
         </div>
       )}
 
-      {/* ═══════ Campaigns Tab ═══════ */}
+      {/* ═══════ Linked Sources Tab ═══════ */}
       {tab === 'campaigns' && (
-        <div className="space-y-4">
+        <div className="space-y-5">
           {campaignsLoading ? (
             <div className="flex justify-center py-8">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
             </div>
-          ) : campaigns.length === 0 ? (
-            <div className={`${cardClass} p-8 text-center`}>
-              <span className="material-symbols-outlined text-4xl text-slate-300 mb-3 block">campaign</span>
-              <p className="text-sm font-bold text-slate-700 dark:text-slate-300">No campaigns yet</p>
-              <p className="text-xs text-slate-500 mt-1">Upload a CSV file in the "Upload Leads" tab to create your first campaign for this project.</p>
-            </div>
           ) : (
-            <div className="space-y-3">
-              {campaigns.map(c => (
-                <div key={c.campaignId || c._id} className={`${cardClass} p-4 flex items-center justify-between gap-3`}>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{c.name || c.campaignId}</p>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      {c.totalLeads} leads &middot; {new Date(c.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: '2-digit' })}
+            <>
+              {/* Assigned FB Campaigns */}
+              <div className={`${cardClass} p-5`}>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span className="material-symbols-outlined text-blue-500 text-base">data_exploration</span>
+                    Facebook Ad Campaigns
+                  </h3>
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 bg-slate-100 dark:bg-white/5 px-2 py-0.5 rounded-full">
+                    {fbCampaignsLinked.length} assigned
+                  </span>
+                </div>
+
+                {fbCampaignsLinked.length === 0 ? (
+                  <div className="text-center py-6 text-slate-400">
+                    <span className="material-symbols-outlined text-2xl mb-1 block">link_off</span>
+                    <p className="text-xs">No Facebook campaigns assigned to this project.</p>
+                    <p className="text-[10px] text-slate-400 mt-1">
+                      Go to <a href="/integrations/facebook" className="text-primary underline">Facebook Ads</a> → expand a campaign → "Assign to Project"
                     </p>
                   </div>
-                  <div className="flex gap-2 text-[9px] font-bold uppercase">
-                    <span className={`px-2 py-0.5 rounded-full ${c.status === 'completed' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300' : c.status === 'active' ? 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300' : 'bg-slate-100 text-slate-500'}`}>
-                      {c.status}
-                    </span>
+                ) : (
+                  <div className="space-y-2">
+                    {fbCampaignsLinked.map(c => (
+                      <div key={c.campaignId} className="flex items-center justify-between px-3 py-2.5 rounded-xl border border-slate-200/70 dark:border-white/10 bg-slate-50/50 dark:bg-white/[0.02]">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-600 text-white text-[10px] font-bold flex-shrink-0">f</div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold text-slate-900 dark:text-white truncate">{c.campaignName}</p>
+                            <p className="text-[10px] text-slate-500">{c.leadsCount || 0} leads &middot; {c.status}</p>
+                          </div>
+                        </div>
+                        <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full ${
+                          c.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300' : 'bg-slate-100 text-slate-500'
+                        }`}>{c.status}</span>
+                      </div>
+                    ))}
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ═══════ Upload Tab ═══════ */}
-      {tab === 'upload' && (
-        <div className={`${cardClass} p-6 space-y-5`}>
-          <div>
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-1">Upload Leads for {project.projectName}</h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Leads will be processed using this project's automation settings (voice prompt, WA template, email template).
-            </p>
-          </div>
-
-          {/* File input */}
-          <div className="border-2 border-dashed border-slate-200 dark:border-white/15 rounded-xl p-6 text-center">
-            <span className="material-symbols-outlined text-3xl text-slate-400 mb-2 block">upload_file</span>
-            <p className="text-xs text-slate-500 mb-3">CSV or Excel file with columns: Name, Phone (required), Email (optional)</p>
-            <input
-              ref={fileRef}
-              type="file"
-              accept=".csv,.xlsx,.xls"
-              onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
-              className="text-xs text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-primary/10 file:px-4 file:py-2 file:text-[10px] file:font-black file:uppercase file:tracking-wider file:text-primary hover:file:bg-primary/20 cursor-pointer"
-            />
-          </div>
-
-          {uploadFile && (
-            <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/40 rounded-xl p-3">
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="material-symbols-outlined text-primary text-lg">description</span>
-                <span className="text-xs font-bold text-slate-700 dark:text-slate-300 truncate">{uploadFile.name}</span>
-                <span className="text-[10px] text-slate-400">({(uploadFile.size / 1024).toFixed(0)} KB)</span>
+                )}
               </div>
-              <button onClick={() => { setUploadFile(null); if (fileRef.current) fileRef.current.value = ''; }} className="text-slate-400 hover:text-red-500">
-                <span className="material-symbols-outlined text-lg">close</span>
-              </button>
-            </div>
-          )}
 
-          <div className="flex justify-end">
-            <button onClick={handleUpload} disabled={!uploadFile || uploading} className={btnPrimary}>
-              {uploading && <span className="animate-spin h-3.5 w-3.5 border-2 border-white/30 border-t-white rounded-full" />}
-              {uploading ? 'Uploading...' : 'Upload & Start Campaign'}
-            </button>
-          </div>
+              {/* Bulk Import Campaigns */}
+              <div className={`${cardClass} p-5`}>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span className="material-symbols-outlined text-primary text-base">upload_file</span>
+                    Lead Imports
+                  </h3>
+                  <button
+                    onClick={() => navigate('/campaigns')}
+                    className="text-[10px] font-black uppercase tracking-wider text-primary hover:text-emerald-700 transition-colors flex items-center gap-1"
+                  >
+                    <span className="material-symbols-outlined text-xs">add</span>
+                    Import Leads
+                  </button>
+                </div>
+
+                {campaigns.length === 0 ? (
+                  <div className="text-center py-6 text-slate-400">
+                    <span className="material-symbols-outlined text-2xl mb-1 block">upload_file</span>
+                    <p className="text-xs">No lead imports yet for this project.</p>
+                    <p className="text-[10px] text-slate-400 mt-1">
+                      Go to <a href="/campaigns" className="text-primary underline">Campaigns</a> page and select this project when uploading.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {campaigns.map(c => (
+                      <div key={c.campaignId || c._id} className="flex items-center justify-between px-3 py-2.5 rounded-xl border border-slate-200/70 dark:border-white/10 bg-slate-50/50 dark:bg-white/[0.02]">
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-slate-900 dark:text-white truncate">{c.name || c.campaignId}</p>
+                          <p className="text-[10px] text-slate-500">
+                            {c.totalLeads} leads &middot; {new Date(c.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: '2-digit' })}
+                          </p>
+                        </div>
+                        <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full ${
+                          c.status === 'completed' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300' :
+                          c.status === 'active' ? 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300' : 'bg-slate-100 text-slate-500'
+                        }`}>{c.status}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
         </div>
       )}
     </div>

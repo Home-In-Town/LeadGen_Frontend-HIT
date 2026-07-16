@@ -242,6 +242,7 @@ export const deleteWATemplate     = (name)      => whatsappApi.delete(`/template
 export const getProfile              = ()     => ownersApi.get('/profile');
 export const updateProfile           = (data) => ownersApi.put('/profile', data);
 export const changePin               = (data) => ownersApi.put('/change-pin', data);
+export const getUsageStats           = ()     => ownersApi.get('/usage-stats');
 
 // ====== HOMEINTOWN LINKING ENDPOINTS ======
 export const getHomeinTownStatus     = ()     => ownersApi.get('/homeintown-status');

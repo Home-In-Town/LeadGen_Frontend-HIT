@@ -73,6 +73,40 @@ function Toggle({ enabled, onChange, label, description, locked, lockedReason })
 const CampaignConfigModal = ({ campaign, onClose, onSaved }) => {
     const { addToast } = useNotifications();
 
+    // ── If campaign is assigned to a project, show "Managed by Project" ───────
+    if (campaign.linkedHitProjectId) {
+        return (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
+                <div className={`${cardClass} w-full max-w-lg mx-4 p-6`} onClick={e => e.stopPropagation()}>
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-base font-black text-slate-900 dark:text-white">Campaign Settings</h2>
+                        <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors">
+                            <span className="material-symbols-outlined">close</span>
+                        </button>
+                    </div>
+                    <div className="rounded-xl bg-primary/5 dark:bg-primary/10 border border-primary/20 p-5 text-center space-y-3">
+                        <span className="material-symbols-outlined text-4xl text-primary">apartment</span>
+                        <p className="text-sm font-bold text-slate-900 dark:text-white">Managed by Project</p>
+                        <p className="text-lg font-black text-primary">{campaign.linkedHitProjectName || 'Linked Project'}</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                            All automation settings (AI prompt, WhatsApp template, email template, channel toggles) are managed from the project settings. Leads from this campaign will use the project's configuration.
+                        </p>
+                        <a href={`/projects/${campaign.linkedHitProjectId}`}
+                            className="inline-flex items-center gap-1.5 mt-2 text-[11px] font-black uppercase tracking-wider text-primary hover:text-emerald-700 transition-colors">
+                            <span className="material-symbols-outlined text-sm">open_in_new</span>
+                            Open Project Settings
+                        </a>
+                    </div>
+                    <div className="mt-4 flex justify-end">
+                        <button onClick={onClose} className="px-5 py-2.5 rounded-xl border border-slate-200 dark:border-white/15 text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/5 transition-all">
+                            Close
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     // ── form state — pre-filled from campaign doc ──────────────────────────
     const [aiPrompt,          setAiPrompt]          = useState(campaign.aiPrompt || '');
     const [waTemplateName,    setWaTemplateName]    = useState(campaign.waTemplateName || '');

@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import * as api from '../api';
 import { useAuth } from '../context/AuthContext';
-import { getFBCampaigns } from '../api';
+import { getFBCampaigns, listProjects } from '../api';
 import { useNotifications } from '../context/NotificationContext';
 
 const UsersPage = () => {
@@ -120,19 +120,34 @@ const UsersPage = () => {
     setFetchingProjects(true);
 
     try {
-      const res = await getFBCampaigns({ limit: 200 });
-      const campaignList = res.data?.campaigns || res.data?.data || [];
-
-      if (!campaignList.length) {
-        addToast('No campaigns found. Sync your Facebook campaigns first.', 'warning');
-        return;
+      // HIT-connected users: show projects; others: show FB campaigns
+      if (user?.hitLinked) {
+        const res = await listProjects();
+        const projectList = (res.data?.projects || []).map(p => ({
+          campaignId: p.hitProjectId,
+          campaignName: p.projectName,
+          status: 'ACTIVE',
+          leadsCount: 0,
+          city: p.city,
+        }));
+        if (!projectList.length) {
+          addToast('No projects found. Sync your HomeInTown projects first.', 'warning');
+          return;
+        }
+        setCampaigns(projectList);
+      } else {
+        const res = await getFBCampaigns({ limit: 200 });
+        const campaignList = res.data?.campaigns || res.data?.data || [];
+        if (!campaignList.length) {
+          addToast('No campaigns found. Sync your Facebook campaigns first.', 'warning');
+          return;
+        }
+        setCampaigns(campaignList);
       }
-
-      setCampaigns(campaignList);
       setShowProjectModal(true);
     } catch (err) {
-      console.error('Failed to fetch campaigns:', err);
-      addToast('Failed to fetch campaigns. Make sure Facebook is connected.', 'error');
+      console.error('Failed to fetch campaigns/projects:', err);
+      addToast('Failed to fetch data. Please try again.', 'error');
     } finally {
       setFetchingProjects(false);
     }
@@ -529,11 +544,11 @@ const UsersPage = () => {
               <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 px-5 py-4">
                 <div>
                   <h2 className="text-lg font-black text-slate-900 dark:text-white">
-                    Select Campaign
+                    {user?.hitLinked ? 'Select Project' : 'Select Campaign'}
                   </h2>
 
                   <p className="mt-1 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
-                    Choose campaign to link leads
+                    {user?.hitLinked ? 'Choose project to link leads' : 'Choose campaign to link leads'}
                   </p>
                 </div>
 
