@@ -18,6 +18,7 @@ import {
     getChatConversations,
     getChatMessages,
     sendChatMessage,
+    sendChatTemplate,
     markChatAsRead,
     listWAPhoneNumbers,
 } from '../api';
@@ -330,19 +331,46 @@ export default function ChatDashboard() {
     // API: Send template (optimistic pattern)
     // -----------------------------------------------------------------------
     const handleSendTemplate = useCallback(
-        async (templateName) => {
+        async (templateName, templateObj) => {
             if (!templateName || !activeLeadId) return;
 
+            // Extract template component data for rich rendering
+            const components = templateObj?.components || [];
+            const headerComp = components.find(c => c.type === 'HEADER');
+            const bodyComp = components.find(c => c.type === 'BODY');
+            const footerComp = components.find(c => c.type === 'FOOTER');
+            const buttonComp = components.find(c => c.type === 'BUTTONS');
+
+            const templateData = {};
+            if (headerComp?.format === 'IMAGE' && headerComp?.example?.header_handle?.[0]) {
+                templateData.headerImageUrl = headerComp.example.header_handle[0];
+            } else if (headerComp?.format === 'TEXT') {
+                templateData.headerText = headerComp.text || '';
+            }
+            if (bodyComp?.text) {
+                templateData.bodyText = bodyComp.text;
+            }
+            if (footerComp?.text) {
+                templateData.footerText = footerComp.text;
+            }
+            if (buttonComp?.buttons?.length) {
+                templateData.buttons = buttonComp.buttons.map(b => ({
+                    type: b.type?.toLowerCase() || 'url',
+                    text: b.text || 'Open',
+                    url: b.url || ''
+                }));
+            }
+
             const tempId = `temp_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-            const content = `[Template: ${templateName}]`;
             const optimisticMsg = {
                 _id: tempId,
                 tempId,
                 leadId: activeLeadId,
-                content,
-                sender: 'system',
+                content: `Template: ${templateName}`,
+                sender: 'agent',
                 messageType: 'template',
                 templateName,
+                templateData: Object.keys(templateData).length > 0 ? templateData : undefined,
                 createdAt: new Date().toISOString(),
                 deliveryStatus: null,
             };
@@ -350,7 +378,10 @@ export default function ChatDashboard() {
             setMessages((prev) => [...prev, optimisticMsg]);
 
             try {
-                const res = await sendChatMessage(activeLeadId, { message: content });
+                const res = await sendChatTemplate(activeLeadId, {
+                    templateName,
+                    templateData: Object.keys(templateData).length > 0 ? templateData : undefined,
+                });
                 const savedMsg = res.data?.data;
 
                 if (savedMsg) {
@@ -752,12 +783,12 @@ export default function ChatDashboard() {
             <TemplatePicker
                 open={showTemplatePicker}
                 onClose={() => setShowTemplatePicker(false)}
-                onSelectTemplate={(name) => {
+                onSelectTemplate={(name, templateObj) => {
                     setShowTemplatePicker(false);
                     if (bulkMode && selectedLeadIds.size > 0) {
                         handleBulkSendTemplate(name);
                     } else if (activeLeadId) {
-                        handleSendTemplate(name);
+                        handleSendTemplate(name, templateObj);
                     }
                 }}
             />

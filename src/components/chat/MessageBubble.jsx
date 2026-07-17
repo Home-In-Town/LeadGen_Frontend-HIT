@@ -16,7 +16,7 @@ import { getDirection } from './utils/messageGrouping';
 import DeliveryStatusIcon from './DeliveryStatusIcon';
 
 const MessageBubble = ({ message, showTail = false, onMediaClick }) => {
-    const { content, sender, createdAt, deliveryStatus, messageType, mediaUrl, fileName, fileSize, mimeType, templateName } = message;
+    const { content, sender, createdAt, deliveryStatus, messageType, mediaUrl, fileName, fileSize, mimeType, templateName, templateData } = message;
 
     const direction = getDirection(sender);
     const isOutbound = direction === 'outbound';
@@ -157,6 +157,70 @@ const MessageBubble = ({ message, showTail = false, onMediaClick }) => {
         );
     };
 
+    // Render rich template content (header image + body + buttons)
+    const renderTemplateContent = () => {
+        const td = templateData;
+        // If no templateData, fall back to showing content as text
+        if (!td || (!td.headerImageUrl && !td.bodyText && (!td.buttons || td.buttons.length === 0))) {
+            return renderTextContent();
+        }
+
+        return (
+            <div className="space-y-1.5">
+                {/* Header image */}
+                {td.headerImageUrl && (
+                    <div className="-mx-3 -mt-1.5 overflow-hidden rounded-t-lg">
+                        <img
+                            src={td.headerImageUrl}
+                            alt="Template header"
+                            className="w-full max-h-[180px] object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                            onClick={() => onMediaClick && onMediaClick(td.headerImageUrl)}
+                        />
+                    </div>
+                )}
+                {/* Header text (if no image) */}
+                {!td.headerImageUrl && td.headerText && (
+                    <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                        {td.headerText}
+                    </p>
+                )}
+                {/* Body text */}
+                {td.bodyText && (
+                    <p className="text-sm text-slate-800 dark:text-slate-200 whitespace-pre-wrap break-words">
+                        {td.bodyText}
+                    </p>
+                )}
+                {/* Footer */}
+                {td.footerText && (
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                        {td.footerText}
+                    </p>
+                )}
+                {/* Buttons */}
+                {td.buttons && td.buttons.length > 0 && (
+                    <div className="border-t border-slate-200 dark:border-slate-600 pt-1.5 mt-1 space-y-1">
+                        {td.buttons.map((btn, i) => (
+                            <a
+                                key={i}
+                                href={btn.url || '#'}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center justify-center gap-1.5 py-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline"
+                            >
+                                {btn.type === 'url' && (
+                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                    </svg>
+                                )}
+                                {btn.text || 'Open'}
+                            </a>
+                        ))}
+                    </div>
+                )}
+            </div>
+        );
+    };
+
     // Render main content based on message type
     const renderContent = () => {
         switch (messageType) {
@@ -164,6 +228,8 @@ const MessageBubble = ({ message, showTail = false, onMediaClick }) => {
                 return mediaUrl ? renderImage() : renderTextContent();
             case 'document':
                 return renderDocument();
+            case 'template':
+                return renderTemplateContent();
             default:
                 return renderTextContent();
         }

@@ -38,6 +38,8 @@ VITE_META_SIGNUP_CONFIG_ID= # Meta Embedded Signup config (production)
 
 - **Lead Management** — create, view, score (HOT/WARM/COLD), delete leads from Facebook/Google/manual sources
 - **AI Voice Calls** — trigger outbound AI calls per lead, view call history with transcripts
+- **Voice Settings** — Sarvam (premium) / Google Chirp3 HD (cheaper) voice selector, custom prompt, sector, language, knowledge base docs
+- **WhatsApp AI Auto-Reply** — AI replies to incoming WA messages with configurable delay (1-30 min), custom prompt, locked when WA not connected
 - **WhatsApp** — send messages, manage templates, connect Meta number (`/whatsapp-setup`, `/whatsapp-templates`)
 - **Email** — compose and send emails via connected Gmail/Outlook account
 - **Chat Dashboard** — real-time messaging with delivery ticks (sent/delivered/read/failed)
@@ -56,7 +58,7 @@ VITE_META_SIGNUP_CONFIG_ID= # Meta Embedded Signup config (production)
 |-------|-------------|
 | `/` | Dashboard / lead pipeline |
 | `/leads` | All leads table |
-| `/call-logs` | AI voice call history |
+| `/call-logs` | AI voice call history + Voice Settings + WhatsApp AI |
 | `/chat` | Chat dashboard |
 | `/campaigns` | Bulk campaign management |
 | `/integrations` | WhatsApp + voice + webhook settings |
