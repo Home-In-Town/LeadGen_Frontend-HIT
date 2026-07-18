@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
 import {
   getProfile, updateProfile, changePin,
-  getHomeinTownStatus, verifyHitAccount, confirmLinkHomeintown, unlinkHomeintown,
+  getHomeinTownStatus, verifyHitAccount, confirmLinkHomeintown, unlinkHomeintown, createHomeinTownAccount,
   getUsageStats, syncIntegrationStatus,
 } from '../api';
 
@@ -46,6 +46,7 @@ const ProfilePage = () => {
   const [hitVerifying, setHitVerifying] = useState(false);
   const [hitConfirmData, setHitConfirmData] = useState(null);
   const [hitLinking, setHitLinking] = useState(false);
+  const [hitCreating, setHitCreating] = useState(false);
 
   // Usage stats
   const [stats, setStats] = useState(null);
@@ -126,6 +127,23 @@ const ProfilePage = () => {
       if (res.data.verified) setHitConfirmData(res.data.hitUser);
     } catch (err) { addToast(err.response?.data?.error || 'Verification failed', 'error'); }
     finally { setHitVerifying(false); }
+  };
+
+  const handleCreateHitAccount = async () => {
+    try {
+      setHitCreating(true);
+      const res = await createHomeinTownAccount();
+      if (res.data.success) {
+        addToast(res.data.message || 'HomeInTown account created! Projects are now enabled.', 'success');
+        // Refresh status
+        const hitRes = await getHomeinTownStatus();
+        if (hitRes.data) setHitStatus({ linked: hitRes.data.linked, hitUser: hitRes.data.hitUser, loading: false });
+      }
+    } catch (err) {
+      addToast(err.response?.data?.error || 'Failed to create account. Please add your mobile number and try again.', 'error');
+    } finally {
+      setHitCreating(false);
+    }
   };
 
   const handleHitConfirm = async () => {
@@ -319,13 +337,43 @@ const ProfilePage = () => {
             </div>
           </div>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div><label className={labelClass}>HIT Phone</label><input type="tel" value={hitForm.phone} onChange={e => setHitForm(f => ({...f, phone: e.target.value}))} className={inputClass} placeholder="10-digit" maxLength={10} /></div>
-            <div><label className={labelClass}>HIT MPIN</label><input type="password" value={hitForm.mpin} onChange={e => setHitForm(f => ({...f, mpin: e.target.value}))} className={inputClass} placeholder="MPIN" maxLength={6} /></div>
-            <div className="sm:col-span-2 flex justify-end">
-              <button onClick={handleHitVerify} disabled={hitVerifying || !hitForm.phone || !hitForm.mpin} className={btnPrimary}>
-                {hitVerifying ? 'Verifying...' : 'Verify & Connect'}
-              </button>
+          <div className="space-y-4">
+            {/* Option 1: Connect existing account */}
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div><label className={labelClass}>HIT Phone</label><input type="tel" value={hitForm.phone} onChange={e => setHitForm(f => ({...f, phone: e.target.value}))} className={inputClass} placeholder="10-digit" maxLength={10} /></div>
+              <div><label className={labelClass}>HIT MPIN</label><input type="password" value={hitForm.mpin} onChange={e => setHitForm(f => ({...f, mpin: e.target.value}))} className={inputClass} placeholder="MPIN" maxLength={6} /></div>
+              <div className="sm:col-span-2 flex justify-end">
+                <button onClick={handleHitVerify} disabled={hitVerifying || !hitForm.phone || !hitForm.mpin} className={btnPrimary}>
+                  {hitVerifying ? 'Verifying...' : 'Verify & Connect'}
+                </button>
+              </div>
+            </div>
+
+            {/* Divider */}
+            <div className="flex items-center gap-3">
+              <div className="flex-1 border-t border-slate-200 dark:border-white/10" />
+              <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">or</span>
+              <div className="flex-1 border-t border-slate-200 dark:border-white/10" />
+            </div>
+
+            {/* Option 2: Create new account & enable projects */}
+            <div className="rounded-xl bg-gradient-to-r from-primary/5 to-emerald-500/5 dark:from-primary/10 dark:to-emerald-500/10 border border-primary/20 dark:border-primary/30 p-4">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-sm font-bold text-slate-900 dark:text-white">Don't have a HomeInTown account?</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    Create one instantly with your current details. Same phone &amp; PIN will work on homeintown.in
+                  </p>
+                </div>
+                <button
+                  onClick={handleCreateHitAccount}
+                  disabled={hitCreating}
+                  className="flex-shrink-0 inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2.5 text-[10px] font-black uppercase tracking-[0.12em] text-white hover:brightness-110 transition-all disabled:opacity-50"
+                >
+                  {hitCreating ? <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" /> : <span className="material-symbols-outlined text-sm">bolt</span>}
+                  {hitCreating ? 'Creating...' : 'Enable Projects'}
+                </button>
+              </div>
             </div>
           </div>
         )}
