@@ -8,30 +8,22 @@ import {
   deleteVoiceDocument,
 } from '../api';
 
-// All 30 Chirp3 HD voices from Google TTS docs (June 2026)
-// All work with all Indian locales (en-IN, hi-IN, mr-IN, etc.)
+// All 15 Google Chirp3 HD voices (curated for Indian accent — hi-IN locale)
+// 8 female + 7 male voices that sound natural in Hindi/Hinglish
 const VOICE_OPTIONS = {
-  female: ['Achernar', 'Aoede', 'Autonoe', 'Callirrhoe', 'Despina', 'Erinome',
-           'Gacrux', 'Kore', 'Laomedeia', 'Leda', 'Pulcherrima', 'Sulafat',
-           'Umbriel', 'Vindemiatrix', 'Zephyr'],
-  male:   ['Achird', 'Algenib', 'Algieba', 'Alnilam', 'Charon', 'Enceladus',
-           'Fenrir', 'Iapetus', 'Orus', 'Puck', 'Rasalgethi', 'Sadachbia',
-           'Sadaltager', 'Schedar', 'Zubenelgenubi'],
+  female: ['Aoede', 'Kore', 'Leda', 'Zephyr', 'Achernar', 'Gacrux', 'Despina', 'Sulafat'],
+  male:   ['Puck', 'Charon', 'Fenrir', 'Orus', 'Achird', 'Alnilam', 'Schedar'],
 };
 // Flat list used for validation in handleReset
 const ALL_VOICE_NAMES = [...VOICE_OPTIONS.female, ...VOICE_OPTIONS.male];
 // Default voice on reset
 const DEFAULT_VOICE_NAME = 'Aoede';
 
-// ── Sarvam bulbul:v3 voices ───────────────────────────────────────────────────
+// ── Sarvam bulbul:v3 voices (15 curated — native Indian voices) ───────────────
 // Stored with "sarvam:" prefix, e.g. "sarvam:priya"
 const SARVAM_VOICES = {
-  female: ['ritu', 'priya', 'neha', 'pooja', 'simran', 'kavya', 'ishita',
-           'shreya', 'roopa', 'tanya', 'shruti', 'suhani', 'kavitha', 'rupali'],
-  male:   ['shubh', 'aditya', 'rahul', 'rohan', 'amit', 'dev', 'ratan',
-           'varun', 'manan', 'sumit', 'kabir', 'aayan', 'ashutosh', 'advait',
-           'anand', 'tarun', 'sunny', 'mani', 'gokul', 'vijay', 'mohit',
-           'rehan', 'soham'],
+  female: ['priya', 'ritu', 'neha', 'pooja', 'simran', 'kavya', 'ishita', 'shreya'],
+  male:   ['shubh', 'aditya', 'rahul', 'rohan', 'amit', 'dev', 'ratan'],
 };
 // Default Sarvam voice — warm female Indian voice, good for sales calls
 const DEFAULT_SARVAM_VOICE = 'sarvam:priya';
