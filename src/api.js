@@ -253,9 +253,15 @@ export const getHomeinTownStatus     = ()     => ownersApi.get('/homeintown-stat
 export const verifyHitAccount        = (data) => ownersApi.post('/link-homeintown', data);
 export const confirmLinkHomeintown   = (data) => ownersApi.post('/confirm-link-homeintown', data);
 export const unlinkHomeintown        = ()     => ownersApi.post('/unlink-homeintown');
+export const createHomeinTownAccount = ()     => ownersApi.post('/create-homeintown-account');
 
 // ====== HIT PROJECTS ENDPOINTS ======
 export const getHitProjects          = ()     => ownersApi.get('/projects');
+
+// ====== PROJECT CRUD (Phase 2 — creates in HIT DB) ======
+export const createHitProject        = (data) => projectsApi.post('/create', data);
+export const updateHitProject        = (id, data) => projectsApi.put(`/${id}/update`, data);
+export const deleteHitProject        = (id)   => projectsApi.delete(`/${id}/delete`);
 
 
 // ====== PROJECT ENDPOINTS (HIT-connected users) ======
