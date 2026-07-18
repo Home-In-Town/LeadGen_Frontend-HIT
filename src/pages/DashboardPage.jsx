@@ -4,6 +4,8 @@ import * as api from '../api';
 import { useAuth } from '../context/AuthContext';
 import { syncIntegrationStatus } from '../api';
 
+import DashboardAnalytics from '../components/DashboardAnalytics';
+
 const THEME_STORAGE_KEY = 'hit-landing-theme';
 
 function getInitialTheme() {
@@ -234,6 +236,9 @@ const DashboardPage = () => {
             ))}
           </div>
         </section>
+
+        {/* Analytics Charts */}
+        <DashboardAnalytics />
 
         {/* ── Integration Sync Panel ─────────────────────────────────────── */}
         <section className="mx-auto max-w-5xl px-4 sm:px-6 mb-6">

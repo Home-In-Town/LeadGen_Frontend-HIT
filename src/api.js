@@ -115,6 +115,10 @@ export const markChatAsRead = (leadId) => chatApi.post(`/${leadId}/read`);
 
 // ====== EMAIL DASHBOARD ENDPOINTS ======
 const emailApi = createApiInstance('/email');
+
+// ====== DASHBOARD ANALYTICS ======
+const dashboardApi = createApiInstance('/dashboard');
+export const getDashboardAnalytics = (days = 30) => dashboardApi.get(`/analytics?days=${days}`);
 export const getEmailFolder = (folder, params) => emailApi.get(`/folder/${folder}`, { params });
 export const getEmailById = (id) => emailApi.get(`/${id}`);
 export const sendEmail = (data) => emailApi.post('/send', data);

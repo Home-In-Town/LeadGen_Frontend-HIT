@@ -828,7 +828,7 @@ function TabSettings({ isConnected, onSync, syncing, lastSynced, onDisconnect, d
                         <div>
                             <p className="text-sm font-bold text-slate-900 dark:text-white">Run Automation</p>
                             <p className="text-xs text-slate-500 mt-0.5">
-                                When enabled, triggers AI voice calls for each imported lead. Disable for silent imports.
+                                When enabled, triggers AI voice calls, WhatsApp &amp; email for each imported lead per project settings. Campaigns without a project assigned are imported silently.
                             </p>
                         </div>
                         <button
