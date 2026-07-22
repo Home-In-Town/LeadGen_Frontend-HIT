@@ -71,6 +71,10 @@ export const getVoiceSettings = () => voiceApi.get('/settings');
 export const updateVoiceSettings = (data) => voiceApi.put('/settings', data);
 export const resetVoiceSettings = () => voiceApi.delete('/settings');
 
+// ====== DEFAULT AUTOMATION (Phase 1 — no integration needed) ======
+export const getDefaultAutomation = () => voiceApi.get('/default-automation');
+export const updateDefaultAutomation = (data) => voiceApi.put('/default-automation', data);
+
 // ====== VOICE DOCUMENTS ENDPOINTS ======
 export const uploadVoiceDocument = (file) => {
     const formData = new FormData();

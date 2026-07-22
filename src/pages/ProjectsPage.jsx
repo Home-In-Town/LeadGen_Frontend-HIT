@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { listProjects, syncProjects, createHitProject, createHomeinTownAccount } from '../api';
+import { listProjects, syncProjects, createHitProject, createHomeinTownAccount, deleteHitProject } from '../api';
 import { useNotifications } from '../context/NotificationContext';
 import { useAuth } from '../context/AuthContext';
 
@@ -379,11 +379,11 @@ const ProjectsPage = () => {
         {projects.map((project) => (
           <div
             key={project.hitProjectId}
-            onClick={() => navigate(`/projects/${project.hitProjectId}`)}
-            className={`${cardClass} cursor-pointer overflow-hidden group`}
+            className={`${cardClass} overflow-hidden group relative`}
           >
             {/* Cover image or placeholder */}
-            <div className="h-32 bg-gradient-to-br from-primary/10 to-emerald-500/10 dark:from-primary/5 dark:to-emerald-500/5 relative overflow-hidden">
+            <div className="h-32 bg-gradient-to-br from-primary/10 to-emerald-500/10 dark:from-primary/5 dark:to-emerald-500/5 relative overflow-hidden cursor-pointer"
+              onClick={() => navigate(`/projects/${project.hitProjectId}`)}>
               {project.coverImage ? (
                 <img
                   src={project.coverImage}
@@ -409,13 +409,44 @@ const ProjectsPage = () => {
 
             {/* Content */}
             <div className="p-4">
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white truncate">
-                {project.projectName}
-              </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-1">
-                <span className="material-symbols-outlined text-xs">location_on</span>
-                {project.city || project.location || 'Location not set'}
-              </p>
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1 cursor-pointer" onClick={() => navigate(`/projects/${project.hitProjectId}`)}>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white truncate">
+                    {project.projectName}
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-1">
+                    <span className="material-symbols-outlined text-xs">location_on</span>
+                    {project.city || project.location || 'Location not set'}
+                  </p>
+                </div>
+                {/* Edit + Delete buttons */}
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); navigate(`/projects/${project.hitProjectId}`); }}
+                    title="Edit settings"
+                    className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-white/10 text-slate-400 hover:text-primary transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">edit</span>
+                  </button>
+                  <button
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      if (!window.confirm(`Delete "${project.projectName}"? This will unlink all associated campaigns and leads.`)) return;
+                      try {
+                        await deleteHitProject(project.hitProjectId);
+                        addToast(`Project "${project.projectName}" deleted`, 'success');
+                        fetchProjects();
+                      } catch (err) {
+                        addToast(err.response?.data?.error || 'Failed to delete project', 'error');
+                      }
+                    }}
+                    title="Delete project"
+                    className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 text-slate-400 hover:text-red-500 transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">delete</span>
+                  </button>
+                </div>
+              </div>
 
               {/* Automation status pills */}
               <div className="flex flex-wrap gap-1.5 mt-3">

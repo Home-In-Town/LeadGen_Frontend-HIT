@@ -6,6 +6,8 @@ import {
   uploadVoiceDocument,
   listVoiceDocuments,
   deleteVoiceDocument,
+  getDefaultAutomation,
+  updateDefaultAutomation,
 } from '../api';
 
 // All 15 Google Chirp3 HD voices (curated for Indian accent — hi-IN locale)
@@ -936,8 +938,155 @@ const VoiceSettingsPanel = () => {
           Reset to Default
         </button>
       </div>
+
+      {/* ═══════════════════════════════════════════════════════════════════════════ */}
+      {/* DEFAULT CAMPAIGN SETTINGS (Phase 1 — no integration needed) */}
+      {/* ═══════════════════════════════════════════════════════════════════════════ */}
+      <DefaultAutomationSection />
     </div>
   );
 };
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// DEFAULT AUTOMATION SECTION — for users without FB/Google/Projects
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function DefaultAutomationSection() {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({
+    aiPrompt: '',
+    waTemplateName: '',
+    emailTemplateName: '',
+    autoCallEnabled: true,
+    autoWaEnabled: true,
+    autoEmailEnabled: false,
+  });
+  const [dirty, setDirty] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await getDefaultAutomation();
+        const d = res.data?.data || {};
+        setData(d);
+        setForm({
+          aiPrompt: d.aiPrompt || '',
+          waTemplateName: d.waTemplateName || '',
+          emailTemplateName: d.emailTemplateName || '',
+          autoCallEnabled: d.autoCallEnabled !== false,
+          autoWaEnabled: d.autoWaEnabled !== false,
+          autoEmailEnabled: d.autoEmailEnabled === true,
+        });
+      } catch { /* ignore */ }
+      finally { setLoading(false); }
+    })();
+  }, []);
+
+  const handleChange = (field, value) => {
+    setForm(prev => ({ ...prev, [field]: value }));
+    setDirty(true);
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await updateDefaultAutomation(form);
+      setDirty(false);
+    } catch { /* error handled by toast in api layer */ }
+    finally { setSaving(false); }
+  };
+
+  if (loading) return null;
+
+  return (
+    <div className="mt-8 pt-8 border-t-2 border-dashed border-slate-200 dark:border-white/10">
+      <div className="flex items-center gap-3 mb-4">
+        <div className="w-10 h-10 rounded-[12px] bg-gradient-to-br from-violet-500/20 to-blue-500/20 flex items-center justify-center">
+          <span className="material-symbols-outlined text-xl text-violet-600 dark:text-violet-400">campaign</span>
+        </div>
+        <div>
+          <h3 className="text-sm font-black text-slate-900 dark:text-white">Default Campaign Settings</h3>
+          <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+            Used for bulk imports & "Start Lead" when no specific campaign or project is assigned
+          </p>
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        {/* AI Prompt for calls */}
+        <div>
+          <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-1.5">
+            Product/Service Pitch (AI Prompt)
+          </label>
+          <textarea
+            value={form.aiPrompt}
+            onChange={e => handleChange('aiPrompt', e.target.value)}
+            rows={4}
+            placeholder="Describe your product/service here. E.g.: We sell 1200 sq ft residential plots at Manish Nagar, Nagpur. Price starts at ₹12 lakh. RERA approved. Near D-Mart and Metro station."
+            className="w-full rounded-[12px] border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.03] px-4 py-3 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/10 focus:outline-none resize-y"
+          />
+          <p className="text-[9px] text-slate-400 mt-1">{form.aiPrompt.length}/5000 — This tells the AI agent WHAT to pitch on calls</p>
+        </div>
+
+        {/* WA Template */}
+        <div>
+          <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-1.5">
+            WhatsApp Template Name
+          </label>
+          <input
+            type="text"
+            value={form.waTemplateName}
+            onChange={e => handleChange('waTemplateName', e.target.value)}
+            placeholder="e.g. lead_welcome_2 (leave empty for default)"
+            className="w-full rounded-[12px] border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.03] px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:border-primary focus:outline-none"
+          />
+        </div>
+
+        {/* Channel Toggles */}
+        <div className="grid grid-cols-3 gap-3">
+          {[
+            { key: 'autoCallEnabled', label: 'Voice Calls', icon: 'call', color: 'blue' },
+            { key: 'autoWaEnabled', label: 'WhatsApp', icon: 'chat', color: 'green' },
+            { key: 'autoEmailEnabled', label: 'Email', icon: 'mail', color: 'purple' },
+          ].map(ch => (
+            <button
+              key={ch.key}
+              onClick={() => handleChange(ch.key, !form[ch.key])}
+              className={`flex flex-col items-center gap-1.5 p-3 rounded-[14px] border transition-all ${
+                form[ch.key]
+                  ? `border-${ch.color}-300 dark:border-${ch.color}-500/30 bg-${ch.color}-50 dark:bg-${ch.color}-500/10`
+                  : 'border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.02]'
+              }`}
+            >
+              <span className={`material-symbols-outlined text-lg ${form[ch.key] ? `text-${ch.color}-600 dark:text-${ch.color}-400` : 'text-slate-400'}`}>
+                {ch.icon}
+              </span>
+              <span className={`text-[9px] font-black uppercase tracking-wider ${form[ch.key] ? 'text-slate-900 dark:text-white' : 'text-slate-400'}`}>
+                {ch.label}
+              </span>
+              <span className={`text-[8px] font-bold uppercase ${form[ch.key] ? 'text-emerald-600' : 'text-slate-400'}`}>
+                {form[ch.key] ? 'ON' : 'OFF'}
+              </span>
+            </button>
+          ))}
+        </div>
+
+        {/* Save */}
+        {dirty && (
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="flex items-center gap-2 rounded-[14px] bg-violet-600 px-5 py-2.5 text-[10px] font-black uppercase tracking-[0.15em] text-white shadow-lg shadow-violet-500/20 hover:brightness-110 transition-all disabled:opacity-50"
+          >
+            {saving ? <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" /> : <span className="material-symbols-outlined text-sm">save</span>}
+            {saving ? 'Saving...' : 'Save Default Campaign'}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default VoiceSettingsPanel;
