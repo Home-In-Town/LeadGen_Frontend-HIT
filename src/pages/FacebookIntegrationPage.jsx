@@ -417,7 +417,7 @@ function CampaignCard({ campaign, onMappingCreated, hitLinked, projects }) {
 
         {showConfig && (
             <CampaignConfigModal
-                campaign={campaign}
+                campaign={{ ...campaign, hitLinked }}
                 onClose={() => setShowConfig(false)}
                 onSaved={onMappingCreated}
             />

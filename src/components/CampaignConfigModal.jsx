@@ -73,8 +73,8 @@ function Toggle({ enabled, onChange, label, description, locked, lockedReason })
 const CampaignConfigModal = ({ campaign, onClose, onSaved }) => {
     const { addToast } = useNotifications();
 
-    // ── If campaign is assigned to a project, show "Managed by Project" ───────
-    if (campaign.linkedHitProjectId) {
+    // ── If campaign is assigned to a project AND user is HIT-linked, show "Managed by Project" ───────
+    if (campaign.linkedHitProjectId && campaign.hitLinked !== false) {
         return (
             <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
                 <div className={`${cardClass} w-full max-w-lg mx-4 p-6`} onClick={e => e.stopPropagation()}>
