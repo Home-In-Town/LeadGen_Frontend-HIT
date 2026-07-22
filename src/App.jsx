@@ -71,6 +71,7 @@ const EmailTemplatesPage    = lazy(() => import('./pages/EmailTemplatesPage'));
 const ProfilePage           = lazy(() => import('./pages/ProfilePage'));
 const ProjectsPage          = lazy(() => import('./pages/ProjectsPage'));
 const ProjectSettingsPage   = lazy(() => import('./pages/ProjectSettingsPage'));
+const AddProjectPage        = lazy(() => import('./pages/AddProjectPage'));
 
 function PageLoader() {
     return (
@@ -148,6 +149,7 @@ function App() {
                 <Route path="/email-templates" element={<EmailTemplatesPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
                 <Route path="/projects" element={<ProjectsPage />} />
+                <Route path="/projects/new" element={<AddProjectPage />} />
                 <Route path="/projects/:hitProjectId" element={<ProjectSettingsPage />} />
               </Route>
 

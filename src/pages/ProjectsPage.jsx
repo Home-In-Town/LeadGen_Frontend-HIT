@@ -329,7 +329,7 @@ const ProjectsPage = () => {
         </div>
         <div className="flex gap-2">
           <button
-            onClick={() => setShowAddModal(true)}
+            onClick={() => navigate('/projects/new')}
             className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-[10px] font-black uppercase tracking-[0.15em] text-white hover:brightness-110 transition-all"
           >
             <span className="material-symbols-outlined text-sm">add</span>
@@ -366,7 +366,7 @@ const ProjectsPage = () => {
           <span className="material-symbols-outlined text-5xl text-slate-300 dark:text-slate-600 mb-4 block">apartment</span>
           <p className="text-sm font-bold text-slate-700 dark:text-slate-300">No projects yet</p>
           <p className="text-xs text-slate-500 mt-1 mb-4">Add a project to start managing leads with project-specific automation.</p>
-          <button onClick={() => setShowAddModal(true)}
+          <button onClick={() => navigate('/projects/new')}
             className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-[10px] font-black uppercase tracking-[0.15em] text-white hover:brightness-110 transition-all">
             <span className="material-symbols-outlined text-sm">add</span>
             Add Your First Project

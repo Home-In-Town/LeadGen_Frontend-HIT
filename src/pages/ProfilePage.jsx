@@ -34,6 +34,7 @@ const ProfilePage = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
+  const [editing, setEditing] = useState(false);
 
   // PIN
   const [showPin, setShowPin] = useState(false);
@@ -271,34 +272,69 @@ const ProfilePage = () => {
 
       {/* ═══════ Company Details ═══════ */}
       <div className={`${cardClass} p-5`}>
-        <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-4">Company Details</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-bold text-slate-900 dark:text-white">Company Details</h3>
+          {!editing && (
+            <button onClick={() => setEditing(true)} className="flex items-center gap-1.5 text-[10px] font-bold text-primary hover:text-primary/80 transition-colors">
+              <span className="material-symbols-outlined text-sm">edit</span>
+              Edit
+            </button>
+          )}
+        </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <label className={labelClass}>Full Name</label>
-            <input type="text" value={profile.name} onChange={e => handleProfileChange('name', e.target.value)} className={inputClass} placeholder="Your name" />
+            {editing ? (
+              <input type="text" value={profile.name} onChange={e => handleProfileChange('name', e.target.value)} className={inputClass} placeholder="Your name" />
+            ) : (
+              <p className="text-sm font-medium text-slate-900 dark:text-white py-2.5">{profile.name || '—'}</p>
+            )}
           </div>
           <div>
             <label className={labelClass}>Email (Login ID)</label>
-            <input type="email" value={profile.email} disabled className={`${inputClass} opacity-60 cursor-not-allowed`} />
+            <p className="text-sm font-medium text-slate-500 dark:text-slate-400 py-2.5">{profile.email || '—'}</p>
           </div>
           <div>
             <label className={labelClass}>Company Name</label>
-            <input type="text" value={profile.companyName} onChange={e => handleProfileChange('companyName', e.target.value)} className={inputClass} placeholder="Your company name (used in AI calls)" />
+            {editing ? (
+              <input type="text" value={profile.companyName} onChange={e => handleProfileChange('companyName', e.target.value)} className={inputClass} placeholder="Your company name (used in AI calls)" />
+            ) : (
+              <p className="text-sm font-medium text-slate-900 dark:text-white py-2.5">{profile.companyName || '—'}</p>
+            )}
           </div>
           <div>
             <label className={labelClass}>Mobile Number</label>
-            <input type="tel" value={profile.mobile} onChange={e => handleProfileChange('mobile', e.target.value)} className={inputClass} placeholder="10-digit mobile" maxLength={10} />
+            {editing ? (
+              <input type="tel" value={profile.mobile} onChange={e => handleProfileChange('mobile', e.target.value)} className={inputClass} placeholder="10-digit mobile" maxLength={10} />
+            ) : (
+              <p className="text-sm font-medium text-slate-900 dark:text-white py-2.5">{profile.mobile || '—'}</p>
+            )}
           </div>
         </div>
-        <div className="mt-4 flex items-center justify-between">
-          <button onClick={() => setShowPin(!showPin)} className={btnOutline}>
-            <span className="material-symbols-outlined text-sm">lock</span>
-            {showPin ? 'Cancel' : 'Change PIN'}
-          </button>
-          <button onClick={handleSave} disabled={!dirty || saving} className={btnPrimary}>
-            {saving ? 'Saving...' : 'Save'}
-          </button>
-        </div>
+        {editing && (
+          <div className="mt-4 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <button onClick={() => setShowPin(!showPin)} className={btnOutline}>
+                <span className="material-symbols-outlined text-sm">lock</span>
+                {showPin ? 'Cancel' : 'Change PIN'}
+              </button>
+              <button onClick={() => { setEditing(false); setDirty(false); }} className={btnOutline}>
+                Cancel
+              </button>
+            </div>
+            <button onClick={() => { handleSave(); setEditing(false); }} disabled={!dirty || saving} className={btnPrimary}>
+              {saving ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
+        )}
+        {!editing && (
+          <div className="mt-4 flex justify-start">
+            <button onClick={() => setShowPin(!showPin)} className={btnOutline}>
+              <span className="material-symbols-outlined text-sm">lock</span>
+              {showPin ? 'Cancel' : 'Change PIN'}
+            </button>
+          </div>
+        )}
 
         {/* PIN Change */}
         {showPin && (

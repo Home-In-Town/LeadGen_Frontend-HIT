@@ -25,6 +25,7 @@ import {
 import leadsApi from '../api';
 
 import { useNotifications } from '../context/NotificationContext';
+import NewChatDialog from '../components/chat/NewChatDialog';
 import { useAuth } from '../context/AuthContext';
 import { ConversationSidebar, MessagePanel, ContactInfoPanel, BulkActionToolbar, TemplatePicker } from '../components/chat';
 
@@ -91,6 +92,7 @@ export default function ChatDashboard() {
     const [activeWANumber, setActiveWANumber] = useState(undefined);
     const [campaignProgress, setCampaignProgress] = useState(null);
     const [showTemplatePicker, setShowTemplatePicker] = useState(false);
+    const [showNewChatDialog, setShowNewChatDialog] = useState(false);
 
     // -----------------------------------------------------------------------
     // State: Contact Info Panel
@@ -708,9 +710,7 @@ export default function ChatDashboard() {
                     onLoadMore={handleLoadMoreConversations}
                     hasMore={convHasMore}
                     integrationHealth={integrationHealth}
-                    onNewChat={() => {
-                        // Placeholder: will be wired to NewChatDialog in a later task
-                    }}
+                    onNewChat={() => setShowNewChatDialog(true)}
                 />
             </div>
 
@@ -790,6 +790,17 @@ export default function ChatDashboard() {
                     } else if (activeLeadId) {
                         handleSendTemplate(name, templateObj);
                     }
+                }}
+            />
+
+            {/* New Chat Dialog */}
+            <NewChatDialog
+                open={showNewChatDialog}
+                onClose={() => setShowNewChatDialog(false)}
+                onSuccess={(leadId) => {
+                    setShowNewChatDialog(false);
+                    setActiveLeadId(leadId);
+                    fetchConversations();
                 }}
             />
         </div>

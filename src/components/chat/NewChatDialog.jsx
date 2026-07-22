@@ -38,6 +38,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://lead-filterat
 
 const NewChatDialog = ({ open, onClose, onSuccess }) => {
     const [phoneNumber, setPhoneNumber] = useState('');
+    const [contactName, setContactName] = useState('');
     const [countryCode, setCountryCode] = useState('91');
     const [selectedTemplate, setSelectedTemplate] = useState('');
     const [templates, setTemplates] = useState([]);
@@ -75,6 +76,7 @@ const NewChatDialog = ({ open, onClose, onSuccess }) => {
     useEffect(() => {
         if (open) {
             setPhoneNumber('');
+            setContactName('');
             setCountryCode('91');
             setSelectedTemplate('');
             setError(null);
@@ -128,6 +130,7 @@ const NewChatDialog = ({ open, onClose, onSuccess }) => {
                 body: JSON.stringify({
                     phoneNumber: fullPhone,
                     templateName: selectedTemplate,
+                    name: contactName.trim() || undefined,
                 }),
             });
 
@@ -204,6 +207,20 @@ const NewChatDialog = ({ open, onClose, onSuccess }) => {
 
                 {/* Body */}
                 <form onSubmit={handleSubmit} className="p-6 space-y-5">
+                    {/* Contact Name (optional) */}
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                            Contact Name
+                        </label>
+                        <input
+                            type="text"
+                            value={contactName}
+                            onChange={(e) => setContactName(e.target.value)}
+                            placeholder="e.g., Pranay Bhujade"
+                            className="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                        />
+                    </div>
+
                     {/* Phone Number Input */}
                     <div>
                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
