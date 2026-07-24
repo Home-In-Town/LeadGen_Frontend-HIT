@@ -75,6 +75,14 @@ export default function AddProjectPage() {
     if (!form.category) { addToast('Category is required', 'error'); return; }
     if (!form.city.trim()) { addToast('City is required', 'error'); return; }
 
+    // Additional validation for publishing (matches HIT requirements)
+    if (status === 'published') {
+      if (!form.location.trim()) { addToast('Location / Area is required to publish', 'error'); return; }
+      if (!form.propertyType) { addToast('Property Type is required to publish', 'error'); return; }
+      if (!form.startingPrice && !form.pricePerSqFt) { addToast('At least one pricing field is required to publish (Starting Price or Price Per Sq Ft)', 'error'); return; }
+      if (!form.whatsappNumber && !form.callNumber) { addToast('At least one contact number is required to publish (WhatsApp or Call)', 'error'); return; }
+    }
+
     setSaving(true);
     try {
       const payload = {
