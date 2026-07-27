@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import LandingNavbar from '../components/landing/LandingNavbar';
+import { useTheme } from '../context/ThemeContext';
 
 const THEME_STORAGE_KEY = 'hit-landing-theme';
 
@@ -142,69 +143,87 @@ const testimonials = [
 
 const LandingPage = () => {
   const navigate = useNavigate();
-  const [theme, setTheme] = useState(getInitialTheme);
-
-  useEffect(() => {
-  try {
-    localStorage.setItem(THEME_STORAGE_KEY, theme);
-  } catch {
-    /* ignore */
-  }
-
-  document.documentElement.classList.toggle('dark', theme === 'dark');
-}, [theme]);
-
-  // const isDark = theme === 'dark';
+  const { theme, toggleTheme } = useTheme();
+  const isDark = theme === 'dark';
 
   return (
     <div className="animate-fade-in min-h-screen font-display transition-colors duration-300">
       
-      <div className="relative min-h-screen bg-slate-50 text-slate-900 transition-colors duration-300 dark:bg-[#07080c] dark:text-slate-100">
-        <div className="pointer-events-none fixed inset-0 landing-gradient-mesh opacity-90 dark:opacity-100" aria-hidden />
-        <div className="pointer-events-none fixed inset-0 landing-grid-bg opacity-40 dark:opacity-30" aria-hidden />
+      <div className={`relative min-h-screen transition-colors duration-300 overflow-x-hidden ${isDark ? 'bg-[#0F172A] text-white' : 'bg-white text-slate-900'}`}>
+        {/* Animated wave background + CRM design elements */}
+        <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
+          {/* Waves */}
+          <svg className="absolute bottom-0 left-0 w-[200%] sm:w-full h-[40%] opacity-[0.06]" viewBox="0 0 1440 320" preserveAspectRatio="none">
+            <path fill={isDark ? 'white' : '#0F172A'} d="M0,160L48,170.7C96,181,192,203,288,197.3C384,192,480,160,576,154.7C672,149,768,171,864,186.7C960,203,1056,213,1152,197.3C1248,181,1344,139,1392,117.3L1440,96L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z">
+              <animateTransform attributeName="transform" type="translate" values="0,0;30,8;0,0" dur="12s" repeatCount="indefinite"/>
+            </path>
+          </svg>
+          <svg className="absolute bottom-0 left-0 w-[200%] sm:w-full h-[30%] opacity-[0.04]" viewBox="0 0 1440 320" preserveAspectRatio="none">
+            <path fill={isDark ? 'white' : '#0F172A'} d="M0,224L48,213.3C96,203,192,181,288,181.3C384,181,480,203,576,213.3C672,224,768,224,864,208C960,192,1056,160,1152,165.3C1248,171,1344,213,1392,234.7L1440,256L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z">
+              <animateTransform attributeName="transform" type="translate" values="0,0;-30,6;0,0" dur="16s" repeatCount="indefinite"/>
+            </path>
+          </svg>
+
+          {/* CRM-themed floating icons (subtle, decorative) */}
+          <div className="absolute top-[12%] right-[5%] opacity-[0.06] hidden sm:block" style={{ animation: 'floatOrb 20s ease-in-out infinite' }}>
+            <span className="material-symbols-outlined text-[80px] text-emerald-300" style={{ fontVariationSettings: "'FILL' 1" }}>groups</span>
+          </div>
+          <div className="absolute top-[45%] left-[3%] opacity-[0.05] hidden sm:block" style={{ animation: 'floatOrb 16s ease-in-out infinite reverse' }}>
+            <span className="material-symbols-outlined text-[60px] text-violet-300" style={{ fontVariationSettings: "'FILL' 1" }}>analytics</span>
+          </div>
+          <div className="absolute bottom-[30%] right-[12%] opacity-[0.04] hidden sm:block" style={{ animation: 'floatOrb 22s ease-in-out infinite 4s' }}>
+            <span className="material-symbols-outlined text-[70px] text-emerald-200" style={{ fontVariationSettings: "'FILL' 1" }}>call</span>
+          </div>
+          <div className="absolute top-[65%] left-[20%] opacity-[0.04] hidden sm:block" style={{ animation: 'floatOrb 18s ease-in-out infinite 2s' }}>
+            <span className="material-symbols-outlined text-[55px] text-white" style={{ fontVariationSettings: "'FILL' 1" }}>campaign</span>
+          </div>
+
+          {/* Gradient orbs */}
+          <div className="absolute top-[15%] left-[5%] w-40 sm:w-64 h-40 sm:h-64 rounded-full opacity-[0.08]" style={{ background: 'radial-gradient(circle, #7C3AED, transparent 70%)', animation: 'floatOrb 18s ease-in-out infinite' }} />
+          <div className="absolute top-[40%] right-[5%] w-32 sm:w-48 h-32 sm:h-48 rounded-full opacity-[0.06]" style={{ background: 'radial-gradient(circle, #10B981, transparent 70%)', animation: 'floatOrb 14s ease-in-out infinite reverse' }} />
+          <div className="absolute bottom-[20%] left-[25%] w-36 sm:w-56 h-36 sm:h-56 rounded-full opacity-[0.05]" style={{ background: 'radial-gradient(circle, #A78BFA, transparent 70%)', animation: 'floatOrb 20s ease-in-out infinite 3s' }} />
+        </div>
 
         <LandingNavbar
-          theme={theme}
-          onThemeChange={setTheme}
           onLogin={() => navigate('/login')}
         />
 
         <main className="relative">
           {/* Hero */}
-          <section className="relative overflow-hidden px-4 pb-20 pt-14 sm:px-6 sm:pb-28 sm:pt-20 lg:px-8">
+          <section className="relative overflow-hidden px-4 pb-16 pt-10 sm:px-6 sm:pb-28 sm:pt-20 lg:px-8">
             <div className="mx-auto max-w-6xl">
-              <div className="inline-flex items-center gap-2 rounded-full border border-slate-200/80 bg-white/70 px-3 py-1 text-xs font-medium text-slate-600 shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
+              <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[10px] sm:text-xs font-medium shadow-sm backdrop-blur-md ${isDark ? 'border-white/15 bg-white/10 text-white/80' : 'border-slate-200 bg-white/80 text-slate-600'}`}>
                 <span className="relative flex h-2 w-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary/60 opacity-75" />
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-violet-400/60 opacity-75" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-violet-400" />
                 </span>
                 AI Employees • Sales Automation • Customer Engagement
               </div>
 
-              <div className="mt-8 max-w-3xl">
-                <h1 className="normal-case text-4xl font-semibold leading-[1.08] tracking-tight text-slate-900 sm:text-5xl lg:text-6xl dark:text-white">
-                  <span className="bg-gradient-to-r from-primary via-emerald-400 to-sky-400 bg-clip-text text-transparent animate-gradient-shift">
+              <div className="mt-6 sm:mt-8">
+                <h1 className={`normal-case text-[28px] sm:text-4xl md:text-5xl lg:text-6xl font-semibold leading-[1.12] tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                  <span className="font-extrabold text-emerald-400">
                     OneEmployee:
                   </span>{' '}
                   The Revenue Workforce for Modern Businesses.
                 </h1>
-                <p className="mt-6 max-w-2xl text-base leading-relaxed text-slate-600 sm:text-lg dark:text-slate-400">
+                <p className={`mt-4 sm:mt-6 max-w-2xl text-sm sm:text-base leading-relaxed ${isDark ? 'text-white/70' : 'text-slate-600'}`}>
                   OneEmployee helps businesses capture leads, engage customers, automate follow-ups, and grow revenue with AI-powered employees that work 24/7.
                 </p>
               </div>
 
-              <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:items-center">
+              <div className="mt-8 sm:mt-10 flex flex-col gap-3 sm:flex-row sm:items-center">
                 <button
                   type="button"
                   onClick={() => navigate('/login')}
-                  className="inline-flex items-center justify-center rounded-[12px] bg-primary px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-primary/30 transition-all hover:bg-primary-hover hover:shadow-xl hover:shadow-primary/35"
+                  className="inline-flex items-center justify-center rounded-[12px] bg-emerald-500 px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-emerald-500/30 transition-all hover:bg-emerald-400 hover:shadow-xl hover:shadow-emerald-400/35"
                 >
                   Get Clients
                   <span className="material-symbols-outlined ml-2 text-[20px]">arrow_forward</span>
                 </button>
                 <a
                   href="#features"
-                  className="inline-flex items-center justify-center rounded-[12px] border border-slate-200 bg-white/80 px-6 py-3.5 text-sm font-semibold text-slate-800 backdrop-blur-md transition-all hover:border-slate-300 hover:bg-white dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
+                  className={`inline-flex items-center justify-center rounded-[12px] border px-6 py-3.5 text-sm font-semibold backdrop-blur-md transition-all ${isDark ? 'border-white/20 bg-white/10 text-white hover:bg-white/20' : 'border-slate-200 bg-white text-slate-800 shadow-sm hover:bg-slate-50'}`}
                 >
                   See How It Works
                 </a>
@@ -212,10 +231,9 @@ const LandingPage = () => {
 
 
               {/* AI Capabilities Marquee */}
-              <div className="relative mt-12 overflow-hidden rounded-3xl border border-primary/20 bg-gradient-to-r from-primary/10 via-emerald-500/10 to-sky-500/10 p-1 shadow-[0_0_40px_rgba(59,130,246,0.15)]">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(59,130,246,0.12),transparent_70%)]" />
+              <div className="relative mt-12 overflow-hidden rounded-3xl border border-white/10 bg-white/5 p-1">
 
-                <div className="relative overflow-hidden rounded-[22px] bg-white/80 py-5 backdrop-blur-xl dark:bg-slate-900/70">
+                <div className="relative overflow-hidden rounded-[22px] bg-[#1E1B4B]/80 py-5 backdrop-blur-xl border border-white/5">
                   <div className="marquee-track flex items-center gap-5 whitespace-nowrap">
                     {[
                       { label: 'AI Calling', icon: 'call', color: 'text-emerald-500' },
@@ -239,7 +257,7 @@ const LandingPage = () => {
                     ].map((item, index) => (
                       <div
                         key={`${item.label}-${index}`}
-                        className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-gradient-to-r from-primary/10 to-emerald-500/10 px-5 py-2.5 text-sm font-semibold text-slate-800 shadow-sm transition-all duration-300 hover:scale-105 hover:border-primary/40 dark:text-white"
+                        className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-semibold text-white transition-all duration-300 hover:scale-105 hover:border-white/20 hover:bg-white/10"
                       >
                         <span
                           className={`material-symbols-outlined text-[18px] ${item.color}`}
@@ -262,20 +280,20 @@ const LandingPage = () => {
                 ].map((stat) => (
                   <div
                     key={stat.label}
-                    className="rounded-[14px] border border-slate-200/80 bg-white/70 p-5 shadow-sm backdrop-blur-md transition-all duration-300 hover:border-primary/25 hover:shadow-md dark:border-white/10 dark:bg-white/[0.04] dark:shadow-[0_0_0_1px_rgba(255,255,255,0.06)] dark:hover:border-primary/40"
+                    className="rounded-[14px] border border-white/10 bg-white/5 p-5 backdrop-blur-sm transition-all duration-300 hover:border-emerald-400/25 hover:bg-white/10"
                   >
-                    <p className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                    <p className="text-xs font-medium uppercase tracking-wide text-white/50">
                       {stat.label}
                     </p>
                     <div className="mt-2 flex items-end justify-between gap-2">
-                      <p className="font-mono text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+                      <p className="font-mono text-3xl font-bold tracking-tight text-white">
                         {stat.value}
                       </p>
-                      <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary dark:bg-primary/20">
+                      <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] font-semibold text-emerald-400">
                         {stat.trend}
                       </span>
                     </div>
-                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-500">{stat.hint}</p>
+                    <p className="mt-1 text-xs text-white/40">{stat.hint}</p>
                   </div>
                 ))}
               </div>
@@ -286,11 +304,11 @@ const LandingPage = () => {
           <section id="features" className="scroll-mt-24 px-4 py-20 sm:px-6 lg:px-8">
             <div className="mx-auto max-w-6xl">
               <div className="max-w-2xl">
-                <p className="text-sm font-semibold uppercase tracking-wider text-primary">Platform</p>
-                <h2 className="mt-2 normal-case text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl dark:text-white">
+                <p className="text-sm font-semibold uppercase tracking-wider text-emerald-400">Platform</p>
+                <h2 className="mt-2 normal-case text-3xl font-semibold tracking-tight text-white sm:text-4xl">
                   Everything Your Business Needs to Convert More Customers
                 </h2>
-                <p className="mt-4 text-slate-600 dark:text-slate-400">
+                <p className="mt-4 text-white/60">
                   Manage leads, automate customer communication, track opportunities, and improve team productivity from one platform.
                 </p>
               </div>
@@ -299,13 +317,13 @@ const LandingPage = () => {
                 {features.map((f) => (
                   <article
                     key={f.title}
-                    className="group rounded-[14px] border border-slate-200/80 bg-white/80 p-6 shadow-sm backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-lg dark:border-white/10 dark:bg-white/[0.05] dark:hover:border-primary/35 dark:hover:shadow-[0_20px_60px_-30px_rgba(16,183,127,0.35)]"
+                    className="group rounded-[14px] border border-white/10 bg-white/5 p-6 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-emerald-400/30 hover:bg-white/10"
                   >
-                    <div className="flex h-11 w-11 items-center justify-center rounded-[12px] bg-gradient-to-br from-primary/15 to-primary/5 text-primary ring-1 ring-primary/20 transition-transform duration-300 group-hover:scale-105 dark:from-primary/25 dark:to-primary/5 dark:ring-primary/30">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-[12px] bg-emerald-500/15 text-emerald-400 ring-1 ring-emerald-400/20 transition-transform duration-300 group-hover:scale-105">
                       <span className="material-symbols-outlined text-[22px]">{f.icon}</span>
                     </div>
-                    <h3 className="mt-5 normal-case text-lg font-semibold text-slate-900 dark:text-white">{f.title}</h3>
-                    <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-400">{f.description}</p>
+                    <h3 className="mt-5 normal-case text-lg font-semibold text-white">{f.title}</h3>
+                    <p className="mt-2 text-sm leading-relaxed text-white/60">{f.description}</p>
                   </article>
                 ))}
               </div>
@@ -317,36 +335,30 @@ const LandingPage = () => {
             <div className="mx-auto max-w-6xl">
               <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
                 <div className="max-w-2xl">
-                  <p className="text-sm font-semibold uppercase tracking-wider text-primary">Integrations</p>
-                  <h2 className="mt-2 normal-case text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl dark:text-white">
+                  <p className="text-sm font-semibold uppercase tracking-wider text-emerald-400">Integrations</p>
+                  <h2 className="mt-2 normal-case text-3xl font-semibold tracking-tight text-white sm:text-4xl">
                     WhatsApp, voice, and paid media - wired in
                   </h2>
-                  <p className="mt-4 text-slate-600 dark:text-slate-400">
+                  <p className="mt-4 text-white/60">
                     Bring your calls, WhatsApp, marketing campaigns, and customer data together in one connected system.
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => navigate('/login')}
-                  className="inline-flex w-fit items-center gap-2 rounded-[12px] border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 shadow-sm transition-all hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
-                >
+                <button type="button" onClick={() => navigate('/login')}
+                  className="inline-flex w-fit items-center gap-2 rounded-[12px] border border-white/15 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-white/20">
                   View integration hub
                   <span className="material-symbols-outlined text-[18px]">north_east</span>
                 </button>
               </div>
-
               <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 {integrations.map((item) => (
-                  <div
-                    key={item.name}
-                    className={`relative overflow-hidden rounded-[14px] border border-slate-200/80 bg-gradient-to-br ${item.accent} p-6 backdrop-blur-md transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-lg dark:border-white/10 dark:hover:border-primary/40`}
-                  >
+                  <div key={item.name}
+                    className="rounded-[14px] border border-white/10 bg-white/5 p-6 backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-emerald-400/25 hover:bg-white/10">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-sm font-semibold text-slate-900 dark:text-white">{item.name}</p>
-                        <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">{item.detail}</p>
+                        <p className="text-sm font-semibold text-white">{item.name}</p>
+                        <p className="mt-1 text-xs text-white/60">{item.detail}</p>
                       </div>
-                      <span className="flex h-10 w-10 items-center justify-center rounded-[12px] bg-white/80 text-slate-800 shadow-sm ring-1 ring-slate-200/80 dark:bg-white/10 dark:text-white dark:ring-white/10">
+                      <span className="flex h-10 w-10 items-center justify-center rounded-[12px] bg-white/10 text-white ring-1 ring-white/10">
                         <span className="material-symbols-outlined text-[22px]">{item.icon}</span>
                       </span>
                     </div>
@@ -360,11 +372,11 @@ const LandingPage = () => {
           <section id="workflow" className="scroll-mt-24 px-4 py-20 sm:px-6 lg:px-8">
             <div className="mx-auto max-w-6xl">
               <div className="max-w-2xl">
-                <p className="text-sm font-semibold uppercase tracking-wider text-primary">Automation</p>
-                <h2 className="mt-2 normal-case text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl dark:text-white">
+                <p className="text-sm font-semibold uppercase tracking-wider text-emerald-400">Automation</p>
+                <h2 className="mt-2 normal-case text-3xl font-semibold tracking-tight text-white sm:text-4xl">
                   From Lead to Customer in Three Simple Steps
                 </h2>
-                <p className="mt-4 text-slate-600 dark:text-slate-400">
+                <p className="mt-4 text-white/60">
                   OneEmployee helps businesses capture opportunities, engage customers, and drive conversions automatically.
                 </p>
               </div>
@@ -373,10 +385,10 @@ const LandingPage = () => {
                 {workflowSteps.map((w, i) => (
                   <div
                     key={w.step}
-                    className="relative rounded-[16px] border border-slate-200/80 bg-white/75 p-8 shadow-sm backdrop-blur-xl transition-all duration-300 hover:border-primary/25 hover:shadow-xl dark:border-white/10 dark:bg-white/[0.06] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
+                    className="relative rounded-[16px] border border-white/10 bg-white/5 p-8 backdrop-blur-sm transition-all duration-300 hover:border-emerald-400/25 hover:bg-white/10"
                   >
                     <div className="flex items-center justify-between">
-                      <span className="font-mono text-xs font-bold text-primary">{w.step}</span>
+                      <span className="font-mono text-xs font-bold text-emerald-400">{w.step}</span>
                       {i < workflowSteps.length - 1 ? (
                         <span
                           className="material-symbols-outlined hidden text-slate-300 lg:block dark:text-slate-600"
@@ -389,8 +401,8 @@ const LandingPage = () => {
                     <div className="mt-6 flex h-12 w-12 items-center justify-center rounded-[14px] bg-slate-900 text-white shadow-lg dark:bg-gradient-to-br dark:from-primary dark:to-emerald-600">
                       <span className="material-symbols-outlined text-[26px]">{w.icon}</span>
                     </div>
-                    <h3 className="mt-6 normal-case text-xl font-semibold text-slate-900 dark:text-white">{w.title}</h3>
-                    <p className="mt-3 text-sm leading-relaxed text-slate-600 dark:text-slate-400">{w.body}</p>
+                    <h3 className="mt-6 normal-case text-xl font-semibold text-white">{w.title}</h3>
+                    <p className="mt-3 text-sm leading-relaxed text-white/60">{w.body}</p>
                   </div>
                 ))}
               </div>
@@ -402,14 +414,14 @@ const LandingPage = () => {
             <div className="mx-auto max-w-6xl">
               <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
                 <div>
-                  <p className="text-sm font-semibold uppercase tracking-wider text-primary">Analytics</p>
-                  <h2 className="mt-2 normal-case text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl dark:text-white">
+                  <p className="text-sm font-semibold uppercase tracking-wider text-emerald-400">Analytics</p>
+                  <h2 className="mt-2 normal-case text-3xl font-semibold tracking-tight text-white sm:text-4xl">
                     See What Drives Your Growth
                   </h2>
-                  <p className="mt-4 text-slate-600 dark:text-slate-400">
+                  <p className="mt-4 text-white/60">
                     Track customer engagement, sales performance, team productivity, and revenue opportunities in real time.
                   </p>
-                  <ul className="mt-8 space-y-4 text-sm text-slate-700 dark:text-slate-300">
+                  <ul className="mt-8 space-y-4 text-sm text-white/80">
                     {[
                       'Unified timeline across voice, WhatsApp, and web touchpoints',
                       'Attribution that spans Google Ads and Meta Lead Ads',
@@ -476,8 +488,8 @@ const LandingPage = () => {
           <section id="testimonials" className="scroll-mt-24 px-4 py-20 sm:px-6 lg:px-8">
             <div className="mx-auto max-w-6xl">
               <div className="max-w-2xl">
-                <p className="text-sm font-semibold uppercase tracking-wider text-primary">Customers</p>
-                <h2 className="mt-2 normal-case text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl dark:text-white">
+                <p className="text-sm font-semibold uppercase tracking-wider text-emerald-400">Customers</p>
+                <h2 className="mt-2 normal-case text-3xl font-semibold tracking-tight text-white sm:text-4xl">
                   Trusted by Businesses Focused on Growth
                 </h2>
               </div>
@@ -485,15 +497,15 @@ const LandingPage = () => {
                 {testimonials.map((t) => (
                   <blockquote
                     key={t.name}
-                    className="flex flex-col rounded-[16px] border border-slate-200/80 bg-white/80 p-8 shadow-sm backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:border-primary/25 hover:shadow-lg dark:border-white/10 dark:bg-white/[0.05] dark:hover:border-primary/35"
+                    className="flex flex-col rounded-[16px] border border-white/10 bg-white/5 p-8 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-emerald-400/25 hover:bg-white/10"
                   >
-                    <span className="text-primary">
+                    <span className="text-emerald-400">
                       <span className="material-symbols-outlined text-[28px]">format_quote</span>
                     </span>
-                    <p className="mt-4 flex-1 text-sm leading-relaxed text-slate-700 dark:text-slate-300">{t.quote}</p>
-                    <footer className="mt-8 border-t border-slate-200/70 pt-6 dark:border-white/10">
-                      <p className="font-semibold text-slate-900 dark:text-white">{t.name}</p>
-                      <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                    <p className="mt-4 flex-1 text-sm leading-relaxed text-white/70">{t.quote}</p>
+                    <footer className="mt-8 border-t border-white/10 pt-6">
+                      <p className="font-semibold text-white">{t.name}</p>
+                      <p className="mt-1 text-xs text-white/50">
                         {t.role}, {t.org}
                       </p>
                     </footer>
@@ -539,16 +551,16 @@ const LandingPage = () => {
           </section>
 
           {/* Footer */}
-          <footer className="border-t border-slate-200/70 bg-white/70 px-4 py-14 backdrop-blur-md dark:border-white/10 dark:bg-[#050608]/80">
+          <footer className="border-t border-white/10 bg-[#13112B] px-4 py-14">
             <div className="mx-auto flex max-w-6xl flex-col gap-10 lg:flex-row lg:justify-between">
               <div>
-                <div className="flex items-center gap-2 font-semibold text-slate-900 dark:text-white">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-gradient-to-br from-primary to-emerald-600 text-white shadow-lg shadow-primary/25">
+                <div className="flex items-center gap-2 font-semibold text-white">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-emerald-500 text-white shadow-lg shadow-emerald-500/25">
                     <span className="material-symbols-outlined text-[20px]">hub</span>
                   </span>
-                  OneEmployee<span className="text-primary">®</span>
+                  OneEmployee<span className="text-emerald-400">®</span>
                 </div>
-                <p className="mt-4 max-w-sm text-sm text-slate-600 dark:text-slate-400">
+                <p className="mt-4 max-w-sm text-sm text-white/60">
                   OneEmployee helps businesses automate customer engagement, streamline sales processes, and unlock new revenue opportunities with AI-powered workforce solutions.
                 </p>
               </div>
@@ -610,9 +622,9 @@ const LandingPage = () => {
                 </div>
               </div>
             </div>
-            <div className="mx-auto mt-12 flex max-w-6xl flex-col gap-2 border-t border-slate-200/70 pt-8 text-xs text-slate-500 dark:border-white/10 dark:text-slate-500 sm:flex-row sm:items-center sm:justify-between">
+            <div className="mx-auto mt-12 flex max-w-6xl flex-col gap-2 border-t border-white/10 pt-8 text-xs text-white/50 sm:flex-row sm:items-center sm:justify-between">
               <span>© {new Date().getFullYear()} OneEmployee. All rights reserved.</span>
-              <span className="font-mono text-[11px] text-slate-400 dark:text-slate-600">
+              <span className="font-mono text-[11px] text-white/30">
                 BUILD V1.0.4 · EDGE LATENCY ~4.2ms
               </span>
             </div>

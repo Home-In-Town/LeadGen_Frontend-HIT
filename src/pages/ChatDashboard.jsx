@@ -18,14 +18,12 @@ import {
     getChatConversations,
     getChatMessages,
     sendChatMessage,
-    sendChatTemplate,
     markChatAsRead,
     listWAPhoneNumbers,
 } from '../api';
 import leadsApi from '../api';
 
 import { useNotifications } from '../context/NotificationContext';
-import NewChatDialog from '../components/chat/NewChatDialog';
 import { useAuth } from '../context/AuthContext';
 import { ConversationSidebar, MessagePanel, ContactInfoPanel, BulkActionToolbar, TemplatePicker } from '../components/chat';
 
@@ -92,7 +90,6 @@ export default function ChatDashboard() {
     const [activeWANumber, setActiveWANumber] = useState(undefined);
     const [campaignProgress, setCampaignProgress] = useState(null);
     const [showTemplatePicker, setShowTemplatePicker] = useState(false);
-    const [showNewChatDialog, setShowNewChatDialog] = useState(false);
 
     // -----------------------------------------------------------------------
     // State: Contact Info Panel
@@ -333,46 +330,19 @@ export default function ChatDashboard() {
     // API: Send template (optimistic pattern)
     // -----------------------------------------------------------------------
     const handleSendTemplate = useCallback(
-        async (templateName, templateObj) => {
+        async (templateName) => {
             if (!templateName || !activeLeadId) return;
 
-            // Extract template component data for rich rendering
-            const components = templateObj?.components || [];
-            const headerComp = components.find(c => c.type === 'HEADER');
-            const bodyComp = components.find(c => c.type === 'BODY');
-            const footerComp = components.find(c => c.type === 'FOOTER');
-            const buttonComp = components.find(c => c.type === 'BUTTONS');
-
-            const templateData = {};
-            if (headerComp?.format === 'IMAGE' && headerComp?.example?.header_handle?.[0]) {
-                templateData.headerImageUrl = headerComp.example.header_handle[0];
-            } else if (headerComp?.format === 'TEXT') {
-                templateData.headerText = headerComp.text || '';
-            }
-            if (bodyComp?.text) {
-                templateData.bodyText = bodyComp.text;
-            }
-            if (footerComp?.text) {
-                templateData.footerText = footerComp.text;
-            }
-            if (buttonComp?.buttons?.length) {
-                templateData.buttons = buttonComp.buttons.map(b => ({
-                    type: b.type?.toLowerCase() || 'url',
-                    text: b.text || 'Open',
-                    url: b.url || ''
-                }));
-            }
-
             const tempId = `temp_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+            const content = `[Template: ${templateName}]`;
             const optimisticMsg = {
                 _id: tempId,
                 tempId,
                 leadId: activeLeadId,
-                content: `Template: ${templateName}`,
-                sender: 'agent',
+                content,
+                sender: 'system',
                 messageType: 'template',
                 templateName,
-                templateData: Object.keys(templateData).length > 0 ? templateData : undefined,
                 createdAt: new Date().toISOString(),
                 deliveryStatus: null,
             };
@@ -380,10 +350,7 @@ export default function ChatDashboard() {
             setMessages((prev) => [...prev, optimisticMsg]);
 
             try {
-                const res = await sendChatTemplate(activeLeadId, {
-                    templateName,
-                    templateData: Object.keys(templateData).length > 0 ? templateData : undefined,
-                });
+                const res = await sendChatMessage(activeLeadId, { message: content });
                 const savedMsg = res.data?.data;
 
                 if (savedMsg) {
@@ -710,7 +677,9 @@ export default function ChatDashboard() {
                     onLoadMore={handleLoadMoreConversations}
                     hasMore={convHasMore}
                     integrationHealth={integrationHealth}
-                    onNewChat={() => setShowNewChatDialog(true)}
+                    onNewChat={() => {
+                        // Placeholder: will be wired to NewChatDialog in a later task
+                    }}
                 />
             </div>
 
@@ -783,24 +752,13 @@ export default function ChatDashboard() {
             <TemplatePicker
                 open={showTemplatePicker}
                 onClose={() => setShowTemplatePicker(false)}
-                onSelectTemplate={(name, templateObj) => {
+                onSelectTemplate={(name) => {
                     setShowTemplatePicker(false);
                     if (bulkMode && selectedLeadIds.size > 0) {
                         handleBulkSendTemplate(name);
                     } else if (activeLeadId) {
-                        handleSendTemplate(name, templateObj);
+                        handleSendTemplate(name);
                     }
-                }}
-            />
-
-            {/* New Chat Dialog */}
-            <NewChatDialog
-                open={showNewChatDialog}
-                onClose={() => setShowNewChatDialog(false)}
-                onSuccess={(leadId) => {
-                    setShowNewChatDialog(false);
-                    setActiveLeadId(leadId);
-                    fetchConversations();
                 }}
             />
         </div>

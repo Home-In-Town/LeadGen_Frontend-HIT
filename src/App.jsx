@@ -2,6 +2,7 @@ import { useState, useEffect, lazy, Suspense, Component } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { NotificationProvider } from './context/NotificationContext';
 import { AuthProvider } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
 import { useNotifications } from './context/NotificationContext';
 import NotificationToastContainer from './components/NotificationToast';
 
@@ -71,7 +72,6 @@ const EmailTemplatesPage    = lazy(() => import('./pages/EmailTemplatesPage'));
 const ProfilePage           = lazy(() => import('./pages/ProfilePage'));
 const ProjectsPage          = lazy(() => import('./pages/ProjectsPage'));
 const ProjectSettingsPage   = lazy(() => import('./pages/ProjectSettingsPage'));
-const AddProjectPage        = lazy(() => import('./pages/AddProjectPage'));
 
 function PageLoader() {
     return (
@@ -109,6 +109,7 @@ function ChatSidebarController() {
 
 function App() {
   return (
+    <ThemeProvider>
     <AuthProvider>
       <NotificationProvider>
         <Router>
@@ -149,7 +150,6 @@ function App() {
                 <Route path="/email-templates" element={<EmailTemplatesPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
                 <Route path="/projects" element={<ProjectsPage />} />
-                <Route path="/projects/new" element={<AddProjectPage />} />
                 <Route path="/projects/:hitProjectId" element={<ProjectSettingsPage />} />
               </Route>
 
@@ -168,6 +168,7 @@ function App() {
         </Router>
       </NotificationProvider>
     </AuthProvider>
+    </ThemeProvider>
   );
 }
 

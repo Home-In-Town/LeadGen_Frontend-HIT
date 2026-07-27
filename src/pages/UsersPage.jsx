@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import * as api from '../api';
 import { useAuth } from '../context/AuthContext';
-import { getFBCampaigns, listProjects } from '../api';
+import { getFBCampaigns, listProjects, uploadCampaign } from '../api';
 import { useNotifications } from '../context/NotificationContext';
 
 const UsersPage = () => {
@@ -23,6 +23,7 @@ const UsersPage = () => {
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [campaigns, setCampaigns] = useState([]);
   const [fetchingProjects, setFetchingProjects] = useState(false);
+  const [bulkMode, setBulkMode] = useState('lead'); // 'lead' or 'automate'
 
   const itemsPerPage = 15;
 
@@ -114,7 +115,7 @@ const UsersPage = () => {
   /* Bulk Lead */
   /* ---------------------------------- */
 
-  const handleBulkCreateLead = async () => {
+  const handleBulkCreateLead = async (mode = 'lead') => {
     if (selectedUsers.size === 0) return;
 
     setFetchingProjects(true);
@@ -144,6 +145,8 @@ const UsersPage = () => {
         }
         setCampaigns(campaignList);
       }
+      // Store the mode so executeBulkCreate knows whether to trigger automation
+      setBulkMode(mode);
       setShowProjectModal(true);
     } catch (err) {
       console.error('Failed to fetch campaigns/projects:', err);
@@ -172,27 +175,64 @@ const UsersPage = () => {
       };
 
       const userIds = Array.from(selectedUsers);
-      const CONCURRENCY = 5; // 5 parallel API calls — fast but won't overwhelm the backend
+      const CONCURRENCY = 5;
       let successCount = 0;
       let failCount = 0;
       let processed = 0;
+      const createdLeadIds = [];
 
-      // Process in concurrent batches — 10x faster than serial with 800ms sleep
+      // Step 1: Convert users to leads
       for (let i = 0; i < userIds.length; i += CONCURRENCY) {
         const batch = userIds.slice(i, i + CONCURRENCY);
         const results = await Promise.allSettled(
           batch.map(id => api.createLeadFromUser(id, creatorData))
         );
-        successCount += results.filter(r => r.status === 'fulfilled').length;
-        failCount    += results.filter(r => r.status === 'rejected').length;
-        processed    += batch.length;
-        setProcessingMessage(`Processing ${processed}/${userIds.length}...`);
+        results.forEach(r => {
+          if (r.status === 'fulfilled') {
+            successCount++;
+            const leadId = r.value?.data?.id || r.value?.data?._id;
+            if (leadId) createdLeadIds.push(leadId);
+          } else {
+            failCount++;
+          }
+        });
+        processed += batch.length;
+        setProcessingMessage(`Creating leads ${processed}/${userIds.length}...`);
       }
 
-      addToast(
-        `Done! ${successCount} lead${successCount !== 1 ? 's' : ''} created${failCount > 0 ? ` · ${failCount} failed` : ''}`,
-        successCount > 0 ? 'success' : 'error'
-      );
+      // Step 2: If "automate" mode, create a quick CSV and upload as campaign to trigger voice calls
+      if (bulkMode === 'automate' && createdLeadIds.length > 0) {
+        setProcessingMessage('Starting automation — queuing voice calls...');
+        try {
+          // Build a CSV from the selected users so the campaign upload service creates AutomationJobs
+          const selectedUserData = users.filter(u => selectedUsers.has(u.id));
+          const csvLines = ['first_name,last_name,phone_number'];
+          selectedUserData.forEach(u => {
+            csvLines.push(`${u.first_name || ''},${u.last_name || ''},${u.phone_number || ''}`);
+          });
+          const csvContent = csvLines.join('\n');
+          const blob = new Blob([csvContent], { type: 'text/csv' });
+          const csvFile = new File([blob], `auto_${Date.now()}.csv`, { type: 'text/csv' });
+
+          await uploadCampaign(csvFile, `Auto - ${campaignName}`, campaignId);
+          addToast(
+            `Automation started! ${successCount} lead${successCount !== 1 ? 's' : ''} will receive voice calls shortly.`,
+            'success'
+          );
+        } catch (autoErr) {
+          console.error('Campaign auto-upload failed:', autoErr);
+          addToast(
+            `Leads created (${successCount}) but automation failed to start. Try uploading a campaign manually.`,
+            'warning'
+          );
+        }
+      } else {
+        addToast(
+          `Done! ${successCount} lead${successCount !== 1 ? 's' : ''} created${failCount > 0 ? ` · ${failCount} failed` : ''}`,
+          successCount > 0 ? 'success' : 'error'
+        );
+      }
+
       setSelectedUsers(new Set());
     } catch (err) {
       console.error('Bulk create failed:', err);
@@ -200,6 +240,7 @@ const UsersPage = () => {
     } finally {
       setProcessing(false);
       setProcessingMessage('');
+      setBulkMode('lead');
     }
   };
 
@@ -231,22 +272,12 @@ const UsersPage = () => {
 
   return (
     <div className="relative animate-fade-in font-display pb-10">
-      {/* Background */}
-      <div
-        className="pointer-events-none absolute inset-0 -z-10 landing-gradient-mesh opacity-10 dark:opacity-20"
-        aria-hidden
-      />
-
-      <div
-        className="pointer-events-none absolute inset-0 -z-10 landing-grid-bg opacity-10 dark:opacity-25"
-        aria-hidden
-      />
 
       {/* ---------------------------------- */}
       {/* Header */}
       {/* ---------------------------------- */}
 
-      <div className="mb-8 rounded-[20px] border border-slate-200/70 dark:border-white/10 bg-white/70 dark:bg-slate-950/40 backdrop-blur-xl p-4 sm:p-6 shadow-sm">
+      <div className="mb-8 rounded-[20px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#161B27] p-4 sm:p-6 shadow-sm">
         <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-5">
           <div className="flex flex-col sm:flex-row sm:items-center gap-5">
             <div>
@@ -261,7 +292,7 @@ const UsersPage = () => {
 
             <div className="hidden sm:block h-12 w-px bg-slate-200 dark:bg-white/10" />
 
-            <div className="rounded-[16px] border border-slate-200/70 dark:border-white/10 bg-white/70 dark:bg-white/[0.04] px-4 py-3">
+            <div className="rounded-[16px] border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#1A2030] px-4 py-3">
               <div className="flex items-center gap-3">
                 <div className="flex h-11 w-11 items-center justify-center rounded-[14px] bg-primary/10 text-primary">
                   <span className="material-symbols-outlined">
@@ -294,7 +325,7 @@ const UsersPage = () => {
                 placeholder="Search users..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full rounded-[14px] border border-slate-200 dark:border-white/10 bg-white/80 dark:bg-white/[0.04] pl-10 pr-4 py-3 text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 outline-none transition-all focus:border-primary/40 focus:ring-4 focus:ring-primary/10"
+                className="w-full rounded-[14px] border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#1A2030] pl-10 pr-4 py-3 text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 outline-none transition-all focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"
               />
             </div>
 
@@ -318,24 +349,20 @@ const UsersPage = () => {
       {/* Toolbar */}
       {/* ---------------------------------- */}
 
-      <div className="mb-5 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+      <div className="mb-5 flex flex-col gap-3">
+        {/* Row 1: label */}
         <div className="flex items-center gap-3">
-          <span className="material-symbols-outlined text-primary">
-            list_alt
-          </span>
-
+          <span className="material-symbols-outlined text-primary">list_alt</span>
           <h2 className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-700 dark:text-slate-300">
             User Records
           </h2>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+        {/* Row 2: action buttons — always visible when items selected */}
+        <div className="flex flex-wrap items-center gap-2">
           {processingMessage && (
             <div className="flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-2">
-              <span className="material-symbols-outlined animate-spin text-primary text-[16px]">
-                sync
-              </span>
-
+              <span className="material-symbols-outlined animate-spin text-primary text-[16px]">sync</span>
               <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">
                 {processingMessage}
               </span>
@@ -344,23 +371,29 @@ const UsersPage = () => {
 
           {selectedUsers.size > 0 && (
             <>
-              <div className="rounded-full border border-slate-200 dark:border-white/10 bg-white/70 dark:bg-white/[0.04] px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-700 dark:text-slate-300">
+              {/* Selected count badge */}
+              <div className="rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#1A2030] px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-700 dark:text-slate-300">
                 {selectedUsers.size} Selected
               </div>
 
+              {/* Start Lead → convert selected users to leads AND trigger voice automation */}
               <button
-                onClick={handleBulkCreateLead}
-                disabled={processing}
-                className="rounded-[12px] bg-primary px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-white transition-all hover:bg-charcoal disabled:opacity-50"
+                onClick={() => handleBulkCreateLead('automate')}
+                disabled={processing || fetchingProjects}
+                className="flex items-center gap-1.5 rounded-[12px] px-5 py-2.5 text-[10px] font-black uppercase tracking-[0.15em] text-white transition-all hover:brightness-110 disabled:opacity-50 cursor-pointer border-none"
+                style={{ background: '#10B981', boxShadow: '0 4px 12px rgba(16,185,129,0.3)' }}
               >
-                Start Lead
+                <span className="material-symbols-outlined text-[16px]">rocket_launch</span>
+                {fetchingProjects ? 'Loading…' : 'Start Lead'}
               </button>
 
+              {/* Delete */}
               <button
                 onClick={handleBulkDelete}
                 disabled={processing}
-                className="rounded-[12px] border border-red-500 bg-red-500 px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-white transition-all hover:bg-red-600 disabled:opacity-50"
+                className="flex items-center gap-1.5 rounded-[12px] border border-red-500 bg-red-500 px-4 py-2 text-[10px] font-black uppercase tracking-[0.15em] text-white transition-all hover:bg-red-600 disabled:opacity-50 shadow-md shadow-red-500/20"
               >
+                <span className="material-symbols-outlined text-[15px]">delete</span>
                 Delete
               </button>
             </>
@@ -373,7 +406,7 @@ const UsersPage = () => {
       {/* ---------------------------------- */}
 
       {filteredUsers.length === 0 ? (
-        <div className="rounded-[20px] border border-dashed border-slate-300 dark:border-white/10 bg-white/70 dark:bg-white/[0.03] p-12 text-center backdrop-blur-xl">
+        <div className="rounded-[20px] border border-dashed border-slate-300 dark:border-slate-700 bg-white dark:bg-[#161B27] p-12 text-center">
           <span className="material-symbols-outlined text-6xl text-slate-300 dark:text-white/10">
             person_off
           </span>
@@ -390,9 +423,9 @@ const UsersPage = () => {
           </button>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-[20px] border border-slate-200/70 dark:border-white/10 bg-white/75 dark:bg-slate-950/40 backdrop-blur-xl shadow-sm">
+        <div className="overflow-hidden rounded-[20px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#161B27] shadow-sm">
           {/* Header */}
-          <div className="grid grid-cols-[40px_1fr_140px] sm:grid-cols-[40px_1fr_180px_160px] items-center gap-4 border-b border-slate-200 dark:border-white/10 bg-slate-50/70 dark:bg-white/[0.03] px-4 py-3">
+          <div className="grid grid-cols-[40px_1fr_140px] sm:grid-cols-[40px_1fr_180px_160px] items-center gap-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#1A2030] px-4 py-3">
             <input
               type="checkbox"
               onChange={handleSelectAll}
@@ -419,14 +452,14 @@ const UsersPage = () => {
           </div>
 
           {/* Rows */}
-          <div className="divide-y divide-slate-200/70 dark:divide-white/5">
+          <div className="divide-y divide-slate-100 dark:divide-slate-800">
             {paginatedUsers.map((u) => (
               <div
                 key={u.id}
                 className={`grid grid-cols-[40px_1fr_140px] sm:grid-cols-[40px_1fr_180px_160px] items-center gap-4 px-4 py-4 transition-all ${
                   selectedUsers.has(u.id)
-                    ? 'bg-primary/5 dark:bg-primary/10'
-                    : 'hover:bg-slate-50 dark:hover:bg-white/[0.03]'
+                    ? 'bg-indigo-50 dark:bg-indigo-950/30'
+                    : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
                 }`}
               >
                 <input
@@ -511,7 +544,7 @@ const UsersPage = () => {
       {/* Footer */}
       {/* ---------------------------------- */}
 
-      <div className="mt-10 flex flex-col sm:flex-row items-center justify-between gap-5 border-t border-slate-200 dark:border-white/10 pt-6">
+      <div className="mt-10 flex flex-col sm:flex-row items-center justify-between gap-5 border-t border-slate-200 dark:border-slate-800 pt-6">
         <div>
           <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400">
             Database Growth
