@@ -272,3 +272,83 @@ export const uploadProjectCampaign   = (hitProjectId, file, name) => {
 };
 
 export const syncProjects             = ()     => projectApi.post('/sync');
+
+// ====== HIT PROJECT CRUD (create, update, delete) ======
+export const createHitProject         = (data) => projectApi.post('/create', data);
+export const updateHitProject         = (hitProjectId, data) => projectApi.put(`/${hitProjectId}/update`, data);
+export const deleteHitProject         = (hitProjectId) => projectApi.delete(`/${hitProjectId}/delete`);
+export const listHitProjects          = ()     => ownersApi.get('/projects');
+
+// ====== META SOCIAL ENDPOINTS ======
+const metaSocialApi = createApiInstance('/meta-social');
+
+// OAuth & Connection
+export const initiateMetaSocialConnect = () => {
+    window.location.href = `${BASE_URL}/api/meta-social/connect`;
+};
+export const getMetaSocialStatus       = ()     => metaSocialApi.get('/status');
+export const disconnectMetaSocial      = ()     => metaSocialApi.post('/disconnect');
+export const getMetaSocialPages        = ()     => metaSocialApi.get('/pages');
+export const subscribeFeedWebhook      = ()     => metaSocialApi.post('/subscribe-feed');
+
+// Create & Manage Posts (from OneEmployee)
+const socialPostsApi = createApiInstance('/meta-social/posts');
+export const createSocialPost          = (data) => socialPostsApi.post('', data);
+export const listSocialPosts           = (params) => socialPostsApi.get('', { params });
+export const getSocialPost             = (postId) => socialPostsApi.get(`/${postId}`);
+export const updateSocialPost          = (postId, data) => socialPostsApi.put(`/${postId}`, data);
+export const deleteSocialPost          = (postId) => socialPostsApi.delete(`/${postId}`);
+export const publishSocialPostNow      = (postId) => socialPostsApi.post(`/${postId}/publish-now`);
+export const getSocialPostsCalendar    = (from, to) => socialPostsApi.get('/calendar', { params: { from, to } });
+
+// Manage Existing Platform Posts (FB + IG)
+const managePostsApi = createApiInstance('/meta-social/manage-posts');
+export const getAllPlatformPosts       = (params) => managePostsApi.get('/all', { params });
+export const getFacebookPosts          = (params) => managePostsApi.get('/facebook', { params });
+export const getFacebookScheduledPosts = (params) => managePostsApi.get('/facebook/scheduled', { params });
+export const getFacebookPostDetail     = (postId, params) => managePostsApi.get(`/facebook/${postId}`, { params });
+export const editFacebookPost          = (postId, data, params) => managePostsApi.put(`/facebook/${postId}`, data, { params });
+export const deleteFacebookPost        = (postId, params) => managePostsApi.delete(`/facebook/${postId}`, { params });
+export const getFacebookPostComments   = (postId, params) => managePostsApi.get(`/facebook/${postId}/comments`, { params });
+export const replyToFacebookComment    = (commentId, data, params) => managePostsApi.post(`/facebook/${commentId}/reply`, data, { params });
+export const getInstagramPosts         = (params) => managePostsApi.get('/instagram', { params });
+export const getInstagramPostDetail    = (mediaId, params) => managePostsApi.get(`/instagram/${mediaId}`, { params });
+export const editInstagramPost         = (mediaId, data, params) => managePostsApi.put(`/instagram/${mediaId}`, data, { params });
+export const deleteInstagramPost       = (mediaId, params) => managePostsApi.delete(`/instagram/${mediaId}`, { params });
+export const getInstagramPostComments  = (mediaId, params) => managePostsApi.get(`/instagram/${mediaId}/comments`, { params });
+export const replyToInstagramComment   = (commentId, data, params) => managePostsApi.post(`/instagram/${commentId}/reply`, data, { params });
+
+// Analytics
+const analyticsApi = createApiInstance('/meta-social/analytics');
+export const getSocialOverview         = (params) => analyticsApi.get('/overview', { params });
+export const getSocialTopPosts         = (params) => analyticsApi.get('/top-posts', { params });
+export const getFBPageInsights         = (params) => analyticsApi.get('/facebook/page', { params });
+export const getFBFollowers            = (params) => analyticsApi.get('/facebook/followers', { params });
+export const getFBPostInsights         = (postId, params) => analyticsApi.get(`/facebook/post/${postId}`, { params });
+export const getIGAccountInsights      = (params) => analyticsApi.get('/instagram/account', { params });
+export const getIGAccountInfo          = (params) => analyticsApi.get('/instagram/info', { params });
+export const getIGPostInsights         = (mediaId, params) => analyticsApi.get(`/instagram/post/${mediaId}`, { params });
+
+// Comment Auto-Reply Config
+const commentReplyApi = createApiInstance('/meta-social/comment-reply');
+export const getCommentReplyConfig     = ()     => commentReplyApi.get('/config');
+export const updateCommentReplyConfig  = (data) => commentReplyApi.put('/config', data);
+export const getCommentReplyLogs       = (params) => commentReplyApi.get('/logs', { params });
+export const getCommentReplyStats      = ()     => commentReplyApi.get('/stats');
+export const testCommentReplyPrompt    = (data) => commentReplyApi.post('/test', data);
+export const clearCommentReplyLogs     = ()     => commentReplyApi.delete('/logs', { data: { confirm: 'CLEAR_ALL' } });
+
+// Ad Campaign Launcher
+const adLauncherApi = createApiInstance('/meta-social/ad-launcher');
+export const createAdDraft             = (data) => adLauncherApi.post('/draft', data);
+export const listAdDrafts              = (params) => adLauncherApi.get('/drafts', { params });
+export const getAdDraft                = (draftId) => adLauncherApi.get(`/draft/${draftId}`);
+export const updateAdDraft             = (draftId, data) => adLauncherApi.put(`/draft/${draftId}`, data);
+export const deleteAdDraft             = (draftId) => adLauncherApi.delete(`/draft/${draftId}`);
+export const launchAdDraft             = (draftId) => adLauncherApi.post(`/draft/${draftId}/launch`);
+export const scheduleAdDraft           = (draftId, data) => adLauncherApi.post(`/draft/${draftId}/schedule`, data);
+export const previewAdDraft            = (draftId) => adLauncherApi.post(`/draft/${draftId}/preview`);
+export const searchAdInterests         = (q) => adLauncherApi.get('/targeting/interests', { params: { q } });
+export const searchAdLocations         = (q) => adLauncherApi.get('/targeting/locations', { params: { q } });
+export const getAdAccounts             = () => adLauncherApi.get('/ad-accounts');
+export const getAdLeadForms            = (pageId) => adLauncherApi.get('/lead-forms', { params: { pageId } });

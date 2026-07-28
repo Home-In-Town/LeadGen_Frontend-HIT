@@ -75,6 +75,17 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
         { name: 'Google Ads', path: '/integrations/google', icon: 'ads_click' },
       ],
     },
+    {
+      label: 'SOCIAL MEDIA',
+      items: [
+        { name: 'Social Hub', path: '/meta-social', icon: 'share' },
+        { name: 'Create Post', path: '/meta-social/compose', icon: 'edit_square' },
+        { name: 'My Posts', path: '/meta-social/posts', icon: 'dynamic_feed' },
+        { name: 'Comment Reply', path: '/meta-social/comments', icon: 'forum' },
+        { name: 'Analytics', path: '/meta-social/analytics', icon: 'monitoring' },
+        { name: 'Ad Launcher', path: '/meta-social/ad-launcher', icon: 'rocket_launch' },
+      ],
+    },
   ];
 
 
