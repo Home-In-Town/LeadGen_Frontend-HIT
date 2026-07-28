@@ -7,7 +7,7 @@ import { syncIntegrationStatus } from '../api';
 
 /* ── stat card definitions ── */
 const STATS = [
-  { icon: 'group',     label: 'People',      path: '/users',           iconColor: '#6366F1', iconBg: '#EEF2FF', darkBg: '#1E2040', barColor: '#6366F1' },
+  { icon: 'group',     label: 'Users',       path: '/users',           iconColor: '#6366F1', iconBg: '#EEF2FF', darkBg: '#1E2040', barColor: '#6366F1' },
   { icon: 'person',    label: 'Leads',        path: '/crm',             iconColor: '#0EA5E9', iconBg: '#E0F2FE', darkBg: '#0C2234', barColor: '#0EA5E9' },
   { icon: 'campaign',  label: 'Campaigns',    path: '/campaigns',       iconColor: '#F59E0B', iconBg: '#FEF3C7', darkBg: '#2A1E06', barColor: '#F59E0B' },
   { icon: 'chat',      label: 'Unread Chats', path: '/chat/whatsapp',   iconColor: '#10B981', iconBg: '#D1FAE5', darkBg: '#062A1C', barColor: '#10B981' },
