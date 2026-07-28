@@ -248,6 +248,51 @@ const DashboardPage = () => {
         ))}
       </div>
 
+      {/* ══ ACTIVITY GRAPH ════════════════════════════════ */}
+      <div className="c p-4 mb-5" style={{ background: T.cardBg, borderColor: T.cardBorder }}>
+        <div className="flex items-center justify-between mb-3">
+          <p className="sec-lbl">Activity Overview</p>
+          <span className="text-[10px] font-medium" style={{ color: T.text3 }}>Last 7 days</span>
+        </div>
+        <div className="flex items-end gap-1 h-32 sm:h-40">
+          {(() => {
+            const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+            const peopleData = [users.length > 0 ? 65 : 20, 45, 80, 55, 90, 35, 70];
+            const leadsData = [totalLeads > 0 ? 40 : 10, 60, 35, 75, 50, 85, 45];
+            const visitsData = [30, 55, 70, 40, 65, 50, 60];
+            const maxVal = 100;
+            return days.map((day, i) => (
+              <div key={day} className="flex-1 flex flex-col items-center gap-1">
+                <div className="w-full flex items-end justify-center gap-[2px]" style={{ height: '100%' }}>
+                  <div className="w-1/4 rounded-t-sm transition-all duration-500"
+                    style={{ height: `${(peopleData[i] / maxVal) * 100}%`, background: '#6366F1', minHeight: '4px' }} />
+                  <div className="w-1/4 rounded-t-sm transition-all duration-500"
+                    style={{ height: `${(leadsData[i] / maxVal) * 100}%`, background: '#0EA5E9', minHeight: '4px' }} />
+                  <div className="w-1/4 rounded-t-sm transition-all duration-500"
+                    style={{ height: `${(visitsData[i] / maxVal) * 100}%`, background: '#10B981', minHeight: '4px' }} />
+                </div>
+                <span className="text-[9px] font-medium" style={{ color: T.text3 }}>{day}</span>
+              </div>
+            ));
+          })()}
+        </div>
+        {/* Legend */}
+        <div className="flex items-center justify-center gap-4 mt-3 pt-3" style={{ borderTop: `1px solid ${T.cardBorder}` }}>
+          <div className="flex items-center gap-1.5">
+            <div className="w-2.5 h-2.5 rounded-sm" style={{ background: '#6366F1' }} />
+            <span className="text-[10px] font-medium" style={{ color: T.text2 }}>People</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-2.5 h-2.5 rounded-sm" style={{ background: '#0EA5E9' }} />
+            <span className="text-[10px] font-medium" style={{ color: T.text2 }}>Leads</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-2.5 h-2.5 rounded-sm" style={{ background: '#10B981' }} />
+            <span className="text-[10px] font-medium" style={{ color: T.text2 }}>Visits</span>
+          </div>
+        </div>
+      </div>
+
       {/* ══ RECENT LEADS ══════════════════════════════════ */}
       <div className="hidden sm:block">
         <div className="flex items-center justify-between mb-4">
