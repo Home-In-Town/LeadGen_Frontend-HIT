@@ -40,7 +40,7 @@ const Header = ({ onMenuClick }) => {
           </button>
 
           <Link to="/dashboard" className="no-underline flex items-center gap-2.5">
-            <span className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-[#6D28D9] text-white shadow-lg shadow-[#6D28D9]/25">
+            <span className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-[#10B981] text-white shadow-lg shadow-[#10B981]/25">
               <span className="material-symbols-outlined text-[20px]">hub</span>
             </span>
             <div className="flex flex-col leading-none">
