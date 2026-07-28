@@ -43,8 +43,7 @@ export default function TemplatePicker({ open, onClose, onSelectTemplate }) {
   }, [open, fetchTemplates]);
 
   const handleSelect = (template) => {
-    // Pass full template object so chat can render rich preview (header, body, buttons)
-    onSelectTemplate(template.name, template);
+    onSelectTemplate(template.name);
     onClose();
   };
 

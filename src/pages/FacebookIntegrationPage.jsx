@@ -417,7 +417,7 @@ function CampaignCard({ campaign, onMappingCreated, hitLinked, projects }) {
 
         {showConfig && (
             <CampaignConfigModal
-                campaign={{ ...campaign, hitLinked }}
+                campaign={campaign}
                 onClose={() => setShowConfig(false)}
                 onSaved={onMappingCreated}
             />
@@ -828,7 +828,7 @@ function TabSettings({ isConnected, onSync, syncing, lastSynced, onDisconnect, d
                         <div>
                             <p className="text-sm font-bold text-slate-900 dark:text-white">Run Automation</p>
                             <p className="text-xs text-slate-500 mt-0.5">
-                                When enabled, triggers AI voice calls, WhatsApp &amp; email for each imported lead per project settings. Campaigns without a project assigned are imported silently.
+                                When enabled, triggers AI voice calls for each imported lead. Disable for silent imports.
                             </p>
                         </div>
                         <button

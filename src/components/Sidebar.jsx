@@ -100,7 +100,7 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
   };
 
   return (
-    <aside className={`fixed left-0 top-0 h-screen bg-white/75 dark:bg-slate-950/70 border-r border-slate-200/70 dark:border-white/10 backdrop-blur-xl flex flex-col z-50 transition-all duration-300 ease-in-out lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'} ${isCollapsed ? 'w-20' : 'w-60'}`}>
+    <aside className={`fixed left-0 top-0 h-screen bg-white dark:bg-[#0D1117] border-r border-slate-200 dark:border-slate-800 flex flex-col z-50 transition-all duration-300 ease-in-out lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'} ${isCollapsed ? 'w-20' : 'w-60'}`}>
       
       {/* Brand */}
       {/* border-b border-slate-200/70 dark:border-white/10 */}
@@ -108,7 +108,7 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
         {!isCollapsed ? (
           <>
             <Link to="/dashboard" className="no-underline flex items-center gap-2 overflow-hidden">
-              <span className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-gradient-to-br from-primary to-emerald-600 text-white shadow-lg shadow-primary/25">
+              <span className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-[#6D28D9] text-white shadow-lg shadow-[#6D28D9]/25">
                     <span className="material-symbols-outlined text-[20px]">hub</span>
                   </span>
               <div className="flex flex-col">
@@ -186,7 +186,7 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
                                 : 'gap-3 px-4 py-2.5 sm:py-3 rounded-l-[12px] uppercase tracking-[0.12em] text-[9px] sm:text-[10px] font-black'
                             } ${
                               isActive(item.path) || item.children.some(c => isActive(c.path))
-                                ? 'bg-gradient-to-r from-primary to-emerald-600 text-white shadow-md shadow-primary/25'
+                                ? 'bg-[#6D28D9] text-white shadow-md shadow-[#6D28D9]/30'
                                 : 'text-slate-500 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-900/5 dark:hover:bg-white/10'
                             }`}
                           >
@@ -210,7 +210,7 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
                               onClick={() => toggleItem(item.path)}
                               className={`p-2 rounded-r-[12px] transition-all duration-200 cursor-pointer border-none ${
                                 isActive(item.path) || item.children.some(c => isActive(c.path))
-                                  ? 'bg-gradient-to-r from-emerald-600 to-emerald-600 text-white/80 hover:text-white'
+                                  ? 'bg-[#6D28D9] text-white/90 hover:text-white'
                                   : 'bg-transparent text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
                               }`}
                             >
@@ -282,7 +282,7 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
                             : 'gap-3 px-4 py-2.5 sm:py-3 rounded-[12px] uppercase tracking-[0.12em] text-[9px] sm:text-[10px] font-black'
                         } ${
                           isActive(item.path)
-                            ? 'bg-gradient-to-r from-primary to-emerald-600 text-white shadow-md shadow-primary/25'
+                            ? 'bg-[#6D28D9] text-white shadow-md shadow-[#6D28D9]/30'
                             : 'text-slate-500 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-900/5 dark:hover:bg-white/10'
                         }`}
                       >

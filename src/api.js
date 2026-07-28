@@ -71,10 +71,6 @@ export const getVoiceSettings = () => voiceApi.get('/settings');
 export const updateVoiceSettings = (data) => voiceApi.put('/settings', data);
 export const resetVoiceSettings = () => voiceApi.delete('/settings');
 
-// ====== DEFAULT AUTOMATION (Phase 1 — no integration needed) ======
-export const getDefaultAutomation = () => voiceApi.get('/default-automation');
-export const updateDefaultAutomation = (data) => voiceApi.put('/default-automation', data);
-
 // ====== VOICE DOCUMENTS ENDPOINTS ======
 export const uploadVoiceDocument = (file) => {
     const formData = new FormData();
@@ -119,10 +115,6 @@ export const markChatAsRead = (leadId) => chatApi.post(`/${leadId}/read`);
 
 // ====== EMAIL DASHBOARD ENDPOINTS ======
 const emailApi = createApiInstance('/email');
-
-// ====== DASHBOARD ANALYTICS ======
-const dashboardApi = createApiInstance('/dashboard');
-export const getDashboardAnalytics = (days = 30) => dashboardApi.get(`/analytics?days=${days}`);
 export const getEmailFolder = (folder, params) => emailApi.get(`/folder/${folder}`, { params });
 export const getEmailById = (id) => emailApi.get(`/${id}`);
 export const sendEmail = (data) => emailApi.post('/send', data);
@@ -257,15 +249,9 @@ export const getHomeinTownStatus     = ()     => ownersApi.get('/homeintown-stat
 export const verifyHitAccount        = (data) => ownersApi.post('/link-homeintown', data);
 export const confirmLinkHomeintown   = (data) => ownersApi.post('/confirm-link-homeintown', data);
 export const unlinkHomeintown        = ()     => ownersApi.post('/unlink-homeintown');
-export const createHomeinTownAccount = ()     => ownersApi.post('/create-homeintown-account');
 
 // ====== HIT PROJECTS ENDPOINTS ======
 export const getHitProjects          = ()     => ownersApi.get('/projects');
-
-// ====== PROJECT CRUD (Phase 2 — creates in HIT DB) ======
-export const createHitProject        = (data) => projectsApi.post('/create', data);
-export const updateHitProject        = (id, data) => projectsApi.put(`/${id}/update`, data);
-export const deleteHitProject        = (id)   => projectsApi.delete(`/${id}/delete`);
 
 
 // ====== PROJECT ENDPOINTS (HIT-connected users) ======

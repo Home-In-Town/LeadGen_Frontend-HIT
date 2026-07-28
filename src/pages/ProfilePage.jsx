@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
 import {
   getProfile, updateProfile, changePin,
-  getHomeinTownStatus, verifyHitAccount, confirmLinkHomeintown, unlinkHomeintown, createHomeinTownAccount,
+  getHomeinTownStatus, verifyHitAccount, confirmLinkHomeintown, unlinkHomeintown,
   getUsageStats, syncIntegrationStatus,
 } from '../api';
 
@@ -34,7 +34,6 @@ const ProfilePage = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
-  const [editing, setEditing] = useState(false);
 
   // PIN
   const [showPin, setShowPin] = useState(false);
@@ -47,8 +46,6 @@ const ProfilePage = () => {
   const [hitVerifying, setHitVerifying] = useState(false);
   const [hitConfirmData, setHitConfirmData] = useState(null);
   const [hitLinking, setHitLinking] = useState(false);
-  const [hitCreating, setHitCreating] = useState(false);
-  const [showManualConnect, setShowManualConnect] = useState(false);
 
   // Usage stats
   const [stats, setStats] = useState(null);
@@ -131,30 +128,6 @@ const ProfilePage = () => {
     finally { setHitVerifying(false); }
   };
 
-  const handleCreateHitAccount = async () => {
-    try {
-      setHitCreating(true);
-      const res = await createHomeinTownAccount();
-      if (res.data.success) {
-        addToast(res.data.message || 'HomeInTown account connected! Projects are now enabled.', 'success');
-        // Refresh status
-        const hitRes = await getHomeinTownStatus();
-        if (hitRes.data) setHitStatus({ linked: hitRes.data.linked, hitUser: hitRes.data.hitUser, loading: false });
-      }
-    } catch (err) {
-      const errData = err.response?.data;
-      if (errData?.showManualConnect) {
-        // Show the manual Verify & Connect form
-        addToast(errData.error, 'error');
-        setShowManualConnect(true);
-      } else {
-        addToast(errData?.error || 'Failed to enable projects. Please add your mobile number and try again.', 'error');
-      }
-    } finally {
-      setHitCreating(false);
-    }
-  };
-
   const handleHitConfirm = async () => {
     try {
       setHitLinking(true);
@@ -188,9 +161,9 @@ const ProfilePage = () => {
         <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-emerald-600 text-white text-2xl font-black shadow-xl shadow-primary/25">
           {(profile.name || 'U').charAt(0).toUpperCase()}
         </div>
-        <div>
-          <h1 className="text-xl font-bold text-slate-900 dark:text-white">{profile.name || 'Your Profile'}</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">{profile.email}</p>
+        <div className="min-w-0">
+          <h1 className="text-xl font-bold text-slate-900 dark:text-white truncate">{profile.name || 'Your Profile'}</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 truncate">{profile.email}</p>
         </div>
       </div>
 
@@ -212,23 +185,23 @@ const ProfilePage = () => {
               <div
                 key={step.id}
                 onClick={() => step.path && navigate(step.path)}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-all duration-300 ${
+                className={`flex items-center gap-3 px-3 py-3 rounded-xl border transition-all duration-300 min-w-0 overflow-hidden ${
                   done
                     ? 'border-emerald-200 dark:border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-500/5'
                     : 'border-slate-200/70 dark:border-white/10 hover:border-primary/30 hover:bg-primary/5'
                 } ${step.path ? 'cursor-pointer' : ''}`}
               >
-                <div className={`flex h-8 w-8 items-center justify-center rounded-lg transition-all duration-500 ${
+                <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-all duration-500 ${
                   done ? 'bg-emerald-500 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'
                 }`}>
                   <span className="material-symbols-outlined text-base">{done ? 'check' : step.icon}</span>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className={`text-xs font-bold ${done ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-900 dark:text-white'}`}>{step.label}</p>
-                  <p className="text-[10px] text-slate-500 truncate">{step.desc}</p>
+                <div className="flex-1 min-w-0 overflow-hidden">
+                  <p className={`text-xs font-bold truncate ${done ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-900 dark:text-white'}`}>{step.label}</p>
+                  <p className="text-[10px] text-slate-500 truncate leading-tight mt-0.5">{step.desc}</p>
                 </div>
-                {done && <span className="material-symbols-outlined text-emerald-500 text-lg">verified</span>}
-                {!done && step.path && <span className="material-symbols-outlined text-slate-400 text-base">chevron_right</span>}
+                {done && <span className="material-symbols-outlined text-emerald-500 text-lg shrink-0">verified</span>}
+                {!done && step.path && <span className="material-symbols-outlined text-slate-400 text-base shrink-0">chevron_right</span>}
               </div>
             );
           })}
@@ -272,69 +245,34 @@ const ProfilePage = () => {
 
       {/* ═══════ Company Details ═══════ */}
       <div className={`${cardClass} p-5`}>
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-bold text-slate-900 dark:text-white">Company Details</h3>
-          {!editing && (
-            <button onClick={() => setEditing(true)} className="flex items-center gap-1.5 text-[10px] font-bold text-primary hover:text-primary/80 transition-colors">
-              <span className="material-symbols-outlined text-sm">edit</span>
-              Edit
-            </button>
-          )}
-        </div>
+        <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-4">Company Details</h3>
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <label className={labelClass}>Full Name</label>
-            {editing ? (
-              <input type="text" value={profile.name} onChange={e => handleProfileChange('name', e.target.value)} className={inputClass} placeholder="Your name" />
-            ) : (
-              <p className="text-sm font-medium text-slate-900 dark:text-white py-2.5">{profile.name || '—'}</p>
-            )}
+            <input type="text" value={profile.name} onChange={e => handleProfileChange('name', e.target.value)} className={inputClass} placeholder="Your name" />
           </div>
           <div>
             <label className={labelClass}>Email (Login ID)</label>
-            <p className="text-sm font-medium text-slate-500 dark:text-slate-400 py-2.5">{profile.email || '—'}</p>
+            <input type="email" value={profile.email} disabled className={`${inputClass} opacity-60 cursor-not-allowed`} />
           </div>
           <div>
             <label className={labelClass}>Company Name</label>
-            {editing ? (
-              <input type="text" value={profile.companyName} onChange={e => handleProfileChange('companyName', e.target.value)} className={inputClass} placeholder="Your company name (used in AI calls)" />
-            ) : (
-              <p className="text-sm font-medium text-slate-900 dark:text-white py-2.5">{profile.companyName || '—'}</p>
-            )}
+            <input type="text" value={profile.companyName} onChange={e => handleProfileChange('companyName', e.target.value)} className={inputClass} placeholder="Your company name (used in AI calls)" />
           </div>
           <div>
             <label className={labelClass}>Mobile Number</label>
-            {editing ? (
-              <input type="tel" value={profile.mobile} onChange={e => handleProfileChange('mobile', e.target.value)} className={inputClass} placeholder="10-digit mobile" maxLength={10} />
-            ) : (
-              <p className="text-sm font-medium text-slate-900 dark:text-white py-2.5">{profile.mobile || '—'}</p>
-            )}
+            <input type="tel" value={profile.mobile} onChange={e => handleProfileChange('mobile', e.target.value)} className={inputClass} placeholder="10-digit mobile" maxLength={10} />
           </div>
         </div>
-        {editing && (
-          <div className="mt-4 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <button onClick={() => setShowPin(!showPin)} className={btnOutline}>
-                <span className="material-symbols-outlined text-sm">lock</span>
-                {showPin ? 'Cancel' : 'Change PIN'}
-              </button>
-              <button onClick={() => { setEditing(false); setDirty(false); }} className={btnOutline}>
-                Cancel
-              </button>
-            </div>
-            <button onClick={() => { handleSave(); setEditing(false); }} disabled={!dirty || saving} className={btnPrimary}>
-              {saving ? 'Saving...' : 'Save Changes'}
-            </button>
-          </div>
-        )}
-        {!editing && (
-          <div className="mt-4 flex justify-start">
-            <button onClick={() => setShowPin(!showPin)} className={btnOutline}>
-              <span className="material-symbols-outlined text-sm">lock</span>
-              {showPin ? 'Cancel' : 'Change PIN'}
-            </button>
-          </div>
-        )}
+        <div className="mt-4 flex items-center justify-between">
+          <button onClick={() => setShowPin(!showPin)} className={btnOutline}>
+            <span className="material-symbols-outlined text-sm">lock</span>
+            {showPin ? 'Cancel' : 'Change PIN'}
+          </button>
+          <button onClick={handleSave} disabled={!dirty || saving} className={btnPrimary}>
+            {saving ? 'Saving...' : 'Save'}
+          </button>
+        </div>
 
         {/* PIN Change */}
         {showPin && (
@@ -381,46 +319,14 @@ const ProfilePage = () => {
             </div>
           </div>
         ) : (
-          <div className="space-y-4">
-            {/* Enable Projects — one-click (shown first) */}
-            <div className="rounded-xl bg-gradient-to-r from-primary/5 to-emerald-500/5 dark:from-primary/10 dark:to-emerald-500/10 border border-primary/20 dark:border-primary/30 p-4">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-sm font-bold text-slate-900 dark:text-white">Enable Projects</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                    Auto-connects or creates HomeInTown account using your current phone &amp; details.
-                  </p>
-                </div>
-                <button
-                  onClick={handleCreateHitAccount}
-                  disabled={hitCreating}
-                  className="flex-shrink-0 inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2.5 text-[10px] font-black uppercase tracking-[0.12em] text-white hover:brightness-110 transition-all disabled:opacity-50"
-                >
-                  {hitCreating ? <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" /> : <span className="material-symbols-outlined text-sm">bolt</span>}
-                  {hitCreating ? 'Connecting...' : 'Enable Projects'}
-                </button>
-              </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div><label className={labelClass}>HIT Phone</label><input type="tel" value={hitForm.phone} onChange={e => setHitForm(f => ({...f, phone: e.target.value}))} className={inputClass} placeholder="10-digit" maxLength={10} /></div>
+            <div><label className={labelClass}>HIT MPIN</label><input type="password" value={hitForm.mpin} onChange={e => setHitForm(f => ({...f, mpin: e.target.value}))} className={inputClass} placeholder="MPIN" maxLength={6} /></div>
+            <div className="sm:col-span-2 flex justify-end">
+              <button onClick={handleHitVerify} disabled={hitVerifying || !hitForm.phone || !hitForm.mpin} className={btnPrimary}>
+                {hitVerifying ? 'Verifying...' : 'Verify & Connect'}
+              </button>
             </div>
-
-            {/* Manual Connect — shown when Enable Projects fails with credential mismatch */}
-            {showManualConnect && (
-              <>
-                <div className="flex items-center gap-3">
-                  <div className="flex-1 border-t border-slate-200 dark:border-white/10" />
-                  <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">manual connect</span>
-                  <div className="flex-1 border-t border-slate-200 dark:border-white/10" />
-                </div>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div><label className={labelClass}>HIT Phone</label><input type="tel" value={hitForm.phone} onChange={e => setHitForm(f => ({...f, phone: e.target.value}))} className={inputClass} placeholder="10-digit" maxLength={10} /></div>
-                  <div><label className={labelClass}>HIT MPIN</label><input type="password" value={hitForm.mpin} onChange={e => setHitForm(f => ({...f, mpin: e.target.value}))} className={inputClass} placeholder="MPIN" maxLength={6} /></div>
-                  <div className="sm:col-span-2 flex justify-end">
-                    <button onClick={handleHitVerify} disabled={hitVerifying || !hitForm.phone || !hitForm.mpin} className={btnPrimary}>
-                      {hitVerifying ? 'Verifying...' : 'Verify & Connect'}
-                    </button>
-                  </div>
-                </div>
-              </>
-            )}
           </div>
         )}
       </div>

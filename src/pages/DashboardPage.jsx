@@ -1,598 +1,419 @@
-import { useState, useEffect, useCallback } from 'react';
+﻿import { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as api from '../api';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import { syncIntegrationStatus } from '../api';
 
-import DashboardAnalytics from '../components/DashboardAnalytics';
+/* ── stat card definitions ── */
+const STATS = [
+  { icon: 'group',     label: 'People',      path: '/users',           iconColor: '#6366F1', iconBg: '#EEF2FF', darkBg: '#1E2040', barColor: '#6366F1' },
+  { icon: 'person',    label: 'Leads',        path: '/crm',             iconColor: '#0EA5E9', iconBg: '#E0F2FE', darkBg: '#0C2234', barColor: '#0EA5E9' },
+  { icon: 'campaign',  label: 'Campaigns',    path: '/campaigns',       iconColor: '#F59E0B', iconBg: '#FEF3C7', darkBg: '#2A1E06', barColor: '#F59E0B' },
+  { icon: 'chat',      label: 'Unread Chats', path: '/chat/whatsapp',   iconColor: '#10B981', iconBg: '#D1FAE5', darkBg: '#062A1C', barColor: '#10B981' },
+  { icon: 'call',      label: 'Calls',        path: '/call-logs',       iconColor: '#8B5CF6', iconBg: '#EDE9FE', darkBg: '#1C1040', barColor: '#8B5CF6' },
+  { icon: 'smart_toy', label: 'Pending Auto', path: '/lead-automation', iconColor: '#EC4899', iconBg: '#FCE7F3', darkBg: '#2A0A1C', barColor: '#EC4899' },
+];
 
-const THEME_STORAGE_KEY = 'hit-landing-theme';
+const QUICK_ACTIONS = [
+  { icon: 'person_add', label: 'Add People',  iconColor: '#6366F1', iconBg: '#EEF2FF', darkBg: '#1E2040' },
+  { icon: 'download',   label: 'Import File', iconColor: '#0EA5E9', iconBg: '#E0F2FE', darkBg: '#0C2234' },
+  { icon: 'call',       label: 'Voice Calls', iconColor: '#8B5CF6', iconBg: '#EDE9FE', darkBg: '#1C1040' },
+  { icon: 'pie_chart',  label: 'Reports',     iconColor: '#F59E0B', iconBg: '#FEF3C7', darkBg: '#2A1E06' },
+];
 
-function getInitialTheme() {
-  if (typeof window === 'undefined') return 'light';
-  try {
-    const stored = localStorage.getItem(THEME_STORAGE_KEY);
-    if (stored === 'dark' || stored === 'light') return stored;
-  } catch { /* ignore */ }
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-}
+const INTEGRATIONS = [
+  { k: 'wa', label: 'WhatsApp', icon: 'chat',             color: '#10B981', bg: '#D1FAE5', darkBg: '#062A1C', path: '/whatsapp-setup',        ok: (d) => d?.whatsapp?.connected && d?.whatsapp?.tokenValid },
+  { k: 'fb', label: 'Facebook', icon: 'data_exploration', color: '#3B82F6', bg: '#DBEAFE', darkBg: '#0C1D38', path: '/integrations/facebook', ok: (d) => d?.facebook?.connected && d?.facebook?.tokenValid },
+  { k: 'em', label: 'Email',    icon: 'mail',             color: '#8B5CF6', bg: '#EDE9FE', darkBg: '#1C1040', path: '/integrations',          ok: (d) => d?.email?.connected    && d?.email?.healthy       },
+  { k: 'vo', label: 'AI Voice', icon: 'record_voice_over',color: '#F59E0B', bg: '#FEF3C7', darkBg: '#2A1E06', path: '/call-logs',             ok: (d) => d?.voice?.configured },
+];
 
-/* ---------------------------------- */
-/* Main Component */
-/* ---------------------------------- */
+const greet = () => {
+  const h = new Date().getHours();
+  if (h < 12) return 'Good morning';
+  if (h < 17) return 'Good afternoon';
+  return 'Good evening';
+};
 
+/* ──────────────────────────────────────────────── */
 const DashboardPage = () => {
-  const navigate = useNavigate();
-  const { user } = useAuth();
-  const [theme] = useState(getInitialTheme);
-  const isDark = theme === 'dark';
+  const navigate       = useNavigate();
+  const { user }       = useAuth();
+  const { theme }      = useTheme();
+  const dark           = theme === 'dark';
 
-  // Data states
-  const [users, setUsers] = useState([]);
-  const [leads, setLeads] = useState({ leads: [], total: 0 });
-  const [campaigns, setCampaigns] = useState({ campaigns: [], total: 0 });
+  const [users,         setUsers]         = useState([]);
+  const [leads,         setLeads]         = useState({ leads: [], total: 0 });
+  const [campaigns,     setCampaigns]     = useState({ campaigns: [], total: 0 });
   const [conversations, setConversations] = useState([]);
-  const [callLogs, setCallLogs] = useState([]);
-  const [automations, setAutomations] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  // Form states
-  const [manualForm, setManualForm] = useState({ name: '', phone: '' });
-  const [file, setFile] = useState(null);
+  const [callLogs,      setCallLogs]      = useState([]);
+  const [automations,   setAutomations]   = useState([]);
+  const [loading,       setLoading]       = useState(true);
+  const [manualForm,    setManualForm]    = useState({ name: '', phone: '' });
+  const [file,          setFile]          = useState(null);
   const [manualLoading, setManualLoading] = useState(false);
-  const [fileLoading, setFileLoading] = useState(false);
-  const [error, setError] = useState('');
-
-  // Integration sync state
-  const [syncData, setSyncData] = useState(null);
-  const [syncing, setSyncing] = useState(false);
-  const [syncedAt, setSyncedAt] = useState(null);
-
-  /* -------------------- */
-  /* FETCH ALL DATA */
-  /* -------------------- */
+  const [fileLoading,   setFileLoading]   = useState(false);
+  const [error,         setError]         = useState('');
+  const [syncData,      setSyncData]      = useState(null);
+  const [syncing,       setSyncing]       = useState(false);
+  const [syncedAt,      setSyncedAt]      = useState(null);
+  const [showAdd,       setShowAdd]       = useState(false);
+  const [showImport,    setShowImport]    = useState(false);
 
   const fetchDashboardData = useCallback(async () => {
-    if (!user) {
-      setLoading(false);
-      return;
-    }
-
+    if (!user) { setLoading(false); return; }
     setLoading(true);
-    const params = { userId: user.id, role: user.role };
-
+    const p = { userId: user.id, role: user.role };
     try {
-      const [usersRes, leadsRes, campaignsRes, chatsRes, callsRes, automationsRes] =
-        await Promise.allSettled([
-          api.getAllUsers(params),
-          api.getAllLeads({ ...params, limit: 5 }),
-          api.listCampaigns(params),
-          api.getChatConversations(),
-          api.getCallLogs(params),
-          api.getCreatorAutomations(user.id),
-        ]);
-
-      if (usersRes.status === 'fulfilled') setUsers(usersRes.value.data || []);
-      if (leadsRes.status === 'fulfilled') setLeads(leadsRes.value.data || { leads: [], total: 0 });
-      if (campaignsRes.status === 'fulfilled') setCampaigns(campaignsRes.value.data || { campaigns: [], total: 0 });
-      if (chatsRes.status === 'fulfilled') {
-        const chatData = chatsRes.value.data;
-        // Handle both paginated response { success, data: [...] } and flat array
-        setConversations(Array.isArray(chatData) ? chatData : (chatData?.data || []));
+      const [uR, lR, cR, chR, clR, aR] = await Promise.allSettled([
+        api.getAllUsers(p),
+        api.getAllLeads({ ...p, limit: 5 }),
+        api.listCampaigns(p),
+        api.getChatConversations(),
+        api.getCallLogs(p),
+        api.getCreatorAutomations(user.id),
+      ]);
+      if (uR.status  === 'fulfilled') setUsers(uR.value.data || []);
+      if (lR.status  === 'fulfilled') setLeads(lR.value.data || { leads: [], total: 0 });
+      if (cR.status  === 'fulfilled') setCampaigns(cR.value.data || { campaigns: [], total: 0 });
+      if (chR.status === 'fulfilled') {
+        const d = chR.value.data;
+        setConversations(Array.isArray(d) ? d : (d?.data || []));
       }
-      if (callsRes.status === 'fulfilled') setCallLogs(callsRes.value.data?.logs || callsRes.value.data || []);
-      if (automationsRes.status === 'fulfilled') setAutomations(automationsRes.value.data || []);
-    } catch (err) {
-      console.error('Dashboard fetch error:', err);
-    } finally {
-      setLoading(false);
-    }
+      if (clR.status === 'fulfilled') setCallLogs(clR.value.data?.logs || clR.value.data || []);
+      if (aR.status  === 'fulfilled') setAutomations(aR.value.data || []);
+    } catch (e) { console.error(e); }
+    finally { setLoading(false); }
   }, [user]);
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, [fetchDashboardData]);
+  useEffect(() => { fetchDashboardData(); }, [fetchDashboardData]);
 
   const handleSync = useCallback(async () => {
     setSyncing(true);
     try {
       const res = await syncIntegrationStatus();
-      if (res.data.success) {
-        setSyncData(res.data.integrations);
-        setSyncedAt(new Date(res.data.synced_at));
-      }
-    } catch (err) {
-      console.error('Sync failed:', err);
-    } finally {
-      setSyncing(false);
-    }
+      if (res.data.success) { setSyncData(res.data.integrations); setSyncedAt(new Date(res.data.synced_at)); }
+    } catch (e) { console.error(e); }
+    finally { setSyncing(false); }
   }, []);
 
-  /* -------------------- */
-  /* DERIVED DATA */
-  /* -------------------- */
-
-  const totalLeads = leads.total || 0;
-  const activeCampaigns = Array.isArray(campaigns.campaigns)
-    ? campaigns.campaigns.filter((c) => c.status === 'active').length
-    : 0;
-  const totalCampaigns = campaigns.total || 0;
-  const unreadChats = Array.isArray(conversations)
-    ? conversations.reduce((sum, c) => sum + (c.unreadCount || 0), 0)
-    : 0;
-  const recentLeads = Array.isArray(leads.leads) ? leads.leads.slice(0, 5) : [];
-  const pendingAutomations = Array.isArray(automations)
-    ? automations.filter((a) => a.status === 'pending').length
-    : 0;
-  const totalCalls = Array.isArray(callLogs) ? callLogs.length : 0;
-
-  /* -------------------- */
-  /* FORM HANDLERS */
-  /* -------------------- */
+  const totalLeads         = leads.total || 0;
+  const activeCampaigns    = Array.isArray(campaigns.campaigns) ? campaigns.campaigns.filter(c => c.status === 'active').length : 0;
+  const totalCampaigns     = campaigns.total || 0;
+  const unreadChats        = Array.isArray(conversations) ? conversations.reduce((s, c) => s + (c.unreadCount || 0), 0) : 0;
+  const recentLeads        = Array.isArray(leads.leads) ? leads.leads.slice(0, 5) : [];
+  const pendingAutomations = Array.isArray(automations) ? automations.filter(a => a.status === 'pending').length : 0;
+  const totalCalls         = Array.isArray(callLogs) ? callLogs.length : 0;
+  const statValues         = [users.length, totalLeads, `${activeCampaigns}/${totalCampaigns}`, unreadChats, totalCalls, pendingAutomations];
 
   const handleManualSubmit = async (e) => {
-    e.preventDefault();
-    setManualLoading(true);
-    setError('');
+    e.preventDefault(); setManualLoading(true); setError('');
     try {
-      const creatorData = user ? { userId: user.id, role: user.role, name: user.name } : null;
-      await api.createUser({ ...manualForm, createdBy: creatorData });
-      setManualForm({ name: '', phone: '' });
-      await fetchDashboardData();
-      navigate('/users');
-    } catch (err) {
-      console.error(err);
-      setError('Failed to add user.');
-    } finally {
-      setManualLoading(false);
-    }
+      const cb = user ? { userId: user.id, role: user.role, name: user.name } : null;
+      await api.createUser({ ...manualForm, createdBy: cb });
+      setManualForm({ name: '', phone: '' }); setShowAdd(false);
+      await fetchDashboardData(); navigate('/users');
+    } catch (e) { console.error(e); setError('Failed to add user.'); }
+    finally { setManualLoading(false); }
   };
 
   const handleFileUpload = async (e) => {
-    e.preventDefault();
-    if (!file) return;
-    setFileLoading(true);
-    setError('');
+    e.preventDefault(); if (!file) return;
+    setFileLoading(true); setError('');
     try {
-      const creatorData = user ? { userId: user.id, role: user.role, name: user.name } : null;
-      await api.uploadUser(file, creatorData);
-      setFile(null);
-      await fetchDashboardData();
-      navigate('/users');
-    } catch (err) {
-      console.error(err);
-      setError('Failed to process document.');
-    } finally {
-      setFileLoading(false);
-    }
+      const cb = user ? { userId: user.id, role: user.role, name: user.name } : null;
+      await api.uploadUser(file, cb);
+      setFile(null); setShowImport(false);
+      await fetchDashboardData(); navigate('/users');
+    } catch (e) { console.error(e); setError('Failed to process document.'); }
+    finally { setFileLoading(false); }
   };
-
-  /* -------------------- */
-  /* HELPERS */
-  /* -------------------- */
 
   const timeAgo = (date) => {
     if (!date) return '';
     const diff = Date.now() - new Date(date).getTime();
-    const mins = Math.floor(diff / 60000);
-    if (mins < 1) return 'Just now';
-    if (mins < 60) return `${mins}m ago`;
-    const hrs = Math.floor(mins / 60);
-    if (hrs < 24) return `${hrs}h ago`;
-    const days = Math.floor(hrs / 24);
-    return `${days}d ago`;
+    const m = Math.floor(diff / 60000);
+    if (m < 1)  return 'Just now';
+    if (m < 60) return `${m}m ago`;
+    const h = Math.floor(m / 60);
+    if (h < 24) return `${h}h ago`;
+    return `${Math.floor(h / 24)}d ago`;
   };
 
+  /* ── design tokens ── */
+  const T = {
+    cardBg:    dark ? '#161B27' : '#FFFFFF',
+    cardBorder:dark ? '#2D3748' : '#E2E8F0',
+    text:      dark ? '#E2E8F0' : '#1E1B3A',
+    text2:     dark ? '#94A3B8' : '#64748B',
+    text3:     dark ? '#4B5563' : '#94A3B8',
+    inputBg:   dark ? '#1E2A3A' : '#F5F7FA',
+    rowHover:  dark ? '#1A2235' : '#F8FAFF',
+    divider:   dark ? '#1F2937' : '#F1F5F9',
+    pillBg:    dark ? '#252F40' : '#F0F2F8',
+  };
+
+  /* shared modal wrapper */
+  const Modal = ({ show, onClose, title, children }) => !show ? null : (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+      style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)' }}
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="w-full max-w-sm rounded-[22px] p-6 animate-slide-up"
+        style={{ background: T.cardBg, border: `1px solid ${T.cardBorder}`, boxShadow: '0 24px 64px rgba(0,0,0,0.25)' }}>
+        <div className="flex items-center justify-between mb-6">
+          <p className="text-[17px] font-bold" style={{ color: T.text }}>{title}</p>
+          <button onClick={onClose}
+            className="w-8 h-8 rounded-full flex items-center justify-center border-none cursor-pointer transition-colors"
+            style={{ background: T.pillBg, color: T.text2 }}
+            onMouseEnter={e => e.currentTarget.style.background = dark ? '#2D3A55' : '#EEF2FF'}
+            onMouseLeave={e => e.currentTarget.style.background = T.pillBg}>
+            <span className="material-symbols-outlined text-[16px]">close</span>
+          </button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+
   return (
-    <div className={`relative animate-fade-in font-display pb-10 transition-colors duration-300 ${isDark ? 'dark' : ''}`}>
-      {/* Background */}
-      <div className="pointer-events-none absolute inset-0 -z-10 landing-gradient-mesh opacity-10 dark:opacity-25" aria-hidden />
-      <div className="pointer-events-none absolute inset-0 -z-10 landing-grid-bg opacity-10 dark:opacity-30" aria-hidden />
+    <div className="animate-fade-in pb-28 sm:pb-8" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
 
-      <div className="min-h-[50vh] bg-transparent text-slate-900 dark:text-slate-100 transition-colors duration-300">
-
-        {/* Header */}
-        <div className="mx-auto max-w-5xl px-4 sm:px-6">
-          <div className="flex flex-col sm:flex-row justify-between items-center bg-white/70 dark:bg-slate-950/40 border border-slate-200/70 dark:border-white/10 backdrop-blur-xl p-4 sm:p-5 mb-6 shadow-sm rounded-[18px]">
-            <div className="text-center sm:text-left">
-              <h1 className="text-lg sm:text-xl font-black tracking-tight text-slate-900 dark:text-white">
-                Welcome{user?.name ? `, ${user.name}` : ''}
-              </h1>
-              <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-600/70 dark:text-slate-300/70">
-                Your system at a glance
-              </p>
-            </div>
-            <div className="mt-3 sm:mt-0 flex items-center gap-2">
-              <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
-                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-[9px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">Active</span>
-              </div>
-            </div>
+      {/* ══ WELCOME BANNER ════════════════════════════════ */}
+      <div className="rounded-[20px] p-6 mb-6 relative overflow-hidden"
+        style={{ background: dark ? '#1A1033' : '#1E1B4B' }}>
+        {/* decorative blobs */}
+        <div className="pointer-events-none absolute -top-8 -right-8 w-40 h-40 rounded-full"
+          style={{ background: 'radial-gradient(circle, rgba(139,92,246,0.35) 0%, transparent 70%)' }} />
+        <div className="pointer-events-none absolute bottom-0 left-12 w-28 h-28 rounded-full"
+          style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.25) 0%, transparent 70%)' }} />
+        <div className="relative flex items-start justify-between gap-4">
+          <div className="flex-1 min-w-0">
+            <p className="text-[13px] font-medium mb-1" style={{ color: 'rgba(199,210,254,0.7)' }}>
+              {greet()},
+            </p>
+            <h1 className="font-black text-white uppercase tracking-tight leading-tight mb-2"
+              style={{ fontSize: 'clamp(18px,4vw,24px)' }}>
+              {user?.name || 'Dashboard'}
+            </h1>
+            <p className="text-[13px]" style={{ color: 'rgba(199,210,254,0.55)' }}>
+              Here&#39;s what&#39;s happening with your system today.
+            </p>
+          </div>
+          <div className="flex-shrink-0 w-12 h-12 rounded-[16px] flex items-center justify-center"
+            style={{ background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.12)' }}>
+            <span className="material-symbols-outlined text-[24px]"
+              style={{ color: '#A5B4FC', fontVariationSettings: "'FILL' 1" }}>trending_up</span>
           </div>
         </div>
-
-        {/* Stats Row */}
-        <section className="mx-auto max-w-5xl px-4 sm:px-6 mb-6">
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-            {[
-              { icon: 'groups', label: 'People', value: loading ? '...' : users.length, path: '/users' },
-              { icon: 'contact_page', label: 'Leads', value: loading ? '...' : totalLeads, path: '/crm' },
-              { icon: 'campaign', label: 'Campaigns', value: loading ? '...' : `${activeCampaigns}/${totalCampaigns}`, path: '/campaigns' },
-              { icon: 'chat', label: 'Unread Chats', value: loading ? '...' : unreadChats, path: '/chat' },
-              { icon: 'call', label: 'Calls', value: loading ? '...' : totalCalls, path: '/call-logs' },
-              { icon: 'schedule_send', label: 'Pending Auto', value: loading ? '...' : pendingAutomations, path: '/lead-automation' },
-            ].map((stat) => (
-              <div
-                key={stat.label}
-                onClick={() => navigate(stat.path)}
-                role="button"
-                tabIndex={0}
-                className="flex flex-col items-center justify-center bg-white/80 dark:bg-white/[0.04] border border-slate-200/70 dark:border-white/10 rounded-[14px] p-3 shadow-sm hover:shadow-md hover:-translate-y-px transition-all cursor-pointer"
-              >
-                <span className="material-symbols-outlined text-primary text-xl mb-1">{stat.icon}</span>
-                <span className="text-lg font-black text-slate-900 dark:text-white leading-none">{stat.value}</span>
-                <span className="text-[8px] font-bold uppercase tracking-[0.1em] text-slate-500 dark:text-slate-400 mt-1">{stat.label}</span>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Analytics Charts */}
-        <DashboardAnalytics />
-
-        {/* ── Integration Sync Panel ─────────────────────────────────────── */}
-        <section className="mx-auto max-w-5xl px-4 sm:px-6 mb-6">
-          <div className="bg-white/80 dark:bg-white/[0.04] border border-slate-200/80 dark:border-white/10 backdrop-blur-xl rounded-[18px] shadow-sm overflow-hidden">
-            {/* Header row */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-white/[0.06]">
-              <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-primary text-base">sync</span>
-                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-600 dark:text-slate-300">Integration Status</span>
-                {syncedAt && (
-                  <span className="text-[9px] text-slate-400 ml-1">· synced {timeAgo(syncedAt)}</span>
-                )}
-              </div>
-              <button
-                onClick={handleSync}
-                disabled={syncing}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-[10px] bg-primary text-white text-[9px] font-black uppercase tracking-[0.2em] hover:brightness-110 disabled:opacity-50 transition-all"
-              >
-                <span className={`material-symbols-outlined text-sm ${syncing ? 'animate-spin' : ''}`}>sync</span>
-                {syncing ? 'Syncing…' : 'Sync All'}
-              </button>
-            </div>
-
-            {/* Integration cards */}
-            {!syncData && !syncing && (
-              <div className="px-5 py-5 text-center">
-                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Click Sync All to check live status of all your integrations</p>
-              </div>
-            )}
-
-            {syncing && !syncData && (
-              <div className="px-5 py-5 flex items-center justify-center gap-3">
-                <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Checking integrations…</p>
-              </div>
-            )}
-
-            {syncData && (
-              <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-slate-100 dark:divide-white/[0.06]">
-                {/* WhatsApp */}
-                {(() => {
-                  const wa = syncData.whatsapp;
-                  const ok = wa.connected && wa.tokenValid && wa.metaStatus !== 'TOKEN_EXPIRED';
-                  const warn = wa.connected && (!wa.tokenValid || wa.metaStatus === 'TOKEN_EXPIRED');
-                  return (
-                    <div
-                      className="flex flex-col gap-2 p-4 cursor-pointer hover:bg-slate-50 dark:hover:bg-white/[0.03] transition-colors"
-                      onClick={() => navigate('/whatsapp-setup')}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="w-8 h-8 rounded-[8px] bg-[#25D366]/10 flex items-center justify-center">
-                          <span className="material-symbols-outlined text-[#25D366] text-base">chat</span>
-                        </div>
-                        <span className={`text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${
-                          ok ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400'
-                            : warn ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400'
-                            : 'bg-slate-100 text-slate-500 dark:bg-white/10 dark:text-slate-400'
-                        }`}>
-                          {ok ? 'OK' : warn ? 'Fix needed' : 'Not connected'}
-                        </span>
-                      </div>
-                      <p className="text-xs font-black text-slate-900 dark:text-white">WhatsApp</p>
-                      <p className="text-[9px] text-slate-500 dark:text-slate-400 leading-relaxed">
-                        {ok ? `${wa.displayNumber || 'Connected'} · ${wa.metaStatus || 'Active'}` :
-                         warn ? 'Token invalid — re-connect' : 'No number connected'}
-                      </p>
-                    </div>
-                  );
-                })()}
-
-                {/* Facebook */}
-                {(() => {
-                  const fb = syncData.facebook;
-                  const ok = fb.connected && fb.tokenValid;
-                  const warn = fb.connected && (!fb.tokenValid || fb.tokenExpired);
-                  return (
-                    <div
-                      className="flex flex-col gap-2 p-4 cursor-pointer hover:bg-slate-50 dark:hover:bg-white/[0.03] transition-colors"
-                      onClick={() => navigate('/integrations/facebook')}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="w-8 h-8 rounded-[8px] bg-blue-600/10 flex items-center justify-center">
-                          <span className="text-sm font-black text-blue-600">f</span>
-                        </div>
-                        <span className={`text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${
-                          ok ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400'
-                            : warn ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400'
-                            : 'bg-slate-100 text-slate-500 dark:bg-white/10 dark:text-slate-400'
-                        }`}>
-                          {ok ? 'OK' : warn ? 'Token expired' : 'Not connected'}
-                        </span>
-                      </div>
-                      <p className="text-xs font-black text-slate-900 dark:text-white">Facebook</p>
-                      <p className="text-[9px] text-slate-500 dark:text-slate-400 leading-relaxed">
-                        {ok ? `${fb.pageName || 'Connected'} · ${fb.pageCount} page${fb.pageCount !== 1 ? 's' : ''}` :
-                         warn ? 'Token expired — reconnect FB' : 'No Facebook account connected'}
-                      </p>
-                    </div>
-                  );
-                })()}
-
-                {/* Email */}
-                {(() => {
-                  const em = syncData.email;
-                  const ok = em.connected && em.healthy;
-                  const warn = em.connected && !em.healthy;
-                  return (
-                    <div
-                      className="flex flex-col gap-2 p-4 cursor-pointer hover:bg-slate-50 dark:hover:bg-white/[0.03] transition-colors"
-                      onClick={() => navigate('/integrations')}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="w-8 h-8 rounded-[8px] bg-violet-500/10 flex items-center justify-center">
-                          <span className="material-symbols-outlined text-violet-500 text-base">mail</span>
-                        </div>
-                        <span className={`text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${
-                          ok ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400'
-                            : warn ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400'
-                            : 'bg-slate-100 text-slate-500 dark:bg-white/10 dark:text-slate-400'
-                        }`}>
-                          {ok ? 'OK' : warn ? 'Revoked' : 'Not connected'}
-                        </span>
-                      </div>
-                      <p className="text-xs font-black text-slate-900 dark:text-white">Email</p>
-                      <p className="text-[9px] text-slate-500 dark:text-slate-400 leading-relaxed">
-                        {ok ? `${em.email || ''} · ${em.provider || ''}` :
-                         warn ? 'Token revoked — re-auth' : 'Gmail / Outlook not connected'}
-                      </p>
-                    </div>
-                  );
-                })()}
-
-                {/* AI Voice */}
-                {(() => {
-                  const v = syncData.voice;
-                  const ok = v.configured;
-                  return (
-                    <div
-                      className="flex flex-col gap-2 p-4 cursor-pointer hover:bg-slate-50 dark:hover:bg-white/[0.03] transition-colors"
-                      onClick={() => navigate('/call-logs')}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="w-8 h-8 rounded-[8px] bg-primary/10 flex items-center justify-center">
-                          <span className="material-symbols-outlined text-primary text-base">record_voice_over</span>
-                        </div>
-                        <span className={`text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${
-                          ok ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400'
-                             : 'bg-slate-100 text-slate-500 dark:bg-white/10 dark:text-slate-400'
-                        }`}>
-                          {ok ? 'Configured' : 'Default'}
-                        </span>
-                      </div>
-                      <p className="text-xs font-black text-slate-900 dark:text-white">AI Voice</p>
-                      <p className="text-[9px] text-slate-500 dark:text-slate-400 leading-relaxed">
-                        {ok
-                          ? `${v.agentName || 'Agent'} · ${v.sector} · ${v.documentsCount} doc${v.documentsCount !== 1 ? 's' : ''}`
-                          : 'Using default settings'}
-                      </p>
-                    </div>
-                  );
-                })()}
-              </div>
-            )}
-          </div>
-        </section>
-
-        {/* Main Grid: Add People + Recent Leads */}
-        <section className="mx-auto max-w-5xl px-4 sm:px-6 mb-6">
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
-            {/* Left: Add People (2 cols) */}
-            <div className="lg:col-span-2 space-y-4">
-              <div className="flex items-center gap-2 mb-3">
-                <span className="material-symbols-outlined text-primary text-base">add_circle</span>
-                <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-600/60 dark:text-slate-300/60">Add People</h2>
-              </div>
-
-              {/* Manual Entry */}
-              <form onSubmit={handleManualSubmit} className="bg-white/80 dark:bg-white/[0.04] border border-slate-200/80 dark:border-white/10 backdrop-blur-xl rounded-[16px] p-4 shadow-sm">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-8 h-8 rounded-[8px] bg-primary/10 flex items-center justify-center">
-                    <span className="material-symbols-outlined text-primary text-base">person_add</span>
-                  </div>
-                  <span className="text-xs font-black uppercase tracking-tight text-slate-900 dark:text-white">Manual Entry</span>
-                </div>
-                <div className="space-y-2">
-                  <input type="text" placeholder="Full name" value={manualForm.name} onChange={(e) => setManualForm({ ...manualForm, name: e.target.value })} required className="w-full p-2.5 bg-white/80 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 rounded-[10px] text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/10 focus:outline-none transition-all text-sm" />
-                  <input type="tel" placeholder="Phone number" value={manualForm.phone} onChange={(e) => setManualForm({ ...manualForm, phone: e.target.value })} required className="w-full p-2.5 bg-white/80 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 rounded-[10px] text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/10 focus:outline-none transition-all text-sm" />
-                  <button type="submit" disabled={manualLoading} className="w-full bg-primary text-white py-2.5 rounded-[10px] font-black uppercase tracking-[0.15em] text-[9px] hover:brightness-110 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
-                    {manualLoading ? 'ADDING...' : 'ADD'}
-                  </button>
-                </div>
-              </form>
-
-              {/* Import File */}
-              <form onSubmit={handleFileUpload} className="bg-white/80 dark:bg-white/[0.04] border border-slate-200/80 dark:border-white/10 backdrop-blur-xl rounded-[16px] p-4 shadow-sm">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-8 h-8 rounded-[8px] bg-blue-500/10 flex items-center justify-center">
-                    <span className="material-symbols-outlined text-blue-500 text-base">upload_file</span>
-                  </div>
-                  <span className="text-xs font-black uppercase tracking-tight text-slate-900 dark:text-white">Import File</span>
-                  <span className="text-[8px] font-bold text-slate-400 ml-auto uppercase">DOCX / XLSX / CSV</span>
-                </div>
-                <div className={`relative border border-dashed rounded-[10px] p-4 transition-all ${file ? 'border-emerald-500/40 bg-emerald-500/5' : 'border-slate-300 dark:border-white/10'}`}>
-                  <input type="file" accept=".docx,.xlsx,.csv" onChange={(e) => setFile(e.target.files[0])} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
-                  <div className="flex items-center justify-center gap-2">
-                    <span className={`material-symbols-outlined text-xl ${file ? 'text-emerald-500' : 'text-slate-400'}`}>
-                      {file ? 'task_alt' : 'cloud_upload'}
-                    </span>
-                    <span className={`text-[10px] font-black uppercase ${file ? 'text-emerald-500' : 'text-slate-500'}`}>
-                      {file ? file.name : 'Click to select'}
-                    </span>
-                  </div>
-                </div>
-                <button type="submit" disabled={!file || fileLoading} className="w-full mt-3 bg-primary text-white py-2.5 rounded-[10px] font-black uppercase tracking-[0.15em] text-[9px] hover:brightness-110 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
-                  {fileLoading ? 'PROCESSING...' : 'UPLOAD & PROCESS'}
-                </button>
-              </form>
-
-              {error && (
-                <div className="p-3 rounded-[10px] bg-red-500/10 border border-red-500/20 text-red-400 text-center">
-                  <p className="text-[9px] font-black uppercase">{error}</p>
-                </div>
-              )}
-            </div>
-
-            {/* Right: Recent Leads (3 cols) */}
-            <div className="lg:col-span-3">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-primary text-base">contact_page</span>
-                  <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-600/60 dark:text-slate-300/60">Recent Leads</h2>
-                </div>
-                <button onClick={() => navigate('/crm')} className="text-[9px] font-black uppercase tracking-widest text-primary hover:underline cursor-pointer bg-transparent border-none">
-                  View All →
-                </button>
-              </div>
-
-              <div className="bg-white/80 dark:bg-white/[0.04] border border-slate-200/80 dark:border-white/10 backdrop-blur-xl rounded-[16px] shadow-sm overflow-hidden">
-                {loading ? (
-                  <div className="p-6 space-y-3">
-                    {[1, 2, 3, 4, 5].map((i) => (
-                      <div key={i} className="flex items-center gap-3 animate-pulse">
-                        <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-white/10" />
-                        <div className="flex-1 space-y-1.5">
-                          <div className="h-3 w-32 rounded bg-slate-200 dark:bg-white/10" />
-                          <div className="h-2 w-20 rounded bg-slate-200 dark:bg-white/10" />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : recentLeads.length === 0 ? (
-                  <div className="p-8 text-center">
-                    <span className="material-symbols-outlined text-3xl text-slate-300 dark:text-slate-600 mb-2">person_search</span>
-                    <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-500/70 dark:text-slate-400/70">
-                      No leads yet — add people or run a campaign to start.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="divide-y divide-slate-100 dark:divide-white/5">
-                    {recentLeads.map((lead) => (
-                      <div
-                        key={lead.id || lead._id}
-                        onClick={() => navigate('/crm')}
-                        className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-white/[0.03] transition-colors cursor-pointer"
-                      >
-                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                          <span className="text-xs font-black text-primary">
-                            {(lead.first_name || lead.name || '?')[0]?.toUpperCase()}
-                          </span>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
-                            {lead.first_name || lead.name}{lead.last_name ? ` ${lead.last_name}` : ''}
-                          </p>
-                          <p className="text-[9px] text-slate-500 dark:text-slate-400 truncate">
-                            {lead.phone_number || lead.email || 'No contact'}
-                          </p>
-                        </div>
-                        <div className="text-right shrink-0">
-                          {lead.source && (
-                            <span className="text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-300">
-                              {lead.source}
-                            </span>
-                          )}
-                          <p className="text-[8px] text-slate-400 mt-0.5">{timeAgo(lead.createdAt)}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Recent Conversations */}
-              <div className="mt-4">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-blue-500 text-base">chat</span>
-                    <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-600/60 dark:text-slate-300/60">Recent Chats</h2>
-                    {unreadChats > 0 && (
-                      <span className="text-[8px] font-black bg-red-500 text-white px-1.5 py-0.5 rounded-full">{unreadChats}</span>
-                    )}
-                  </div>
-                  <button onClick={() => navigate('/chat')} className="text-[9px] font-black uppercase tracking-widest text-primary hover:underline cursor-pointer bg-transparent border-none">
-                    Open Chat →
-                  </button>
-                </div>
-
-                <div className="bg-white/80 dark:bg-white/[0.04] border border-slate-200/80 dark:border-white/10 backdrop-blur-xl rounded-[16px] shadow-sm overflow-hidden">
-                  {loading ? (
-                    <div className="p-4 animate-pulse space-y-2">
-                      {[1, 2, 3].map((i) => (
-                        <div key={i} className="h-10 rounded bg-slate-200 dark:bg-white/10" />
-                      ))}
-                    </div>
-                  ) : conversations.length === 0 ? (
-                    <div className="p-5 text-center">
-                      <p className="text-[10px] font-bold uppercase text-slate-500/60">No conversations yet</p>
-                    </div>
-                  ) : (
-                    <div className="divide-y divide-slate-100 dark:divide-white/5">
-                      {conversations.slice(0, 4).map((conv, idx) => (
-                        <div
-                          key={idx}
-                          onClick={() => navigate('/chat')}
-                          className="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-white/[0.03] transition-colors cursor-pointer"
-                        >
-                          <div className="w-7 h-7 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
-                            <span className="text-[10px] font-black text-blue-500">
-                              {(conv.lead?.first_name || '?')[0]?.toUpperCase()}
-                            </span>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-[11px] font-bold text-slate-900 dark:text-white truncate">
-                              {conv.lead?.first_name || 'Unknown'} {conv.lead?.last_name || ''}
-                            </p>
-                            <p className="text-[9px] text-slate-500 dark:text-slate-400 truncate">
-                              {conv.latestMessage?.content || 'No messages'}
-                            </p>
-                          </div>
-                          {conv.unreadCount > 0 && (
-                            <span className="text-[8px] font-black bg-primary text-white w-5 h-5 rounded-full flex items-center justify-center shrink-0">
-                              {conv.unreadCount}
-                            </span>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
       </div>
+
+      {/* ══ OVERVIEW ══════════════════════════════════════ */}
+      <div className="flex items-center justify-between mb-4">
+        <p className="sec-lbl">Overview</p>
+        <button onClick={() => navigate('/crm')}
+          className="flex items-center gap-0.5 text-[12px] font-semibold bg-transparent border-none cursor-pointer"
+          style={{ color: '#6366F1' }}>
+          View All <span className="material-symbols-outlined text-[14px]">chevron_right</span>
+        </button>
+      </div>
+
+      {/* ── Stats 3×2 ── */}
+      <div className="grid grid-cols-3 gap-3 mb-5">
+        {STATS.map((s, i) => (
+          <button key={s.label} onClick={() => navigate(s.path)}
+            className="c3 text-left p-4 border-none w-full"
+            style={{ background: T.cardBg, borderColor: T.cardBorder }}>
+            <div className="ipill w-10 h-10 mb-3"
+              style={{ background: dark ? s.darkBg : s.iconBg }}>
+              <span className="material-symbols-outlined text-[19px]"
+                style={{ color: s.iconColor, fontVariationSettings: "'FILL' 1" }}>{s.icon}</span>
+            </div>
+            <p className="text-[22px] sm:text-[24px] font-black leading-none mb-1" style={{ color: T.text }}>
+              {loading ? <span className="skeleton inline-block w-9 h-5 align-middle" /> : statValues[i]}
+            </p>
+            <p className="text-[11px] leading-tight mb-3" style={{ color: T.text2 }}>{s.label}</p>
+            <div className="w-6 h-[3px] rounded-full" style={{ background: s.barColor }} />
+          </button>
+        ))}
+      </div>
+
+      {/* ══ INTEGRATION STATUS ════════════════════════════ */}
+      <div className="c p-5 mb-5" style={{ background: T.cardBg, borderColor: T.cardBorder }}>
+        <div className="flex items-center gap-4">
+          <div className="ipill flex-shrink-0 w-[52px] h-[52px]"
+            style={{ background: dark ? '#1E2040' : '#EEF2FF' }}>
+            <span className={`material-symbols-outlined text-[24px] ${syncing ? 'animate-spin' : ''}`}
+              style={{ color: '#6366F1', fontVariationSettings: "'FILL' 1" }}>sync</span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[15px] font-semibold mb-0.5" style={{ color: T.text }}>Integration Status</p>
+            <p className="text-[12px] leading-relaxed" style={{ color: T.text2 }}>
+              {syncedAt ? `Last synced ${timeAgo(syncedAt)}` : 'Click Sync All to check live status of all your integrations.'}
+            </p>
+          </div>
+          <button onClick={handleSync} disabled={syncing} className="btn-pri flex-shrink-0">
+            <span className={`material-symbols-outlined text-[15px] ${syncing ? 'animate-spin' : ''}`}
+              style={{ fontVariationSettings: "'FILL' 1" }}>sync</span>
+            {syncing ? 'Syncing…' : 'Sync All'}
+          </button>
+        </div>
+        {syncData && (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4 pt-4"
+            style={{ borderTop: `1px solid ${T.cardBorder}` }}>
+            {INTEGRATIONS.map(item => {
+              const ok = item.ok(syncData);
+              return (
+                <button key={item.k} onClick={() => navigate(item.path)}
+                  className="c3 p-3 text-left border-none w-full"
+                  style={{ background: T.cardBg, borderColor: T.cardBorder }}>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="ipill w-8 h-8" style={{ background: dark ? item.darkBg : item.bg }}>
+                      <span className="material-symbols-outlined text-[15px]"
+                        style={{ color: item.color, fontVariationSettings: "'FILL' 1" }}>{item.icon}</span>
+                    </div>
+                    <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full"
+                      style={{ background: ok ? (dark ? '#062A1C' : '#D1FAE5') : T.pillBg,
+                               color:      ok ? '#10B981' : T.text3 }}>
+                      {ok ? 'OK' : 'Off'}
+                    </span>
+                  </div>
+                  <p className="text-[12px] font-semibold" style={{ color: T.text }}>{item.label}</p>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* ══ QUICK ACTIONS ═════════════════════════════════ */}
+      <p className="sec-lbl mb-4">Quick Actions</p>
+      <div className="grid grid-cols-4 gap-3 mb-6">
+        {QUICK_ACTIONS.map((item, i) => {
+          const action = [
+            () => setShowAdd(true),
+            () => setShowImport(true),
+            () => navigate('/call-logs'),
+            () => navigate('/crm'),
+          ][i];
+          return (
+            <button key={item.label} onClick={action}
+              className="c3 flex flex-col items-center gap-3 py-5 px-2 border-none w-full"
+              style={{ background: T.cardBg, borderColor: T.cardBorder }}>
+              <div className="ipill w-12 h-12" style={{ background: dark ? item.darkBg : item.iconBg }}>
+                <span className="material-symbols-outlined text-[22px]"
+                  style={{ color: item.iconColor, fontVariationSettings: "'FILL' 1" }}>{item.icon}</span>
+              </div>
+              <span className="text-[11px] font-semibold text-center leading-tight" style={{ color: T.text }}>
+                {item.label}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ══ RECENT LEADS ══════════════════════════════════ */}
+      <div className="hidden sm:block">
+        <div className="flex items-center justify-between mb-4">
+          <p className="sec-lbl">Recent Leads</p>
+          <button onClick={() => navigate('/crm')}
+            className="text-[12px] font-semibold bg-transparent border-none cursor-pointer"
+            style={{ color: '#6366F1' }}>View All →</button>
+        </div>
+        <div className="c overflow-hidden" style={{ background: T.cardBg, borderColor: T.cardBorder }}>
+          {loading ? (
+            <div className="p-5 space-y-4">
+              {[1,2,3].map(n => (
+                <div key={n} className="flex items-center gap-3">
+                  <div className="skeleton w-9 h-9 rounded-full" />
+                  <div className="flex-1 space-y-2">
+                    <div className="skeleton h-3 w-36" />
+                    <div className="skeleton h-2 w-24" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : recentLeads.length === 0 ? (
+            <div className="py-12 text-center">
+              <span className="material-symbols-outlined text-4xl mb-3 block" style={{ color: T.text3 }}>person_search</span>
+              <p className="text-[13px]" style={{ color: T.text2 }}>No leads yet — add people or run a campaign.</p>
+            </div>
+          ) : recentLeads.map((lead, idx) => (
+            <div key={lead.id || lead._id} onClick={() => navigate('/crm')}
+              className="flex items-center gap-3 px-5 py-4 cursor-pointer transition-colors"
+              style={{ borderBottom: idx < recentLeads.length - 1 ? `1px solid ${T.divider}` : 'none' }}
+              onMouseEnter={e => e.currentTarget.style.background = T.rowHover}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+              <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 font-bold text-[13px]"
+                style={{ background: dark ? '#1E2040' : '#EEF2FF', color: '#6366F1' }}>
+                {(lead.first_name || lead.name || '?')[0]?.toUpperCase()}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[13px] font-semibold truncate" style={{ color: T.text }}>
+                  {lead.first_name || lead.name}{lead.last_name ? ` ${lead.last_name}` : ''}
+                </p>
+                <p className="text-[11px] truncate" style={{ color: T.text3 }}>
+                  {lead.phone_number || lead.email || 'No contact'}
+                </p>
+              </div>
+              <div className="text-right flex-shrink-0">
+                {lead.source && (
+                  <span className="text-[9px] font-semibold uppercase px-2 py-0.5 rounded-full block mb-0.5"
+                    style={{ background: dark ? '#1E2040' : '#EEF2FF', color: '#6366F1' }}>
+                    {lead.source}
+                  </span>
+                )}
+                <p className="text-[10px]" style={{ color: T.text3 }}>{timeAgo(lead.createdAt)}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ══ ADD PERSON MODAL ══════════════════════════════ */}
+      <Modal show={showAdd} onClose={() => { setShowAdd(false); setError(''); }} title="Add Person">
+        <form onSubmit={handleManualSubmit} className="space-y-3">
+          {[['Full name', 'text', 'name'], ['Phone number', 'tel', 'phone']].map(([ph, type, key]) => (
+            <input key={key} type={type} placeholder={ph} required
+              value={manualForm[key]}
+              onChange={e => setManualForm({ ...manualForm, [key]: e.target.value })}
+              className="w-full px-4 py-3 rounded-[12px] text-[14px] outline-none transition-all"
+              style={{ background: T.inputBg, border: `1.5px solid ${T.cardBorder}`, color: T.text }}
+              onFocus={e => e.target.style.borderColor = '#6366F1'}
+              onBlur={e  => e.target.style.borderColor = T.cardBorder} />
+          ))}
+          {error && <p className="text-[12px] px-3 py-2 rounded-[10px]"
+            style={{ color: '#EF4444', background: 'rgba(239,68,68,0.08)' }}>{error}</p>}
+          <button type="submit" disabled={manualLoading} className="btn-pri w-full">
+            {manualLoading ? 'Adding…' : 'Add Person'}
+          </button>
+        </form>
+      </Modal>
+
+      {/* ══ IMPORT FILE MODAL ═════════════════════════════ */}
+      <Modal show={showImport} onClose={() => { setShowImport(false); setFile(null); setError(''); }} title="Import File">
+        <form onSubmit={handleFileUpload} className="space-y-3">
+          <label className="relative block rounded-[14px] p-6 text-center cursor-pointer transition-all"
+            style={{ border: `2px dashed ${file ? '#6366F1' : T.cardBorder}`,
+                     background: file ? (dark ? '#1E2040' : '#EEF2FF') : T.inputBg }}>
+            <input type="file" accept=".docx,.xlsx,.csv" onChange={e => setFile(e.target.files[0])}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+            <span className="material-symbols-outlined text-[32px] mb-2 block"
+              style={{ color: file ? '#6366F1' : T.text3 }}>
+              {file ? 'task_alt' : 'cloud_upload'}
+            </span>
+            <p className="text-[12px] font-medium" style={{ color: file ? '#6366F1' : T.text2 }}>
+              {file ? file.name : 'Click to select  DOCX · XLSX · CSV'}
+            </p>
+          </label>
+          {error && <p className="text-[12px] px-3 py-2 rounded-[10px]"
+            style={{ color: '#EF4444', background: 'rgba(239,68,68,0.08)' }}>{error}</p>}
+          <button type="submit" disabled={!file || fileLoading} className="btn-pri w-full">
+            {fileLoading ? 'Processing…' : 'Upload & Process'}
+          </button>
+        </form>
+      </Modal>
+
     </div>
   );
 };

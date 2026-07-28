@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import ThemeToggle from './ThemeToggle';
+import { useTheme } from '../../context/ThemeContext';
 
 const navLinks = [
   { href: '#features', label: 'Platform' },
@@ -10,21 +10,23 @@ const navLinks = [
   { href: '#testimonials', label: 'Customers' },
 ];
 
-const LandingNavbar = ({ theme, onThemeChange, onLogin }) => {
+const LandingNavbar = ({ onLogin }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { theme, toggleTheme } = useTheme();
+  const isDark = theme === 'dark';
 
   return (
-    <header className="sticky top-0 z-50 border-b border-slate-200/60 bg-white/75 backdrop-blur-xl transition-colors duration-300 dark:border-white/10 dark:bg-slate-950/70">
+    <header className={`sticky top-0 z-50 border-b backdrop-blur-xl transition-colors duration-300 ${isDark ? 'border-white/10 bg-[#0F172A]/90' : 'border-slate-200 bg-white/90'}`}>
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
         <Link
           to="/"
-          className="flex items-center gap-3 font-semibold tracking-tight text-slate-900 transition-colors dark:text-white"
+          className={`flex items-center gap-3 font-semibold tracking-tight transition-colors ${isDark ? 'text-white' : 'text-slate-900'}`}
         >
-          <span className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-gradient-to-br from-primary to-emerald-600 text-white shadow-lg shadow-primary/25">
+          <span className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-[#6D28D9] text-white shadow-lg shadow-[#6D28D9]/25">
                     <span className="material-symbols-outlined text-[20px]">hub</span>
                   </span>
 
-          <span className="text-lg font-bold tracking-tight sm:text-xl">
+          <span className={`text-lg font-bold tracking-tight sm:text-xl ${isDark ? 'text-white' : 'text-slate-900'}`}>
             OneEmployee
           </span>
       </Link>
@@ -34,7 +36,7 @@ const LandingNavbar = ({ theme, onThemeChange, onLogin }) => {
             <a
               key={item.href}
               href={item.href}
-              className="rounded-[10px] px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white"
+              className={`rounded-[10px] px-3 py-2 text-sm font-medium transition-colors ${isDark ? 'text-white/70 hover:bg-white/10 hover:text-white' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}`}
             >
               {item.label}
             </a>
@@ -42,31 +44,40 @@ const LandingNavbar = ({ theme, onThemeChange, onLogin }) => {
         </nav>
 
         <div className="flex items-center gap-2 sm:gap-3">
-          <ThemeToggle theme={theme} onChange={onThemeChange} />
+          {/* Theme toggle button */}
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className={`inline-flex items-center justify-center w-9 h-9 rounded-[10px] transition-colors ${isDark ? 'bg-white/10 text-white/70 hover:bg-white/20 hover:text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'}`}
+            aria-label="Toggle theme"
+          >
+            <span className="material-symbols-outlined text-[18px]">
+              {isDark ? 'light_mode' : 'dark_mode'}
+            </span>
+          </button>
           <button
             type="button"
             onClick={onLogin}
-            className="hidden rounded-[10px] border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-800 shadow-sm transition-all hover:border-slate-300 hover:bg-slate-50 sm:inline-flex dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
+            className={`inline-flex rounded-[10px] border px-4 py-2 text-sm font-semibold transition-all ${isDark ? 'border-white/20 bg-white/10 text-white hover:bg-white/20' : 'border-slate-200 bg-white text-slate-800 shadow-sm hover:bg-slate-50'}`}
           >
             Sign in
           </button>
           <button
             type="button"
             onClick={onLogin}
-            className="inline-flex rounded-[10px] bg-primary px-4 py-2 text-sm font-semibold text-white shadow-md shadow-primary/25 transition-all hover:bg-primary-hover hover:shadow-lg hover:shadow-primary/30"
+            className="hidden sm:inline-flex rounded-[10px] bg-emerald-500 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-emerald-500/25 transition-all hover:bg-emerald-400"
           >
             Get started
           </button>
           <button
             type="button"
-            className="inline-flex rounded-[10px] p-2 text-slate-600 md:hidden dark:text-slate-300"
+            className={`inline-flex rounded-[10px] p-2 md:hidden ${isDark ? 'text-white/70' : 'text-slate-600'}`}
             aria-expanded={mobileOpen}
             aria-controls="landing-mobile-nav"
             onClick={() => setMobileOpen((o) => !o)}
           >
             <span className="material-symbols-outlined">{mobileOpen ? 'close' : 'menu'}</span>
           </button>
-          
         </div>
         
       </div>
@@ -74,14 +85,14 @@ const LandingNavbar = ({ theme, onThemeChange, onLogin }) => {
       {mobileOpen ? (
         <div
           id="landing-mobile-nav"
-          className="border-t border-slate-200/60 bg-white/95 px-4 py-4 backdrop-blur-xl md:hidden dark:border-white/10 dark:bg-slate-950/95"
+          className={`border-t px-4 py-4 backdrop-blur-xl md:hidden ${isDark ? 'border-white/10 bg-[#0F172A]/95' : 'border-slate-200 bg-white/95'}`}
         >
           <nav className="flex flex-col gap-1" aria-label="Mobile primary">
             {navLinks.map((item) => (
               <a
                 key={item.href}
                 href={item.href}
-                className="rounded-[10px] px-3 py-3 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-white/5"
+                className={`rounded-[10px] px-3 py-3 text-sm font-medium ${isDark ? 'text-white/80 hover:bg-white/10 hover:text-white' : 'text-slate-700 hover:bg-slate-100'}`}
                 onClick={() => setMobileOpen(false)}
               >
                 {item.label}
@@ -93,7 +104,7 @@ const LandingNavbar = ({ theme, onThemeChange, onLogin }) => {
                 setMobileOpen(false);
                 onLogin();
               }}
-              className="mt-2 rounded-[10px] border border-slate-200 px-3 py-3 text-left text-sm font-semibold text-slate-800 dark:border-white/10 dark:text-white"
+              className={`mt-2 rounded-[10px] border px-3 py-3 text-left text-sm font-semibold ${isDark ? 'border-white/20 text-white' : 'border-slate-200 text-slate-800'}`}
             >
               Sign in
             </button>
