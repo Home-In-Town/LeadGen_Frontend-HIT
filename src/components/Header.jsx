@@ -72,7 +72,7 @@ const Header = ({ onMenuClick }) => {
             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
             title="Profile">
             <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
-              style={{ background: 'linear-gradient(135deg,#6366F1,#8B5CF6)' }}>
+              style={{ background: 'linear-gradient(135deg,#10B981,#059669)' }}>
               <span className="material-symbols-outlined text-[18px] text-white"
                 style={{ fontVariationSettings: "'FILL' 1" }}>person</span>
             </div>
