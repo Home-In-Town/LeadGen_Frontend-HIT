@@ -254,40 +254,81 @@ const DashboardPage = () => {
           <p className="sec-lbl">Activity Overview</p>
           <span className="text-[10px] font-medium" style={{ color: T.text3 }}>Last 7 days</span>
         </div>
-        <div className="flex items-end gap-1 h-32 sm:h-40">
+        <div className="relative h-36 sm:h-44">
           {(() => {
             const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-            const peopleData = [users.length > 0 ? 65 : 20, 45, 80, 55, 90, 35, 70];
-            const leadsData = [totalLeads > 0 ? 40 : 10, 60, 35, 75, 50, 85, 45];
+            const peopleData = [65, 45, 80, 55, 90, 35, 70];
+            const leadsData = [40, 60, 35, 75, 50, 85, 45];
             const visitsData = [30, 55, 70, 40, 65, 50, 60];
             const maxVal = 100;
-            return days.map((day, i) => (
-              <div key={day} className="flex-1 flex flex-col items-center gap-1">
-                <div className="w-full flex items-end justify-center gap-[2px]" style={{ height: '100%' }}>
-                  <div className="w-1/4 rounded-t-sm transition-all duration-500"
-                    style={{ height: `${(peopleData[i] / maxVal) * 100}%`, background: '#6366F1', minHeight: '4px' }} />
-                  <div className="w-1/4 rounded-t-sm transition-all duration-500"
-                    style={{ height: `${(leadsData[i] / maxVal) * 100}%`, background: '#0EA5E9', minHeight: '4px' }} />
-                  <div className="w-1/4 rounded-t-sm transition-all duration-500"
-                    style={{ height: `${(visitsData[i] / maxVal) * 100}%`, background: '#10B981', minHeight: '4px' }} />
-                </div>
-                <span className="text-[9px] font-medium" style={{ color: T.text3 }}>{day}</span>
-              </div>
-            ));
+            const h = 100;
+            const w = 100;
+            const stepX = w / (days.length - 1);
+
+            const toPath = (data) => {
+              return data.map((v, i) => {
+                const x = i * stepX;
+                const y = h - (v / maxVal) * h;
+                return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
+              }).join(' ');
+            };
+
+            const toArea = (data) => {
+              const line = data.map((v, i) => {
+                const x = i * stepX;
+                const y = h - (v / maxVal) * h;
+                return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
+              }).join(' ');
+              return `${line} L ${w} ${h} L 0 ${h} Z`;
+            };
+
+            return (
+              <svg viewBox={`0 0 ${w} ${h + 10}`} className="w-full h-full" preserveAspectRatio="none">
+                {/* Grid lines */}
+                {[0, 25, 50, 75, 100].map(v => (
+                  <line key={v} x1="0" y1={h - (v / maxVal) * h} x2={w} y2={h - (v / maxVal) * h}
+                    stroke={dark ? '#2D3748' : '#E2E8F0'} strokeWidth="0.3" />
+                ))}
+                {/* Area fills */}
+                <path d={toArea(peopleData)} fill="#6366F1" opacity="0.08" />
+                <path d={toArea(leadsData)} fill="#0EA5E9" opacity="0.08" />
+                <path d={toArea(visitsData)} fill="#10B981" opacity="0.08" />
+                {/* Lines */}
+                <path d={toPath(peopleData)} fill="none" stroke="#6366F1" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                <path d={toPath(leadsData)} fill="none" stroke="#0EA5E9" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                <path d={toPath(visitsData)} fill="none" stroke="#10B981" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                {/* Dots */}
+                {peopleData.map((v, i) => (
+                  <circle key={`p${i}`} cx={i * stepX} cy={h - (v / maxVal) * h} r="1.5" fill="#6366F1" />
+                ))}
+                {leadsData.map((v, i) => (
+                  <circle key={`l${i}`} cx={i * stepX} cy={h - (v / maxVal) * h} r="1.5" fill="#0EA5E9" />
+                ))}
+                {visitsData.map((v, i) => (
+                  <circle key={`v${i}`} cx={i * stepX} cy={h - (v / maxVal) * h} r="1.5" fill="#10B981" />
+                ))}
+              </svg>
+            );
           })()}
+          {/* X-axis labels */}
+          <div className="absolute bottom-0 left-0 right-0 flex justify-between px-0">
+            {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(d => (
+              <span key={d} className="text-[8px] font-medium" style={{ color: T.text3 }}>{d}</span>
+            ))}
+          </div>
         </div>
         {/* Legend */}
         <div className="flex items-center justify-center gap-4 mt-3 pt-3" style={{ borderTop: `1px solid ${T.cardBorder}` }}>
           <div className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-sm" style={{ background: '#6366F1' }} />
+            <div className="w-3 h-[2px] rounded-full" style={{ background: '#6366F1' }} />
             <span className="text-[10px] font-medium" style={{ color: T.text2 }}>People</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-sm" style={{ background: '#0EA5E9' }} />
+            <div className="w-3 h-[2px] rounded-full" style={{ background: '#0EA5E9' }} />
             <span className="text-[10px] font-medium" style={{ color: T.text2 }}>Leads</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-sm" style={{ background: '#10B981' }} />
+            <div className="w-3 h-[2px] rounded-full" style={{ background: '#10B981' }} />
             <span className="text-[10px] font-medium" style={{ color: T.text2 }}>Visits</span>
           </div>
         </div>
