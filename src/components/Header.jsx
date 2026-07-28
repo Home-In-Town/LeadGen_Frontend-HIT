@@ -86,9 +86,10 @@ const Header = ({ onMenuClick }) => {
             onMouseEnter={e => e.currentTarget.style.background = C.btnBg}
             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
             title="Profile">
-            <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-[13px] text-white flex-shrink-0"
+            <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
               style={{ background: 'linear-gradient(135deg,#6366F1,#8B5CF6)' }}>
-              {initial}
+              <span className="material-symbols-outlined text-[18px] text-white"
+                style={{ fontVariationSettings: "'FILL' 1" }}>person</span>
             </div>
             <span className="hidden sm:block text-[13px] font-semibold max-w-[90px] truncate" style={{ color: C.text }}>
               {userName}
