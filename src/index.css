@@ -53,7 +53,7 @@
   }
 
   /* Dark mode body */
-  .dark body, body:where(.dark *) { background: #0D1117; color: #E2E8F0; }
+  html.dark body { background: #0D1117; color: #E2E8F0; }
   html.dark { background: #0D1117; }
 
   h1,h2,h3,h4,h5,h6 { font-weight: 700; letter-spacing: -0.025em; }
@@ -67,7 +67,7 @@
   .custom-scrollbar::-webkit-scrollbar { width: 4px; }
   .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
   .custom-scrollbar::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 99px; }
-  .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #374151; }
+  .dark .custom-scrollbar::-webkit-scrollbar-thumb, html.dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #374151; }
 
   /* ─── Skeleton ─── */
   .skeleton {
@@ -76,7 +76,7 @@
     animation: shimmer 1.5s ease-in-out infinite;
     border-radius: 6px;
   }
-  .dark .skeleton {
+  html.dark .skeleton, .dark .skeleton {
     background: linear-gradient(90deg, #1E2A3A 25%, #253347 50%, #1E2A3A 75%);
     background-size: 500px 100%;
   }
@@ -89,7 +89,7 @@
     box-shadow: 0 1px 3px rgba(30,27,58,0.05), 0 4px 14px rgba(30,27,58,0.05);
     transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
   }
-  .dark .c {
+  .dark .c, html.dark .c {
     background: #161B27;
     border-color: #2D3748;
     box-shadow: 0 1px 4px rgba(0,0,0,0.3), 0 4px 16px rgba(0,0,0,0.2);
@@ -107,7 +107,7 @@
     transition: transform 120ms ease, box-shadow 120ms ease, border-color 150ms ease;
     cursor: pointer;
   }
-  .dark .c3 {
+  .dark .c3, html.dark .c3 {
     background: #161B27;
     border-color: #2D3748;
     box-shadow:
@@ -121,7 +121,7 @@
       0 12px 28px rgba(99,102,241,0.18);
     transform: translateY(-2px);
   }
-  .dark .c3:hover {
+  .dark .c3:hover, html.dark .c3:hover {
     box-shadow:
       0 6px 0 0  #312E81,
       0 12px 28px rgba(99,102,241,0.25);
@@ -132,7 +132,7 @@
       0 2px 6px  rgba(30,27,58,0.08);
     transform: translateY(4px);
   }
-  .dark .c3:active {
+  .dark .c3:active, html.dark .c3:active {
     box-shadow:
       0 1px 0 0  #0D1117,
       0 2px 6px  rgba(0,0,0,0.3);
@@ -146,7 +146,7 @@
     text-transform: uppercase;
     color: #94A3B8;
   }
-  .dark .sec-lbl { color: #4B5563; }
+  .dark .sec-lbl, html.dark .sec-lbl { color: #4B5563; }
 
   /* ─── Icon pill ─── */
   .ipill {
@@ -220,7 +220,7 @@
     transform: translateY(0);
     transition: background 150ms, box-shadow 100ms, transform 100ms;
   }
-  .dark .btn-sec {
+  .dark .btn-sec, html.dark .btn-sec {
     background: #1E2A3A;
     border-color: #6366F1;
     box-shadow: 0 4px 0 0 #312E81, 0 4px 12px rgba(99,102,241,0.20);
@@ -231,7 +231,7 @@
     box-shadow: 0 5px 0 0 #C7D2FD, 0 6px 16px rgba(99,102,241,0.18);
     transform: translateY(-1px);
   }
-  .dark .btn-sec:hover { background: #253347; }
+  .dark .btn-sec:hover, html.dark .btn-sec:hover { background: #253347; }
   .btn-sec:active {
     background: #E0E7FF;
     box-shadow: 0 1px 0 0 #C7D2FD;

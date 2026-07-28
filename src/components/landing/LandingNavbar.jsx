@@ -44,17 +44,6 @@ const LandingNavbar = ({ onLogin }) => {
         </nav>
 
         <div className="flex items-center gap-2 sm:gap-3">
-          {/* Theme toggle button */}
-          <button
-            type="button"
-            onClick={toggleTheme}
-            className={`inline-flex items-center justify-center w-9 h-9 rounded-[10px] transition-colors bg-white/10 text-white/70 hover:bg-white/20 hover:text-white`}
-            aria-label="Toggle theme"
-          >
-            <span className="material-symbols-outlined text-[18px]">
-              {isDark ? 'light_mode' : 'dark_mode'}
-            </span>
-          </button>
           <button
             type="button"
             onClick={onLogin}
