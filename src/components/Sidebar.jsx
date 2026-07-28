@@ -312,7 +312,7 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
       </nav>
 
       {/* Footer */}
-      <div className={`border-t border-slate-200/70 dark:border-white/10 transition-all duration-300 ${isCollapsed ? 'p-1.5 sm:p-2 space-y-1' : 'p-3 sm:p-4 space-y-2'}`}>
+      <div className={`border-t border-slate-200/70 dark:border-white/10 transition-all duration-300 ${isCollapsed ? 'p-1.5 sm:p-2 pb-20 sm:pb-2 space-y-1' : 'p-3 sm:p-4 pb-20 sm:pb-4 space-y-2'}`}>
 
         <button
           onClick={() => openConfirmation('logout')}
