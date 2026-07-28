@@ -149,17 +149,17 @@ const LandingPage = () => {
   return (
     <div className="animate-fade-in min-h-screen font-display transition-colors duration-300">
       
-      <div className={`relative min-h-screen transition-colors duration-300 overflow-x-hidden bg-[#0F172A] text-white`}>
+      <div className={`relative min-h-screen transition-colors duration-300 overflow-x-hidden ${isDark ? 'bg-[#0F172A] text-white' : 'bg-slate-50 text-slate-900'}`}>
         {/* Animated wave background + CRM design elements */}
         <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
           {/* Waves */}
           <svg className="absolute bottom-0 left-0 w-[200%] sm:w-full h-[40%] opacity-[0.06]" viewBox="0 0 1440 320" preserveAspectRatio="none">
-            <path fill="white" d="M0,160L48,170.7C96,181,192,203,288,197.3C384,192,480,160,576,154.7C672,149,768,171,864,186.7C960,203,1056,213,1152,197.3C1248,181,1344,139,1392,117.3L1440,96L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z">
+            <path fill={isDark ? 'white' : '#0F172A'} d="M0,160L48,170.7C96,181,192,203,288,197.3C384,192,480,160,576,154.7C672,149,768,171,864,186.7C960,203,1056,213,1152,197.3C1248,181,1344,139,1392,117.3L1440,96L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z">
               <animateTransform attributeName="transform" type="translate" values="0,0;30,8;0,0" dur="12s" repeatCount="indefinite"/>
             </path>
           </svg>
           <svg className="absolute bottom-0 left-0 w-[200%] sm:w-full h-[30%] opacity-[0.04]" viewBox="0 0 1440 320" preserveAspectRatio="none">
-            <path fill="white" d="M0,224L48,213.3C96,203,192,181,288,181.3C384,181,480,203,576,213.3C672,224,768,224,864,208C960,192,1056,160,1152,165.3C1248,171,1344,213,1392,234.7L1440,256L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z">
+            <path fill={isDark ? 'white' : '#0F172A'} d="M0,224L48,213.3C96,203,192,181,288,181.3C384,181,480,203,576,213.3C672,224,768,224,864,208C960,192,1056,160,1152,165.3C1248,171,1344,213,1392,234.7L1440,256L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z">
               <animateTransform attributeName="transform" type="translate" values="0,0;-30,6;0,0" dur="16s" repeatCount="indefinite"/>
             </path>
           </svg>
@@ -192,7 +192,7 @@ const LandingPage = () => {
           {/* Hero */}
           <section className="relative overflow-hidden px-4 pb-16 pt-10 sm:px-6 sm:pb-28 sm:pt-20 lg:px-8">
             <div className="mx-auto max-w-6xl">
-              <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[10px] sm:text-xs font-medium shadow-sm backdrop-blur-md border-white/15 bg-white/10 text-white/80`}>
+              <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[10px] sm:text-xs font-medium shadow-sm backdrop-blur-md ${isDark ? 'border-white/15 bg-white/10 text-white/80' : 'border-slate-300 bg-white/80 text-slate-600'}`}>
                 <span className="relative flex h-2 w-2">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-violet-400/60 opacity-75" />
                   <span className="relative inline-flex h-2 w-2 rounded-full bg-violet-400" />
@@ -201,13 +201,13 @@ const LandingPage = () => {
               </div>
 
               <div className="mt-6 sm:mt-8">
-                <h1 className={`normal-case text-[28px] sm:text-4xl md:text-5xl lg:text-6xl font-semibold leading-[1.12] tracking-tight text-white`}>
+                <h1 className={`normal-case text-[28px] sm:text-4xl md:text-5xl lg:text-6xl font-semibold leading-[1.12] tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
                   <span className="font-extrabold text-emerald-400">
                     OneEmployee:
                   </span>{' '}
                   The Revenue Workforce for Modern Businesses.
                 </h1>
-                <p className={`mt-4 sm:mt-6 max-w-2xl text-sm sm:text-base leading-relaxed text-white/70`}>
+                <p className={`mt-4 sm:mt-6 max-w-2xl text-sm sm:text-base leading-relaxed ${isDark ? 'text-white/70' : 'text-slate-600'}`}>
                   OneEmployee helps businesses capture leads, engage customers, automate follow-ups, and grow revenue with AI-powered employees that work 24/7.
                 </p>
               </div>
@@ -223,7 +223,7 @@ const LandingPage = () => {
                 </button>
                 <a
                   href="#features"
-                  className={`inline-flex items-center justify-center rounded-[12px] border px-6 py-3.5 text-sm font-semibold backdrop-blur-md transition-all border-white/20 bg-white/10 text-white hover:bg-white/20`}
+                  className={`inline-flex items-center justify-center rounded-[12px] border px-6 py-3.5 text-sm font-semibold backdrop-blur-md transition-all ${isDark ? 'border-white/20 bg-white/10 text-white hover:bg-white/20' : 'border-slate-300 bg-white text-slate-800 shadow-sm hover:bg-slate-100'}`}
                 >
                   See How It Works
                 </a>
@@ -280,20 +280,20 @@ const LandingPage = () => {
                 ].map((stat) => (
                   <div
                     key={stat.label}
-                    className="rounded-[14px] border border-white/10 bg-white/5 p-5 backdrop-blur-sm transition-all duration-300 hover:border-emerald-400/25 hover:bg-white/10"
+                    className={`rounded-[14px] border p-5 backdrop-blur-sm transition-all duration-300 ${isDark ? 'border-white/10 bg-white/5 hover:border-emerald-400/25 hover:bg-white/10' : 'border-slate-200 bg-white shadow-sm hover:border-emerald-400/40 hover:shadow-md'}`}
                   >
-                    <p className="text-xs font-medium uppercase tracking-wide text-white/50">
+                    <p className={`text-xs font-medium uppercase tracking-wide ${isDark ? 'text-white/50' : 'text-slate-500'}`}>
                       {stat.label}
                     </p>
                     <div className="mt-2 flex items-end justify-between gap-2">
-                      <p className="font-mono text-3xl font-bold tracking-tight text-white">
+                      <p className={`font-mono text-3xl font-bold tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
                         {stat.value}
                       </p>
                       <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] font-semibold text-emerald-400">
                         {stat.trend}
                       </span>
                     </div>
-                    <p className="mt-1 text-xs text-white/40">{stat.hint}</p>
+                    <p className={`mt-1 text-xs ${isDark ? 'text-white/40' : 'text-slate-400'}`}>{stat.hint}</p>
                   </div>
                 ))}
               </div>
@@ -301,6 +301,7 @@ const LandingPage = () => {
           </section>
 
           {/* CRM features */}
+          <div className="bg-[#0F172A]">
           <section id="features" className="scroll-mt-24 px-4 py-20 sm:px-6 lg:px-8">
             <div className="mx-auto max-w-6xl">
               <div className="max-w-2xl">
@@ -549,6 +550,7 @@ const LandingPage = () => {
               </div>
             </div>
           </section>
+          </div>{/* end dark sections wrapper */}
 
           {/* Footer */}
           <footer className="border-t border-white/10 bg-[#13112B] px-4 py-14">
