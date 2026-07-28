@@ -180,29 +180,21 @@ const DashboardPage = () => {
     <div className="animate-fade-in pb-28 sm:pb-8" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
 
       {/* ══ WELCOME BANNER ════════════════════════════════ */}
-      <div className="rounded-[16px] p-4 sm:p-5 mb-4 relative overflow-hidden"
+      <div className="rounded-[14px] px-4 py-3 mb-3 relative overflow-hidden"
         style={{ background: dark ? '#1A1033' : '#1E1B4B' }}>
-        {/* decorative blobs */}
-        <div className="pointer-events-none absolute -top-8 -right-8 w-40 h-40 rounded-full"
-          style={{ background: 'radial-gradient(circle, rgba(139,92,246,0.35) 0%, transparent 70%)' }} />
-        <div className="pointer-events-none absolute bottom-0 left-12 w-28 h-28 rounded-full"
-          style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.25) 0%, transparent 70%)' }} />
-        <div className="relative flex items-start justify-between gap-4">
+        <div className="relative flex items-center justify-between gap-3">
           <div className="flex-1 min-w-0">
-            <p className="text-[13px] font-medium mb-1" style={{ color: 'rgba(199,210,254,0.7)' }}>
+            <p className="text-[11px] font-medium" style={{ color: 'rgba(199,210,254,0.7)' }}>
               {greet()},
             </p>
-            <h1 className="font-black text-white uppercase tracking-tight leading-tight mb-2"
-              style={{ fontSize: 'clamp(18px,4vw,24px)' }}>
+            <h1 className="font-black text-white uppercase tracking-tight leading-tight"
+              style={{ fontSize: 'clamp(15px,3.5vw,20px)' }}>
               {user?.name || 'Dashboard'}
             </h1>
-            <p className="text-[13px]" style={{ color: 'rgba(199,210,254,0.55)' }}>
-              Here&#39;s what&#39;s happening with your system today.
-            </p>
           </div>
-          <div className="flex-shrink-0 w-12 h-12 rounded-[16px] flex items-center justify-center"
+          <div className="flex-shrink-0 w-9 h-9 rounded-[12px] flex items-center justify-center"
             style={{ background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.12)' }}>
-            <span className="material-symbols-outlined text-[24px]"
+            <span className="material-symbols-outlined text-[18px]"
               style={{ color: '#A5B4FC', fontVariationSettings: "'FILL' 1" }}>trending_up</span>
           </div>
         </div>
