@@ -79,7 +79,6 @@ const Header = ({ onMenuClick }) => {
             <span className="hidden sm:block text-[13px] font-semibold max-w-[90px] truncate" style={{ color: C.text }}>
               {userName}
             </span>
-            <span className="material-symbols-outlined text-[15px]" style={{ color: C.icon }}>expand_more</span>
           </button>
 
         </div>
