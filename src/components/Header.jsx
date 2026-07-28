@@ -57,21 +57,8 @@ const Header = ({ onMenuClick }) => {
         {/* RIGHT */}
         <div className="flex items-center gap-1.5">
 
-          {/* theme toggle */}
-          <button onClick={toggleTheme}
-            className="flex items-center justify-center w-9 h-9 rounded-[10px] cursor-pointer border-none transition-all"
-            style={{ background: C.btnBg, color: C.icon }}
-            onMouseEnter={e => { e.currentTarget.style.color = '#6366F1'; e.currentTarget.style.background = isDark ? '#2D3A55' : '#EEF2FF'; }}
-            onMouseLeave={e => { e.currentTarget.style.color = C.icon;   e.currentTarget.style.background = C.btnBg; }}
-            aria-label="Toggle theme"
-            title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}>
-            <span className="material-symbols-outlined text-[19px]">
-              {isDark ? 'light_mode' : 'dark_mode'}
-            </span>
-          </button>
-
           {/* notification */}
-          <div className="flex items-center justify-center w-9 h-9 rounded-[10px] relative"
+          <div className="flex items-center justify-center w-8 h-8 rounded-[8px] relative"
             style={{ background: C.btnBg }}>
             <NotificationCenter />
           </div>
