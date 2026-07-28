@@ -108,9 +108,7 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
         {!isCollapsed ? (
           <>
             <Link to="/dashboard" className="no-underline flex items-center gap-2 overflow-hidden">
-              <span className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-[#6D28D9] text-white shadow-lg shadow-[#6D28D9]/25">
-                    <span className="material-symbols-outlined text-[20px]">hub</span>
-                  </span>
+              <img src="/One Employee.svg" alt="One Employee" className="h-9 w-9 rounded-[10px]" />
               <div className="flex flex-col">
                 <span className="text-sm font-semibold tracking-tight text-slate-900 dark:text-white whitespace-nowrap">
                   One Employee

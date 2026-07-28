@@ -40,11 +40,7 @@ const Header = ({ onMenuClick }) => {
           </button>
 
           <Link to="/dashboard" className="no-underline flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-[10px] flex items-center justify-center"
-              style={{ background: '#6D28D9' }}>
-              <span className="material-symbols-outlined text-white text-[17px]"
-                style={{ fontVariationSettings: "'FILL' 1" }}>hub</span>
-            </div>
+            <img src="/One Employee.svg" alt="One Employee" className="w-8 h-8 rounded-[10px]" />
             <div className="hidden sm:flex flex-col leading-none">
               <span className="text-[14px] font-semibold tracking-tight" style={{ color: C.text }}>
                 One Employee
