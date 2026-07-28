@@ -201,46 +201,21 @@ const DashboardPage = () => {
       </div>
 
       {/* ══ INTEGRATION STATUS (compact) ══════════════ */}
-      <div className="c p-3 mb-4" style={{ background: T.cardBg, borderColor: T.cardBorder }}>
-        <div className="flex items-center gap-3">
-          <div className="ipill flex-shrink-0 w-9 h-9"
-            style={{ background: dark ? '#1E2040' : '#EEF2FF' }}>
-            <span className={`material-symbols-outlined text-[18px] ${syncing ? 'animate-spin' : ''}`}
-              style={{ color: '#6366F1', fontVariationSettings: "'FILL' 1" }}>sync</span>
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-[13px] font-semibold" style={{ color: T.text }}>Integration Status</p>
-            <p className="text-[11px]" style={{ color: T.text2 }}>
-              {syncedAt ? `Synced ${timeAgo(syncedAt)}` : 'Check live status of integrations'}
-            </p>
-          </div>
+      <div className="c px-3 py-2 mb-3" style={{ background: T.cardBg, borderColor: T.cardBorder }}>
+        <div className="flex items-center gap-2">
+          <span className={`material-symbols-outlined text-[16px] ${syncing ? 'animate-spin' : ''}`}
+            style={{ color: '#6366F1', fontVariationSettings: "'FILL' 1" }}>sync</span>
+          <span className="text-[11px] font-semibold flex-1" style={{ color: T.text }}>
+            {syncedAt ? `Synced ${timeAgo(syncedAt)}` : 'Integration Status'}
+          </span>
           <button onClick={handleSync} disabled={syncing}
-            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-[10px] text-[11px] font-semibold text-white border-none cursor-pointer"
+            className="inline-flex items-center gap-1 px-2 py-1 rounded-[8px] text-[10px] font-semibold text-white border-none cursor-pointer"
             style={{ background: '#6366F1' }}>
-            <span className={`material-symbols-outlined text-[13px] ${syncing ? 'animate-spin' : ''}`}
+            <span className={`material-symbols-outlined text-[12px] ${syncing ? 'animate-spin' : ''}`}
               style={{ fontVariationSettings: "'FILL' 1" }}>sync</span>
-            {syncing ? '…' : 'Sync'}
+            Sync
           </button>
         </div>
-        {syncData && (
-          <div className="grid grid-cols-4 gap-2 mt-3 pt-3"
-            style={{ borderTop: `1px solid ${T.cardBorder}` }}>
-            {INTEGRATIONS.map(item => {
-              const ok = item.ok(syncData);
-              return (
-                <button key={item.k} onClick={() => navigate(item.path)}
-                  className="flex items-center gap-1.5 p-2 rounded-[10px] border-none cursor-pointer transition-colors text-left w-full"
-                  style={{ background: dark ? '#1E2A3A' : '#F5F7FA' }}>
-                  <span className="material-symbols-outlined text-[14px]"
-                    style={{ color: item.color, fontVariationSettings: "'FILL' 1" }}>{item.icon}</span>
-                  <span className="text-[10px] font-semibold truncate" style={{ color: T.text }}>{item.label}</span>
-                  <span className="ml-auto w-2 h-2 rounded-full flex-shrink-0"
-                    style={{ background: ok ? '#10B981' : '#94A3B8' }} />
-                </button>
-              );
-            })}
-          </div>
-        )}
       </div>
 
       {/* ══ OVERVIEW ══════════════════════════════════════ */}
