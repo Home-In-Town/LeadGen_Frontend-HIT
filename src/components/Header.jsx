@@ -43,11 +43,11 @@ const Header = ({ onMenuClick }) => {
             <span className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-[#6D28D9] text-white shadow-lg shadow-[#6D28D9]/25">
               <span className="material-symbols-outlined text-[20px]">hub</span>
             </span>
-            <div className="hidden sm:flex flex-col leading-none">
+            <div className="flex flex-col leading-none">
               <span className="text-[14px] font-semibold tracking-tight" style={{ color: C.text }}>
                 One Employee
               </span>
-              <span className="text-[10px] font-medium" style={{ color: C.icon }}>CRM Workspace</span>
+              <span className="hidden sm:block text-[10px] font-medium" style={{ color: C.icon }}>CRM Workspace</span>
             </div>
           </Link>
         </div>
