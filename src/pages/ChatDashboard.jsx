@@ -645,12 +645,28 @@ export default function ChatDashboard() {
                             <span className="text-xs text-slate-500">No WhatsApp number connected</span>
                         </div>
                     )}
-                    <a
-                        href="/whatsapp-setup"
-                        className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline uppercase tracking-wider"
-                    >
-                        {activeWANumber ? '⚙ Manage' : '+ Connect'}
-                    </a>
+                    <div className="flex items-center gap-2">
+                        <a
+                            href="/whatsapp-setup"
+                            className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline uppercase tracking-wider"
+                        >
+                            {activeWANumber ? '⚙ Manage' : '+ Connect'}
+                        </a>
+                        <a
+                            href="/whatsapp-setup"
+                            className="text-[10px] font-bold text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:underline uppercase tracking-wider"
+                            title="WhatsApp Setup"
+                        >
+                            Setup
+                        </a>
+                        <a
+                            href="/whatsapp-templates"
+                            className="text-[10px] font-bold text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:underline uppercase tracking-wider"
+                            title="WhatsApp Templates"
+                        >
+                            Templates
+                        </a>
+                    </div>
                 </div>
             )}
 
