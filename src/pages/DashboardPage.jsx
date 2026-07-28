@@ -286,32 +286,6 @@ const DashboardPage = () => {
         )}
       </div>
 
-      {/* ══ QUICK ACTIONS ═════════════════════════════════ */}
-      <p className="sec-lbl mb-4">Quick Actions</p>
-      <div className="grid grid-cols-4 gap-3 mb-6">
-        {QUICK_ACTIONS.map((item, i) => {
-          const action = [
-            () => setShowAdd(true),
-            () => setShowImport(true),
-            () => navigate('/call-logs'),
-            () => navigate('/crm'),
-          ][i];
-          return (
-            <button key={item.label} onClick={action}
-              className="c3 flex flex-col items-center gap-3 py-5 px-2 border-none w-full"
-              style={{ background: T.cardBg, borderColor: T.cardBorder }}>
-              <div className="ipill w-12 h-12" style={{ background: dark ? item.darkBg : item.iconBg }}>
-                <span className="material-symbols-outlined text-[22px]"
-                  style={{ color: item.iconColor, fontVariationSettings: "'FILL' 1" }}>{item.icon}</span>
-              </div>
-              <span className="text-[11px] font-semibold text-center leading-tight" style={{ color: T.text }}>
-                {item.label}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-
       {/* ══ RECENT LEADS ══════════════════════════════════ */}
       <div className="hidden sm:block">
         <div className="flex items-center justify-between mb-4">
