@@ -192,29 +192,20 @@ const DashboardPage = () => {
               {user?.name || 'Dashboard'}
             </h1>
           </div>
-          <div className="flex-shrink-0 w-9 h-9 rounded-[12px] flex items-center justify-center"
-            style={{ background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.12)' }}>
-            <span className="material-symbols-outlined text-[18px]"
-              style={{ color: '#A5B4FC', fontVariationSettings: "'FILL' 1" }}>trending_up</span>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <button onClick={handleSync} disabled={syncing}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-[10px] text-[10px] font-semibold text-white border-none cursor-pointer transition-all"
+              style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.2)' }}>
+              <span className={`material-symbols-outlined text-[14px] ${syncing ? 'animate-spin' : ''}`}
+                style={{ fontVariationSettings: "'FILL' 1" }}>sync</span>
+              {syncing ? '…' : 'Sync'}
+            </button>
+            <div className="w-9 h-9 rounded-[12px] flex items-center justify-center"
+              style={{ background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.12)' }}>
+              <span className="material-symbols-outlined text-[18px]"
+                style={{ color: '#A5B4FC', fontVariationSettings: "'FILL' 1" }}>trending_up</span>
+            </div>
           </div>
-        </div>
-      </div>
-
-      {/* ══ INTEGRATION STATUS (compact) ══════════════ */}
-      <div className="c px-3 py-2 mb-3" style={{ background: T.cardBg, borderColor: T.cardBorder }}>
-        <div className="flex items-center gap-2">
-          <span className={`material-symbols-outlined text-[16px] ${syncing ? 'animate-spin' : ''}`}
-            style={{ color: '#6366F1', fontVariationSettings: "'FILL' 1" }}>sync</span>
-          <span className="text-[11px] font-semibold flex-1" style={{ color: T.text }}>
-            {syncedAt ? `Synced ${timeAgo(syncedAt)}` : 'Integration Status'}
-          </span>
-          <button onClick={handleSync} disabled={syncing}
-            className="inline-flex items-center gap-1 px-2 py-1 rounded-[8px] text-[10px] font-semibold text-white border-none cursor-pointer"
-            style={{ background: '#6366F1' }}>
-            <span className={`material-symbols-outlined text-[12px] ${syncing ? 'animate-spin' : ''}`}
-              style={{ fontVariationSettings: "'FILL' 1" }}>sync</span>
-            Sync
-          </button>
         </div>
       </div>
 
