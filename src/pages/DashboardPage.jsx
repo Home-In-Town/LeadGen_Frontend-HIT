@@ -180,7 +180,7 @@ const DashboardPage = () => {
     <div className="animate-fade-in pb-28 sm:pb-8" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
 
       {/* ══ WELCOME BANNER ════════════════════════════════ */}
-      <div className="rounded-[20px] p-6 mb-6 relative overflow-hidden"
+      <div className="rounded-[16px] p-4 sm:p-5 mb-4 relative overflow-hidden"
         style={{ background: dark ? '#1A1033' : '#1E1B4B' }}>
         {/* decorative blobs */}
         <div className="pointer-events-none absolute -top-8 -right-8 w-40 h-40 rounded-full"
@@ -208,82 +208,77 @@ const DashboardPage = () => {
         </div>
       </div>
 
-      {/* ══ OVERVIEW ══════════════════════════════════════ */}
-      <div className="flex items-center justify-between mb-4">
-        <p className="sec-lbl">Overview</p>
-        <button onClick={() => navigate('/crm')}
-          className="flex items-center gap-0.5 text-[12px] font-semibold bg-transparent border-none cursor-pointer"
-          style={{ color: '#6366F1' }}>
-          View All <span className="material-symbols-outlined text-[14px]">chevron_right</span>
-        </button>
-      </div>
-
-      {/* ── Stats 3×2 ── */}
-      <div className="grid grid-cols-3 gap-3 mb-5">
-        {STATS.map((s, i) => (
-          <button key={s.label} onClick={() => navigate(s.path)}
-            className="c3 text-left p-4 border-none w-full"
-            style={{ background: T.cardBg, borderColor: T.cardBorder }}>
-            <div className="ipill w-10 h-10 mb-3"
-              style={{ background: dark ? s.darkBg : s.iconBg }}>
-              <span className="material-symbols-outlined text-[19px]"
-                style={{ color: s.iconColor, fontVariationSettings: "'FILL' 1" }}>{s.icon}</span>
-            </div>
-            <p className="text-[22px] sm:text-[24px] font-black leading-none mb-1" style={{ color: T.text }}>
-              {loading ? <span className="skeleton inline-block w-9 h-5 align-middle" /> : statValues[i]}
-            </p>
-            <p className="text-[11px] leading-tight mb-3" style={{ color: T.text2 }}>{s.label}</p>
-            <div className="w-6 h-[3px] rounded-full" style={{ background: s.barColor }} />
-          </button>
-        ))}
-      </div>
-
-      {/* ══ INTEGRATION STATUS ════════════════════════════ */}
-      <div className="c p-5 mb-5" style={{ background: T.cardBg, borderColor: T.cardBorder }}>
-        <div className="flex items-center gap-4">
-          <div className="ipill flex-shrink-0 w-[52px] h-[52px]"
+      {/* ══ INTEGRATION STATUS (compact) ══════════════ */}
+      <div className="c p-3 mb-4" style={{ background: T.cardBg, borderColor: T.cardBorder }}>
+        <div className="flex items-center gap-3">
+          <div className="ipill flex-shrink-0 w-9 h-9"
             style={{ background: dark ? '#1E2040' : '#EEF2FF' }}>
-            <span className={`material-symbols-outlined text-[24px] ${syncing ? 'animate-spin' : ''}`}
+            <span className={`material-symbols-outlined text-[18px] ${syncing ? 'animate-spin' : ''}`}
               style={{ color: '#6366F1', fontVariationSettings: "'FILL' 1" }}>sync</span>
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[15px] font-semibold mb-0.5" style={{ color: T.text }}>Integration Status</p>
-            <p className="text-[12px] leading-relaxed" style={{ color: T.text2 }}>
-              {syncedAt ? `Last synced ${timeAgo(syncedAt)}` : 'Click Sync All to check live status of all your integrations.'}
+            <p className="text-[13px] font-semibold" style={{ color: T.text }}>Integration Status</p>
+            <p className="text-[11px]" style={{ color: T.text2 }}>
+              {syncedAt ? `Synced ${timeAgo(syncedAt)}` : 'Check live status of integrations'}
             </p>
           </div>
-          <button onClick={handleSync} disabled={syncing} className="btn-pri flex-shrink-0">
-            <span className={`material-symbols-outlined text-[15px] ${syncing ? 'animate-spin' : ''}`}
+          <button onClick={handleSync} disabled={syncing}
+            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-[10px] text-[11px] font-semibold text-white border-none cursor-pointer"
+            style={{ background: '#6366F1' }}>
+            <span className={`material-symbols-outlined text-[13px] ${syncing ? 'animate-spin' : ''}`}
               style={{ fontVariationSettings: "'FILL' 1" }}>sync</span>
-            {syncing ? 'Syncing…' : 'Sync All'}
+            {syncing ? '…' : 'Sync'}
           </button>
         </div>
         {syncData && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4 pt-4"
+          <div className="grid grid-cols-4 gap-2 mt-3 pt-3"
             style={{ borderTop: `1px solid ${T.cardBorder}` }}>
             {INTEGRATIONS.map(item => {
               const ok = item.ok(syncData);
               return (
                 <button key={item.k} onClick={() => navigate(item.path)}
-                  className="c3 p-3 text-left border-none w-full"
-                  style={{ background: T.cardBg, borderColor: T.cardBorder }}>
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="ipill w-8 h-8" style={{ background: dark ? item.darkBg : item.bg }}>
-                      <span className="material-symbols-outlined text-[15px]"
-                        style={{ color: item.color, fontVariationSettings: "'FILL' 1" }}>{item.icon}</span>
-                    </div>
-                    <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full"
-                      style={{ background: ok ? (dark ? '#062A1C' : '#D1FAE5') : T.pillBg,
-                               color:      ok ? '#10B981' : T.text3 }}>
-                      {ok ? 'OK' : 'Off'}
-                    </span>
-                  </div>
-                  <p className="text-[12px] font-semibold" style={{ color: T.text }}>{item.label}</p>
+                  className="flex items-center gap-1.5 p-2 rounded-[10px] border-none cursor-pointer transition-colors text-left w-full"
+                  style={{ background: dark ? '#1E2A3A' : '#F5F7FA' }}>
+                  <span className="material-symbols-outlined text-[14px]"
+                    style={{ color: item.color, fontVariationSettings: "'FILL' 1" }}>{item.icon}</span>
+                  <span className="text-[10px] font-semibold truncate" style={{ color: T.text }}>{item.label}</span>
+                  <span className="ml-auto w-2 h-2 rounded-full flex-shrink-0"
+                    style={{ background: ok ? '#10B981' : '#94A3B8' }} />
                 </button>
               );
             })}
           </div>
         )}
+      </div>
+
+      {/* ══ OVERVIEW ══════════════════════════════════════ */}
+      <div className="flex items-center justify-between mb-3">
+        <p className="sec-lbl">Overview</p>
+        <button onClick={() => navigate('/crm')}
+          className="flex items-center gap-0.5 text-[11px] font-semibold bg-transparent border-none cursor-pointer"
+          style={{ color: '#6366F1' }}>
+          View All <span className="material-symbols-outlined text-[13px]">chevron_right</span>
+        </button>
+      </div>
+
+      {/* ── Stats 3×2 (compact) ── */}
+      <div className="grid grid-cols-3 gap-2 mb-5">
+        {STATS.map((s, i) => (
+          <button key={s.label} onClick={() => navigate(s.path)}
+            className="c3 text-left p-3 border-none w-full"
+            style={{ background: T.cardBg, borderColor: T.cardBorder }}>
+            <div className="ipill w-8 h-8 mb-2"
+              style={{ background: dark ? s.darkBg : s.iconBg }}>
+              <span className="material-symbols-outlined text-[16px]"
+                style={{ color: s.iconColor, fontVariationSettings: "'FILL' 1" }}>{s.icon}</span>
+            </div>
+            <p className="text-[18px] sm:text-[20px] font-black leading-none mb-0.5" style={{ color: T.text }}>
+              {loading ? <span className="skeleton inline-block w-8 h-4 align-middle" /> : statValues[i]}
+            </p>
+            <p className="text-[10px] leading-tight mb-2" style={{ color: T.text2 }}>{s.label}</p>
+            <div className="w-5 h-[2px] rounded-full" style={{ background: s.barColor }} />
+          </button>
+        ))}
       </div>
 
       {/* ══ RECENT LEADS ══════════════════════════════════ */}
