@@ -291,8 +291,6 @@ const DashboardPage = () => {
 
         const maxCalls = Math.max(...graphData.map(d => d.calls), 1);
         const maxDuration = Math.max(...graphData.map(d => d.duration), 1);
-        const totalCallsGraph = graphData.reduce((s, d) => s + d.calls, 0);
-        const totalDuration = graphData.reduce((s, d) => s + d.duration, 0);
         const h = 100, w = 100;
         const stepX = graphData.length > 1 ? w / (graphData.length - 1) : w;
 
@@ -315,7 +313,7 @@ const DashboardPage = () => {
         return (
           <div className="c p-4 mb-5" style={{ background: T.cardBg, borderColor: T.cardBorder }}>
             {/* Header with filter */}
-            <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center justify-between mb-3">
               <p className="sec-lbl">Call Analytics</p>
               <div className="relative">
                 <button onClick={() => setShowFilter(!showFilter)}
@@ -340,26 +338,10 @@ const DashboardPage = () => {
               </div>
             </div>
 
-            {/* Summary stats */}
-            <div className="flex gap-4 mb-3">
-              <div>
-                <p className="text-[18px] font-black" style={{ color: T.text }}>{totalCallsGraph}</p>
-                <p className="text-[9px] font-medium" style={{ color: T.text3 }}>Total Calls</p>
-              </div>
-              <div>
-                <p className="text-[18px] font-black" style={{ color: T.text }}>{totalDuration}m</p>
-                <p className="text-[9px] font-medium" style={{ color: T.text3 }}>Total Time</p>
-              </div>
-            </div>
-
-            {/* Graph */}
+            {/* Graph - always show */}
             {graphLoading ? (
               <div className="h-32 flex items-center justify-center">
                 <span className="material-symbols-outlined text-[20px] animate-spin" style={{ color: T.text3 }}>progress_activity</span>
-              </div>
-            ) : graphData.length === 0 ? (
-              <div className="h-32 flex items-center justify-center">
-                <p className="text-[11px]" style={{ color: T.text3 }}>No call data available</p>
               </div>
             ) : (
               <div className="relative h-32 sm:h-40">
@@ -368,25 +350,33 @@ const DashboardPage = () => {
                     <line key={v} x1="0" y1={h - (v / 100) * h} x2={w} y2={h - (v / 100) * h}
                       stroke={dark ? '#2D3748' : '#E2E8F0'} strokeWidth="0.3" />
                   ))}
-                  <path d={toArea(graphData, 'calls', maxCalls)} fill="#6366F1" opacity="0.1" />
-                  <path d={toArea(graphData, 'duration', maxDuration)} fill="#10B981" opacity="0.08" />
-                  <path d={toPath(graphData, 'calls', maxCalls)} fill="none" stroke="#6366F1" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                  <path d={toPath(graphData, 'duration', maxDuration)} fill="none" stroke="#10B981" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                  {graphData.map((d, i) => (
-                    <circle key={`c${i}`} cx={i * stepX} cy={Math.max(2, h - (d.calls / maxCalls) * h)} r="1.5" fill="#6366F1" />
-                  ))}
-                  {graphData.map((d, i) => (
-                    <circle key={`d${i}`} cx={i * stepX} cy={Math.max(2, h - (d.duration / maxDuration) * h)} r="1.5" fill="#10B981" />
-                  ))}
+                  {graphData.length > 1 && (
+                    <>
+                      <path d={toArea(graphData, 'calls', maxCalls)} fill="#6366F1" opacity="0.1" />
+                      <path d={toArea(graphData, 'duration', maxDuration)} fill="#10B981" opacity="0.08" />
+                      <path d={toPath(graphData, 'calls', maxCalls)} fill="none" stroke="#6366F1" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                      <path d={toPath(graphData, 'duration', maxDuration)} fill="none" stroke="#10B981" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                      {graphData.map((d, i) => (
+                        <circle key={`c${i}`} cx={i * stepX} cy={Math.max(2, h - (d.calls / maxCalls) * h)} r="1.5" fill="#6366F1" />
+                      ))}
+                      {graphData.map((d, i) => (
+                        <circle key={`d${i}`} cx={i * stepX} cy={Math.max(2, h - (d.duration / maxDuration) * h)} r="1.5" fill="#10B981" />
+                      ))}
+                    </>
+                  )}
+                  {graphData.length <= 1 && (
+                    <text x="50" y="55" textAnchor="middle" fill={dark ? '#4B5563' : '#94A3B8'} fontSize="5">No data for this period</text>
+                  )}
                 </svg>
-                {/* X-axis labels */}
-                <div className="absolute bottom-0 left-0 right-0 flex justify-between">
-                  {graphData.length <= 10 ? graphData.map((d, i) => (
-                    <span key={i} className="text-[7px] font-medium" style={{ color: T.text3 }}>{d.label}</span>
-                  )) : [0, Math.floor(graphData.length / 2), graphData.length - 1].map(i => (
-                    <span key={i} className="text-[7px] font-medium" style={{ color: T.text3 }}>{graphData[i]?.label}</span>
-                  ))}
-                </div>
+                {graphData.length > 1 && (
+                  <div className="absolute bottom-0 left-0 right-0 flex justify-between">
+                    {graphData.length <= 10 ? graphData.map((d, i) => (
+                      <span key={i} className="text-[7px] font-medium" style={{ color: T.text3 }}>{d.label}</span>
+                    )) : [0, Math.floor(graphData.length / 2), graphData.length - 1].map(i => (
+                      <span key={i} className="text-[7px] font-medium" style={{ color: T.text3 }}>{graphData[i]?.label}</span>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
