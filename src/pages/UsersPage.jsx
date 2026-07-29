@@ -278,7 +278,7 @@ const UsersPage = () => {
       {/* ---------------------------------- */}
 
       <div className="mb-3">
-        <h1 className="text-base font-semibold text-slate-900 dark:text-white mb-1">
+        <h1 className="text-base font-bold text-slate-900 dark:text-white mb-1">
           User Management
         </h1>
         <p className="text-[11px] text-slate-500 dark:text-slate-400">
@@ -454,7 +454,7 @@ const UsersPage = () => {
                 </div>
 
                 <button
-                  onClick={(e) => { e.stopPropagation(); navigate('/crm'); }}
+                  onClick={(e) => { e.stopPropagation(); navigate(`/lead/${u.id}`); }}
                   className="flex items-center justify-center w-7 h-7 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-primary hover:text-primary transition-all cursor-pointer"
                   title="View in CRM"
                 >
