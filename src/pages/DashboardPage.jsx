@@ -98,11 +98,10 @@ const DashboardPage = () => {
   // Fetch call analytics graph data
   useEffect(() => {
     const fetchGraphData = async () => {
-      if (!user) return;
       setGraphLoading(true);
       try {
         const days = graphFilter === '1d' ? 1 : graphFilter === '7d' ? 7 : graphFilter === '30d' ? 30 : 90;
-        const res = await api.getCallLogs({ limit: 500, userId: user.id, role: user.role });
+        const res = await api.getCallLogs({ limit: 500 });
         const logs = res.data?.data || res.data?.logs || [];
         const now = new Date();
         const startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
@@ -128,7 +127,7 @@ const DashboardPage = () => {
       finally { setGraphLoading(false); }
     };
     fetchGraphData();
-  }, [graphFilter, user]);
+  }, [graphFilter]);
 
   const handleSync = useCallback(async () => {
     setSyncing(true);
