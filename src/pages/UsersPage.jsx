@@ -454,9 +454,20 @@ const UsersPage = () => {
                 </div>
 
                 <button
-                  onClick={(e) => { e.stopPropagation(); navigate(`/crm?search=${encodeURIComponent(u.phone_number || u.first_name || '')}`); }}
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    try {
+                      const res = await api.getAllLeads({ search: u.phone_number, limit: 1 });
+                      const leads = res.data?.leads || res.data?.data || [];
+                      if (leads.length > 0) {
+                        navigate(`/lead/${leads[0].id || leads[0]._id}`);
+                      } else {
+                        navigate(`/crm`);
+                      }
+                    } catch { navigate('/crm'); }
+                  }}
                   className="flex items-center justify-center w-7 h-7 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-primary hover:text-primary transition-all cursor-pointer"
-                  title="View in CRM"
+                  title="View Lead"
                 >
                   <span className="material-symbols-outlined text-[14px]">visibility</span>
                 </button>
