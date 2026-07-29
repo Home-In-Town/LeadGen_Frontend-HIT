@@ -60,7 +60,6 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
         { name: 'Email', path: '/chat/email', icon: 'mail', children: [
           { name: 'Templates', path: '/email-templates', icon: 'description' },
         ]},
-        { name: 'Voice Calls', path: '/call-logs', icon: 'record_voice_over' },
       ],
     },
     {
