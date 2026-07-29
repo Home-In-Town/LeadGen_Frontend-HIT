@@ -311,110 +311,40 @@ const searchFilteredLeads = useMemo(() => {
     <>
       <div className="animate-fade-in pb-10 font-display text-slate-900 dark:text-slate-100">
         {/* ------------------------------------------------------------------ */}
-        {/* HEADER */}
+        {/* SEARCH BAR */}
         {/* ------------------------------------------------------------------ */}
 
-        <div
-          className="
-            mb-5
-            overflow-hidden
-            rounded-[26px]
-            border
-            border-slate-200/70
-            bg-white/80
-            p-4
-            shadow-sm
-            backdrop-blur-xl
-            transition-colors
-            duration-300
-
-            dark:border-white/10
-            dark:bg-white/[0.03]
-          "
-        >
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <div className="mb-2 flex items-center gap-2">
-                {/* <div
-                  className="
-                    flex
-                    h-10
-                    w-10
-                    items-center
-                    justify-center
-                    rounded-2xl
-                    bg-primary/10
-                    text-primary
-                  "
-                >
-                  <span className="material-symbols-outlined text-[20px]">
-                    hub
-                  </span>
-                </div> */}
-
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400">
-                    Workspace
-                  </p>
-
-                  <h1 className="text-xl font-black tracking-tight">
-                    Lead CRM
-                  </h1>
-                </div>
-              </div>
-
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                Manage leads, automations, and follow-up records.
-              </p>
-            </div>
-
-            {/* Search */}
-            <div className="relative w-full lg:w-[320px]">
-              <span
-                className="
-                  material-symbols-outlined
-                  absolute
-                  left-4
-                  top-1/2
-                  -translate-y-1/2
-                  text-[18px]
-                  text-slate-400
-                "
-              >
-                search
-              </span>
-
-              <input
-                type="text"
-                placeholder="Search lead name or phone..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="
-                  h-12
-                  w-full
-                  rounded-2xl
-                  border
-                  border-slate-200
-                  bg-slate-50
-                  pl-12
-                  pr-4
-                  text-sm
-                  font-medium
-                  outline-none
-                  transition-all
-
-                  focus:border-primary
-                  focus:bg-white
-
-                  dark:border-white/10
-                  dark:bg-white/[0.04]
-                  dark:text-white
-                  dark:placeholder:text-slate-500
-                  dark:focus:bg-white/[0.06]
-                "
-              />
-            </div>
-          </div>
+        <div className="mb-4 relative">
+          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[18px] text-slate-400">
+            search
+          </span>
+          <input
+            type="text"
+            placeholder="Search lead name or phone..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="
+              h-10
+              w-full
+              rounded-[14px]
+              border
+              border-slate-200
+              bg-white
+              pl-10
+              pr-4
+              text-sm
+              font-medium
+              outline-none
+              transition-all
+              focus:border-primary
+              focus:ring-2
+              focus:ring-primary/10
+              dark:border-white/10
+              dark:bg-white/[0.04]
+              dark:text-white
+              dark:placeholder:text-slate-500
+            "
+          />
         </div>
 
         {/* ------------------------------------------------------------------ */}
