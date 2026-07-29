@@ -66,7 +66,6 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
       label: 'AUTOMATION',
       items: [
         { name: 'Lead Automation', path: '/lead-automation', icon: 'settings_suggest' },
-        { name: 'Facebook Ads', path: '/integrations/facebook', icon: 'data_exploration' },
         { name: 'Google Ads', path: '/integrations/google', icon: 'ads_click' },
       ],
     },
