@@ -1369,21 +1369,21 @@ const searchFilteredLeads = useMemo(() => {
           "
         >
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+            <p className="text-[10px] font-medium uppercase tracking-[0.15em] text-slate-500 dark:text-slate-400">
               Total Records
             </p>
 
-            <h3 className="mt-1 text-2xl font-black tracking-tight">
+            <h3 className="mt-1 text-lg font-medium">
               {filteredLeads.length}
             </h3>
           </div>
 
           <div className="text-left sm:text-right">
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+            <p className="text-[10px] font-medium uppercase tracking-[0.15em] text-slate-500 dark:text-slate-400">
               Navigation
             </p>
 
-            <h3 className="mt-1 text-lg font-black tracking-tight">
+            <h3 className="mt-1 text-base font-medium">
               Page {currentPage} / {totalPages}
             </h3>
           </div>
