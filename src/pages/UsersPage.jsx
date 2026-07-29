@@ -454,7 +454,7 @@ const UsersPage = () => {
                 </div>
 
                 <button
-                  onClick={(e) => { e.stopPropagation(); navigate(`/lead/${u.id}`); }}
+                  onClick={(e) => { e.stopPropagation(); navigate(`/crm?search=${encodeURIComponent(u.phone_number || u.first_name || '')}`); }}
                   className="flex items-center justify-center w-7 h-7 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-primary hover:text-primary transition-all cursor-pointer"
                   title="View in CRM"
                 >
