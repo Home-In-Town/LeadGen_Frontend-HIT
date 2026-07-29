@@ -101,8 +101,19 @@ const DashboardPage = () => {
       setGraphLoading(true);
       try {
         const days = graphFilter === '1d' ? 1 : graphFilter === '7d' ? 7 : graphFilter === '30d' ? 30 : 90;
-        const res = await api.getCallLogs({ limit: 500 });
-        const logs = res.data?.data || res.data?.logs || [];
+        
+        // Fetch all pages of call logs
+        let allLogs = [];
+        let page = 1;
+        let totalPages = 1;
+        while (page <= totalPages && page <= 10) { // max 10 pages safety
+          const res = await api.getCallLogs({ page, limit: 100 });
+          const data = res.data || {};
+          allLogs = allLogs.concat(data.data || []);
+          totalPages = data.totalPages || 1;
+          page++;
+        }
+
         const now = new Date();
         const startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
         const grouped = {};
@@ -110,8 +121,10 @@ const DashboardPage = () => {
           const key = d.toISOString().split('T')[0];
           grouped[key] = { calls: 0, duration: 0 };
         }
-        logs.forEach(log => {
-          const date = new Date(log.createdAt || log.startTime).toISOString().split('T')[0];
+        allLogs.forEach(log => {
+          const dateStr = log.calledAt || log.createdAt || log.startTime;
+          if (!dateStr) return;
+          const date = new Date(dateStr).toISOString().split('T')[0];
           if (grouped[date]) {
             grouped[date].calls += 1;
             grouped[date].duration += (log.duration || log.callDuration || 0);
