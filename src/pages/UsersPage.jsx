@@ -389,7 +389,7 @@ const UsersPage = () => {
       ) : (
         <div className="overflow-hidden rounded-[20px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#161B27] shadow-sm">
           {/* Header */}
-          <div className="grid grid-cols-[40px_1fr_80px_60px_30px] sm:grid-cols-[40px_1fr_180px_100px_70px_36px] items-center gap-3 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#1A2030] px-4 py-3">
+          <div className="grid grid-cols-[40px_1fr_60px_36px] sm:grid-cols-[40px_1fr_180px_70px_36px] items-center gap-3 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#1A2030] px-4 py-3">
             <input
               type="checkbox"
               onChange={handleSelectAll}
@@ -411,10 +411,6 @@ const UsersPage = () => {
             </div>
 
             <div className="text-[10px] font-medium uppercase tracking-[0.15em] text-slate-500 dark:text-slate-400">
-              Source
-            </div>
-
-            <div className="text-[10px] font-medium uppercase tracking-[0.15em] text-slate-500 dark:text-slate-400">
               Date
             </div>
 
@@ -426,7 +422,7 @@ const UsersPage = () => {
             {paginatedUsers.map((u) => (
               <div
                 key={u.id}
-                className={`grid grid-cols-[40px_1fr_80px_60px_30px] sm:grid-cols-[40px_1fr_180px_100px_70px_36px] items-center gap-3 px-4 py-3 transition-all ${
+                className={`grid grid-cols-[40px_1fr_60px_36px] sm:grid-cols-[40px_1fr_180px_70px_36px] items-center gap-3 px-4 py-3 transition-all ${
                   selectedUsers.has(u.id)
                     ? 'bg-indigo-50 dark:bg-indigo-950/30'
                     : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
@@ -453,10 +449,6 @@ const UsersPage = () => {
                   {u.phone_number}
                 </div>
 
-                <div className="truncate text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                  {u.createdBy?.name || '—'}
-                </div>
-
                 <div className="truncate text-[11px] text-slate-400 dark:text-slate-500">
                   {u.createdAt ? new Date(u.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '—'}
                 </div>
@@ -466,7 +458,7 @@ const UsersPage = () => {
                   className="flex items-center justify-center w-7 h-7 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-primary hover:text-primary transition-all cursor-pointer"
                   title="View in CRM"
                 >
-                  <span className="material-symbols-outlined text-[14px]">open_in_new</span>
+                  <span className="material-symbols-outlined text-[14px]">visibility</span>
                 </button>
               </div>
             ))}
