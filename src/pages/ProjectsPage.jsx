@@ -154,29 +154,26 @@ const ProjectsPage = () => {
 
               {/* Automation status pills */}
               <div className="flex flex-wrap gap-1.5 mt-3">
-                <span className={`inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[9px] font-bold ${
+                <span className={`inline-flex items-center justify-center rounded-full w-6 h-6 ${
                   project.autoCallEnabled
                     ? 'bg-blue-50 text-blue-600 dark:bg-blue-500/15 dark:text-blue-300'
                     : 'bg-slate-100 text-slate-400 dark:bg-white/5 dark:text-slate-500'
                 }`}>
-                  <span className="material-symbols-outlined text-[10px]">call</span>
-                  Voice
+                  <span className="material-symbols-outlined text-[14px]">call</span>
                 </span>
-                <span className={`inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[9px] font-bold ${
+                <span className={`inline-flex items-center justify-center rounded-full w-6 h-6 ${
                   project.autoWaEnabled
                     ? 'bg-green-50 text-green-600 dark:bg-green-500/15 dark:text-green-300'
                     : 'bg-slate-100 text-slate-400 dark:bg-white/5 dark:text-slate-500'
                 }`}>
-                  <span className="material-symbols-outlined text-[10px]">chat</span>
-                  WA
+                  <span className="material-symbols-outlined text-[14px]">chat</span>
                 </span>
-                <span className={`inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[9px] font-bold ${
+                <span className={`inline-flex items-center justify-center rounded-full w-6 h-6 ${
                   project.autoEmailEnabled
                     ? 'bg-purple-50 text-purple-600 dark:bg-purple-500/15 dark:text-purple-300'
                     : 'bg-slate-100 text-slate-400 dark:bg-white/5 dark:text-slate-500'
                 }`}>
-                  <span className="material-symbols-outlined text-[10px]">mail</span>
-                  Email
+                  <span className="material-symbols-outlined text-[14px]">mail</span>
                 </span>
               </div>
 
