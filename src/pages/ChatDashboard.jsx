@@ -90,6 +90,7 @@ export default function ChatDashboard() {
     const [activeWANumber, setActiveWANumber] = useState(undefined);
     const [campaignProgress, setCampaignProgress] = useState(null);
     const [showTemplatePicker, setShowTemplatePicker] = useState(false);
+    const [showWaSettings, setShowWaSettings] = useState(false);
 
     // -----------------------------------------------------------------------
     // State: Contact Info Panel
@@ -645,27 +646,34 @@ export default function ChatDashboard() {
                             <span className="text-xs text-slate-500">No WhatsApp number connected</span>
                         </div>
                     )}
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 relative">
                         <a
                             href="/whatsapp-setup"
                             className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline uppercase tracking-wider"
                         >
                             {activeWANumber ? '⚙ Manage' : '+ Connect'}
                         </a>
-                        <a
-                            href="/whatsapp-setup"
-                            className="text-[10px] font-bold text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:underline uppercase tracking-wider"
-                            title="WhatsApp Setup"
+                        <button
+                            onClick={() => setShowWaSettings(prev => !prev)}
+                            className="flex items-center justify-center w-6 h-6 rounded-md border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-800 hover:border-emerald-500 cursor-pointer transition-all"
+                            title="Settings"
                         >
-                            Setup
-                        </a>
-                        <a
-                            href="/whatsapp-templates"
-                            className="text-[10px] font-bold text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:underline uppercase tracking-wider"
-                            title="WhatsApp Templates"
-                        >
-                            Templates
-                        </a>
+                            <span className="material-symbols-outlined text-[14px] text-slate-500 dark:text-slate-400">settings</span>
+                        </button>
+                        {showWaSettings && (
+                            <div className="absolute right-0 top-7 z-20 rounded-[10px] p-1.5 shadow-lg border bg-white dark:bg-slate-800 border-slate-200 dark:border-white/10 min-w-[120px]">
+                                <a href="/whatsapp-setup"
+                                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-[10px] font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 no-underline transition-all">
+                                    <span className="material-symbols-outlined text-[14px]">build</span>
+                                    Setup
+                                </a>
+                                <a href="/whatsapp-templates"
+                                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-[10px] font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 no-underline transition-all">
+                                    <span className="material-symbols-outlined text-[14px]">description</span>
+                                    Templates
+                                </a>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
