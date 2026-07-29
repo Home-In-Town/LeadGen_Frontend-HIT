@@ -739,11 +739,11 @@ const searchFilteredLeads = useMemo(() => {
                         </div>
 
                         <div className="min-w-0">
-                          <h3 className="truncate text-[15px] font-semibold">
+                          <h3 className="truncate text-base font-semibold">
                             {lead.first_name} {lead.last_name}
                           </h3>
 
-                          <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] text-slate-500 dark:text-slate-400">
+                          <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[13px] text-slate-500 dark:text-slate-400">
                             <span>{lead.phone_number}</span>
 
                             <span>•</span>
@@ -819,9 +819,9 @@ const searchFilteredLeads = useMemo(() => {
                             px-2.5
                             py-1.5
                             text-[10px]
-                            font-black
+                            font-semibold
                             uppercase
-                            tracking-[0.12em]
+                            tracking-[0.08em]
                             transition-all
 
                             hover:border-primary
@@ -847,9 +847,9 @@ const searchFilteredLeads = useMemo(() => {
                             px-2.5
                             py-1.5
                             text-[10px]
-                            font-black
+                            font-semibold
                             uppercase
-                            tracking-[0.12em]
+                            tracking-[0.08em]
                             ${getStatusClasses(
                               lead.score,
                               lead.status
