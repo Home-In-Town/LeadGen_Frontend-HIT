@@ -51,6 +51,7 @@ const CRMPage = () => {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [showFilterPopup, setShowFilterPopup] = useState(false);
 
   const [activeTab, setActiveTab] = useState('site');
   const [currentPage, setCurrentPage] = useState(1);
@@ -314,37 +315,46 @@ const searchFilteredLeads = useMemo(() => {
         {/* SEARCH BAR */}
         {/* ------------------------------------------------------------------ */}
 
-        <div className="mb-4 relative">
-          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[18px] text-slate-400">
-            search
-          </span>
-          <input
-            type="text"
-            placeholder="Search lead name or phone..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="
-              h-10
-              w-full
-              rounded-[14px]
-              border
-              border-slate-200
-              bg-white
-              pl-10
-              pr-4
-              text-sm
-              font-medium
-              outline-none
-              transition-all
-              focus:border-primary
-              focus:ring-2
-              focus:ring-primary/10
-              dark:border-white/10
-              dark:bg-white/[0.04]
-              dark:text-white
-              dark:placeholder:text-slate-500
-            "
-          />
+        <div className="mb-4 flex items-center gap-2">
+          <div className="relative flex-1">
+            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[18px] text-slate-400">
+              search
+            </span>
+            <input
+              type="text"
+              placeholder="Search lead name or phone..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="
+                h-10
+                w-full
+                rounded-[14px]
+                border
+                border-slate-200
+                bg-white
+                pl-10
+                pr-4
+                text-sm
+                font-medium
+                outline-none
+                transition-all
+                focus:border-primary
+                focus:ring-2
+                focus:ring-primary/10
+                dark:border-white/10
+                dark:bg-white/[0.04]
+                dark:text-white
+                dark:placeholder:text-slate-500
+              "
+            />
+          </div>
+          <button
+            onClick={() => setShowFilterPopup(prev => !prev)}
+            className="flex items-center justify-center w-10 h-10 rounded-[14px] border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.04] transition-all hover:border-primary hover:text-primary cursor-pointer"
+            title="Filter"
+          >
+            <span className="material-symbols-outlined text-[20px] text-slate-500 dark:text-slate-400">filter_list</span>
+          </button>
         </div>
 
         {/* ------------------------------------------------------------------ */}
@@ -440,17 +450,26 @@ const searchFilteredLeads = useMemo(() => {
         </div>
 
         {/* ------------------------------------------------------------------ */}
-        {/* LEAD TYPE FILTERS */}
+        {/* LEAD TYPE FILTERS (popup) */}
         {/* ------------------------------------------------------------------ */}
 
-        {activeTab !== 'automation' && (
+        {activeTab !== 'automation' && showFilterPopup && (
           <div
             className="
-              mb-5
+              mb-4
               flex
               flex-wrap
               items-center
-              gap-3
+              gap-2
+              p-2
+              rounded-[14px]
+              border
+              border-slate-200/70
+              bg-white
+              shadow-sm
+              animate-fade-in
+              dark:border-white/10
+              dark:bg-slate-800
             "
           >
             {[
