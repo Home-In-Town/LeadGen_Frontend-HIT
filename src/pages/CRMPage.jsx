@@ -58,7 +58,7 @@ const CRMPage = () => {
 
   const [selectedAutomationGroup, setSelectedAutomationGroup] = useState(null);
 
-  const itemsPerPage = 10;
+  const itemsPerPage = 5;
   const debounceRef = useRef(null);
 
   const [leadTypeFilter, setLeadTypeFilter] = useState('ALL');
