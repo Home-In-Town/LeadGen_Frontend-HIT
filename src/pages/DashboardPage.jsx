@@ -61,6 +61,12 @@ const DashboardPage = () => {
   const [showAdd,       setShowAdd]       = useState(false);
   const [showImport,    setShowImport]    = useState(false);
 
+  // Call Analytics Graph state
+  const [graphData,     setGraphData]     = useState([]);
+  const [graphLoading,  setGraphLoading]  = useState(true);
+  const [graphFilter,   setGraphFilter]   = useState('7d');
+  const [showFilter,    setShowFilter]    = useState(false);
+
   const fetchDashboardData = useCallback(async () => {
     if (!user) { setLoading(false); return; }
     setLoading(true);
@@ -88,6 +94,40 @@ const DashboardPage = () => {
   }, [user]);
 
   useEffect(() => { fetchDashboardData(); }, [fetchDashboardData]);
+
+  // Fetch call analytics graph data
+  useEffect(() => {
+    const fetchGraphData = async () => {
+      setGraphLoading(true);
+      try {
+        const days = graphFilter === '1d' ? 1 : graphFilter === '7d' ? 7 : graphFilter === '30d' ? 30 : 90;
+        const res = await api.getCallLogs({ limit: 500 });
+        const logs = res.data?.data || res.data?.logs || [];
+        const now = new Date();
+        const startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+        const grouped = {};
+        for (let d = new Date(startDate); d <= now; d.setDate(d.getDate() + 1)) {
+          const key = d.toISOString().split('T')[0];
+          grouped[key] = { calls: 0, duration: 0 };
+        }
+        logs.forEach(log => {
+          const date = new Date(log.createdAt || log.startTime).toISOString().split('T')[0];
+          if (grouped[date]) {
+            grouped[date].calls += 1;
+            grouped[date].duration += (log.duration || log.callDuration || 0);
+          }
+        });
+        setGraphData(Object.entries(grouped).map(([date, data]) => ({
+          date,
+          label: new Date(date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }),
+          calls: data.calls,
+          duration: Math.round(data.duration / 60)
+        })));
+      } catch { setGraphData([]); }
+      finally { setGraphLoading(false); }
+    };
+    fetchGraphData();
+  }, [graphFilter]);
 
   const handleSync = useCallback(async () => {
     setSyncing(true);
@@ -239,91 +279,130 @@ const DashboardPage = () => {
         ))}
       </div>
 
-      {/* ══ ACTIVITY GRAPH ════════════════════════════════ */}
-      <div className="c p-4 mb-5" style={{ background: T.cardBg, borderColor: T.cardBorder }}>
-        <div className="flex items-center justify-between mb-3">
-          <p className="sec-lbl">Activity Overview</p>
-          <span className="text-[10px] font-medium" style={{ color: T.text3 }}>Last 7 days</span>
-        </div>
-        <div className="relative h-36 sm:h-44">
-          {(() => {
-            const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-            const peopleData = [65, 45, 80, 55, 90, 35, 70];
-            const leadsData = [40, 60, 35, 75, 50, 85, 45];
-            const visitsData = [30, 55, 70, 40, 65, 50, 60];
-            const maxVal = 100;
-            const h = 100;
-            const w = 100;
-            const stepX = w / (days.length - 1);
+      {/* ══ CALL ANALYTICS GRAPH ═════════════════════════ */}
+      {(() => {
+        const filterOptions = [
+          { label: 'Today', value: '1d' },
+          { label: '7 Days', value: '7d' },
+          { label: '30 Days', value: '30d' },
+          { label: '90 Days', value: '90d' },
+        ];
 
-            const toPath = (data) => {
-              return data.map((v, i) => {
-                const x = i * stepX;
-                const y = h - (v / maxVal) * h;
-                return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
-              }).join(' ');
-            };
+        const maxCalls = Math.max(...graphData.map(d => d.calls), 1);
+        const maxDuration = Math.max(...graphData.map(d => d.duration), 1);
+        const totalCallsGraph = graphData.reduce((s, d) => s + d.calls, 0);
+        const totalDuration = graphData.reduce((s, d) => s + d.duration, 0);
+        const h = 100, w = 100;
+        const stepX = graphData.length > 1 ? w / (graphData.length - 1) : w;
 
-            const toArea = (data) => {
-              const line = data.map((v, i) => {
-                const x = i * stepX;
-                const y = h - (v / maxVal) * h;
-                return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
-              }).join(' ');
-              return `${line} L ${w} ${h} L 0 ${h} Z`;
-            };
+        const toPath = (data, key, max) => {
+          return data.map((d, i) => {
+            const x = i * stepX;
+            const y = h - (d[key] / max) * h;
+            return `${i === 0 ? 'M' : 'L'} ${x} ${Math.max(2, y)}`;
+          }).join(' ');
+        };
+        const toArea = (data, key, max) => {
+          const line = data.map((d, i) => {
+            const x = i * stepX;
+            const y = h - (d[key] / max) * h;
+            return `${i === 0 ? 'M' : 'L'} ${x} ${Math.max(2, y)}`;
+          }).join(' ');
+          return `${line} L ${w} ${h} L 0 ${h} Z`;
+        };
 
-            return (
-              <svg viewBox={`0 0 ${w} ${h + 10}`} className="w-full h-full" preserveAspectRatio="none">
-                {/* Grid lines */}
-                {[0, 25, 50, 75, 100].map(v => (
-                  <line key={v} x1="0" y1={h - (v / maxVal) * h} x2={w} y2={h - (v / maxVal) * h}
-                    stroke={dark ? '#2D3748' : '#E2E8F0'} strokeWidth="0.3" />
-                ))}
-                {/* Area fills */}
-                <path d={toArea(peopleData)} fill="#6366F1" opacity="0.08" />
-                <path d={toArea(leadsData)} fill="#0EA5E9" opacity="0.08" />
-                <path d={toArea(visitsData)} fill="#10B981" opacity="0.08" />
-                {/* Lines */}
-                <path d={toPath(peopleData)} fill="none" stroke="#6366F1" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                <path d={toPath(leadsData)} fill="none" stroke="#0EA5E9" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                <path d={toPath(visitsData)} fill="none" stroke="#10B981" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                {/* Dots */}
-                {peopleData.map((v, i) => (
-                  <circle key={`p${i}`} cx={i * stepX} cy={h - (v / maxVal) * h} r="1.5" fill="#6366F1" />
-                ))}
-                {leadsData.map((v, i) => (
-                  <circle key={`l${i}`} cx={i * stepX} cy={h - (v / maxVal) * h} r="1.5" fill="#0EA5E9" />
-                ))}
-                {visitsData.map((v, i) => (
-                  <circle key={`v${i}`} cx={i * stepX} cy={h - (v / maxVal) * h} r="1.5" fill="#10B981" />
-                ))}
-              </svg>
-            );
-          })()}
-          {/* X-axis labels */}
-          <div className="absolute bottom-0 left-0 right-0 flex justify-between px-0">
-            {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(d => (
-              <span key={d} className="text-[8px] font-medium" style={{ color: T.text3 }}>{d}</span>
-            ))}
+        return (
+          <div className="c p-4 mb-5" style={{ background: T.cardBg, borderColor: T.cardBorder }}>
+            {/* Header with filter */}
+            <div className="flex items-center justify-between mb-1">
+              <p className="sec-lbl">Call Analytics</p>
+              <div className="relative">
+                <button onClick={() => setShowFilter(!showFilter)}
+                  className="flex items-center gap-1 px-2 py-1 rounded-[8px] text-[10px] font-semibold border-none cursor-pointer transition-all"
+                  style={{ background: dark ? '#1E2A3A' : '#F0F2F8', color: T.text2 }}>
+                  <span className="material-symbols-outlined text-[12px]">filter_list</span>
+                  {filterOptions.find(f => f.value === graphFilter)?.label}
+                </button>
+                {showFilter && (
+                  <div className="absolute right-0 top-7 z-10 rounded-[10px] p-1 shadow-lg border"
+                    style={{ background: T.cardBg, borderColor: T.cardBorder, minWidth: '90px' }}>
+                    {filterOptions.map(opt => (
+                      <button key={opt.value}
+                        onClick={() => { setGraphFilter(opt.value); setShowFilter(false); }}
+                        className="block w-full text-left px-3 py-1.5 rounded-[6px] text-[10px] font-semibold border-none cursor-pointer transition-all"
+                        style={{ background: graphFilter === opt.value ? (dark ? '#2D3748' : '#EEF2FF') : 'transparent', color: graphFilter === opt.value ? '#6366F1' : T.text2 }}>
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Summary stats */}
+            <div className="flex gap-4 mb-3">
+              <div>
+                <p className="text-[18px] font-black" style={{ color: T.text }}>{totalCallsGraph}</p>
+                <p className="text-[9px] font-medium" style={{ color: T.text3 }}>Total Calls</p>
+              </div>
+              <div>
+                <p className="text-[18px] font-black" style={{ color: T.text }}>{totalDuration}m</p>
+                <p className="text-[9px] font-medium" style={{ color: T.text3 }}>Total Time</p>
+              </div>
+            </div>
+
+            {/* Graph */}
+            {graphLoading ? (
+              <div className="h-32 flex items-center justify-center">
+                <span className="material-symbols-outlined text-[20px] animate-spin" style={{ color: T.text3 }}>progress_activity</span>
+              </div>
+            ) : graphData.length === 0 ? (
+              <div className="h-32 flex items-center justify-center">
+                <p className="text-[11px]" style={{ color: T.text3 }}>No call data available</p>
+              </div>
+            ) : (
+              <div className="relative h-32 sm:h-40">
+                <svg viewBox={`0 0 ${w} ${h + 10}`} className="w-full h-full" preserveAspectRatio="none">
+                  {[0, 25, 50, 75, 100].map(v => (
+                    <line key={v} x1="0" y1={h - (v / 100) * h} x2={w} y2={h - (v / 100) * h}
+                      stroke={dark ? '#2D3748' : '#E2E8F0'} strokeWidth="0.3" />
+                  ))}
+                  <path d={toArea(graphData, 'calls', maxCalls)} fill="#6366F1" opacity="0.1" />
+                  <path d={toArea(graphData, 'duration', maxDuration)} fill="#10B981" opacity="0.08" />
+                  <path d={toPath(graphData, 'calls', maxCalls)} fill="none" stroke="#6366F1" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d={toPath(graphData, 'duration', maxDuration)} fill="none" stroke="#10B981" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  {graphData.map((d, i) => (
+                    <circle key={`c${i}`} cx={i * stepX} cy={Math.max(2, h - (d.calls / maxCalls) * h)} r="1.5" fill="#6366F1" />
+                  ))}
+                  {graphData.map((d, i) => (
+                    <circle key={`d${i}`} cx={i * stepX} cy={Math.max(2, h - (d.duration / maxDuration) * h)} r="1.5" fill="#10B981" />
+                  ))}
+                </svg>
+                {/* X-axis labels */}
+                <div className="absolute bottom-0 left-0 right-0 flex justify-between">
+                  {graphData.length <= 10 ? graphData.map((d, i) => (
+                    <span key={i} className="text-[7px] font-medium" style={{ color: T.text3 }}>{d.label}</span>
+                  )) : [0, Math.floor(graphData.length / 2), graphData.length - 1].map(i => (
+                    <span key={i} className="text-[7px] font-medium" style={{ color: T.text3 }}>{graphData[i]?.label}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Legend */}
+            <div className="flex items-center justify-center gap-4 mt-2 pt-2" style={{ borderTop: `1px solid ${T.cardBorder}` }}>
+              <div className="flex items-center gap-1.5">
+                <div className="w-3 h-[2px] rounded-full" style={{ background: '#6366F1' }} />
+                <span className="text-[9px] font-medium" style={{ color: T.text2 }}>Calls</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-3 h-[2px] rounded-full" style={{ background: '#10B981' }} />
+                <span className="text-[9px] font-medium" style={{ color: T.text2 }}>Duration (min)</span>
+              </div>
+            </div>
           </div>
-        </div>
-        {/* Legend */}
-        <div className="flex items-center justify-center gap-4 mt-3 pt-3" style={{ borderTop: `1px solid ${T.cardBorder}` }}>
-          <div className="flex items-center gap-1.5">
-            <div className="w-3 h-[2px] rounded-full" style={{ background: '#6366F1' }} />
-            <span className="text-[10px] font-medium" style={{ color: T.text2 }}>People</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-3 h-[2px] rounded-full" style={{ background: '#0EA5E9' }} />
-            <span className="text-[10px] font-medium" style={{ color: T.text2 }}>Leads</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-3 h-[2px] rounded-full" style={{ background: '#10B981' }} />
-            <span className="text-[10px] font-medium" style={{ color: T.text2 }}>Visits</span>
-          </div>
-        </div>
-      </div>
+        );
+      })()}
 
       {/* ══ RECENT LEADS ══════════════════════════════════ */}
       <div className="hidden sm:block">
