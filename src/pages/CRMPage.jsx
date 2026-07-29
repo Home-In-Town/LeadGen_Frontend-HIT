@@ -694,11 +694,11 @@ const searchFilteredLeads = useMemo(() => {
                     className="
                       group
                       cursor-pointer
-                      rounded-[24px]
+                      rounded-[16px]
                       border
                       border-slate-200/70
                       bg-white/80
-                      p-5
+                      p-3
                       shadow-sm
                       backdrop-blur-xl
                       transition-all
@@ -712,17 +712,17 @@ const searchFilteredLeads = useMemo(() => {
                       dark:bg-white/[0.03]
                     "
                   >
-                    <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
-                      <div className="flex min-w-0 items-start gap-4">
+                    <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+                      <div className="flex min-w-0 items-start gap-3">
                         <div
                           className="
                             flex
-                            h-12
-                            w-12
+                            h-10
+                            w-10
                             shrink-0
                             items-center
                             justify-center
-                            rounded-2xl
+                            rounded-xl
                             bg-slate-100
                             text-slate-600
                             transition-all
@@ -802,7 +802,7 @@ const searchFilteredLeads = useMemo(() => {
                         </div>
                       </div>
 
-                      <div className="flex flex-wrap items-center gap-3">
+                      <div className="flex flex-wrap items-center gap-2">
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -811,17 +811,17 @@ const searchFilteredLeads = useMemo(() => {
                           className="
                             flex
                             items-center
-                            gap-2
-                            rounded-2xl
+                            gap-1.5
+                            rounded-lg
                             border
                             border-slate-200
                             bg-white
-                            px-4
-                            py-3
-                            text-[11px]
+                            px-2.5
+                            py-1.5
+                            text-[10px]
                             font-black
                             uppercase
-                            tracking-[0.16em]
+                            tracking-[0.12em]
                             transition-all
 
                             hover:border-primary
@@ -833,7 +833,7 @@ const searchFilteredLeads = useMemo(() => {
                             dark:hover:bg-primary
                           "
                         >
-                          <span className="material-symbols-outlined text-[16px]">
+                          <span className="material-symbols-outlined text-[14px]">
                             calendar_month
                           </span>
 
@@ -842,14 +842,14 @@ const searchFilteredLeads = useMemo(() => {
 
                         <div
                           className={`
-                            rounded-2xl
+                            rounded-lg
                             border
-                            px-4
-                            py-3
-                            text-[11px]
+                            px-2.5
+                            py-1.5
+                            text-[10px]
                             font-black
                             uppercase
-                            tracking-[0.16em]
+                            tracking-[0.12em]
                             ${getStatusClasses(
                               lead.score,
                               lead.status
@@ -863,18 +863,6 @@ const searchFilteredLeads = useMemo(() => {
                           ({lead.score}%)
                         </div>
 
-                        <span
-                          className="
-                            material-symbols-outlined
-                            text-slate-400
-                            transition-all
-                            duration-300
-                            group-hover:translate-x-1
-                            group-hover:text-primary
-                          "
-                        >
-                          arrow_forward
-                        </span>
                       </div>
                     </div>
                   </div>
