@@ -357,6 +357,47 @@ const searchFilteredLeads = useMemo(() => {
           </button>
         </div>
 
+        {/* LEAD TYPE FILTERS (popup - below search) */}
+        {activeTab !== 'automation' && showFilterPopup && (
+          <div
+            className="
+              mb-3
+              flex
+              flex-wrap
+              items-center
+              gap-2
+              p-2
+              rounded-[14px]
+              border
+              border-slate-200/70
+              bg-white
+              shadow-sm
+              animate-fade-in
+              dark:border-white/10
+              dark:bg-slate-800
+            "
+          >
+            {[
+              { label: 'All', value: 'ALL', active: 'bg-slate-900 text-white dark:bg-white dark:text-slate-900' },
+              { label: 'Hot', value: 'HOT', active: 'bg-red-500 text-white' },
+              { label: 'Warm', value: 'WARM', active: 'bg-orange-500 text-white' },
+              { label: 'Cold', value: 'COLD', active: 'bg-emerald-500 text-white' }
+            ].map((filter) => (
+              <button
+                key={filter.value}
+                onClick={() => { setLeadTypeFilter(filter.value); setCurrentPage(1); setShowFilterPopup(false); }}
+                className={`rounded-xl px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.15em] transition-all duration-300 ${
+                  leadTypeFilter === filter.value
+                    ? filter.active
+                    : 'border border-slate-200 bg-white text-slate-600 hover:border-primary/30 hover:text-primary dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-400'
+                }`}
+              >
+                {filter.label}
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* ------------------------------------------------------------------ */}
         {/* TABS */}
         {/* ------------------------------------------------------------------ */}
@@ -448,94 +489,6 @@ const searchFilteredLeads = useMemo(() => {
             </button>
           ))}
         </div>
-
-        {/* ------------------------------------------------------------------ */}
-        {/* LEAD TYPE FILTERS (popup) */}
-        {/* ------------------------------------------------------------------ */}
-
-        {activeTab !== 'automation' && showFilterPopup && (
-          <div
-            className="
-              mb-4
-              flex
-              flex-wrap
-              items-center
-              gap-2
-              p-2
-              rounded-[14px]
-              border
-              border-slate-200/70
-              bg-white
-              shadow-sm
-              animate-fade-in
-              dark:border-white/10
-              dark:bg-slate-800
-            "
-          >
-            {[
-              {
-                label: 'All',
-                value: 'ALL',
-                active:
-                  'bg-slate-900 text-white dark:bg-white dark:text-slate-900'
-              },
-              {
-                label: 'Hot',
-                value: 'HOT',
-                active: 'bg-red-500 text-white'
-              },
-              {
-                label: 'Warm',
-                value: 'WARM',
-                active: 'bg-orange-500 text-white'
-              },
-              {
-                label: 'Cold',
-                value: 'COLD',
-                active: 'bg-emerald-500 text-white'
-              }
-            ].map((filter) => (
-              <button
-                key={filter.value}
-                onClick={() => {
-                  setLeadTypeFilter(filter.value);
-                  setCurrentPage(1);
-                }}
-                className={`
-                  rounded-2xl
-                  px-4
-                  py-2.5
-                  text-[11px]
-                  font-black
-                  uppercase
-                  tracking-[0.18em]
-                  transition-all
-                  duration-300
-
-                  ${
-                    leadTypeFilter === filter.value
-                      ? filter.active
-                      : `
-                        border
-                        border-slate-200
-                        bg-white
-                        text-slate-600
-
-                        hover:border-primary/30
-                        hover:text-primary
-
-                        dark:border-white/10
-                        dark:bg-white/[0.03]
-                        dark:text-slate-400
-                      `
-                  }
-                `}
-              >
-                {filter.label}
-              </button>
-            ))}
-          </div>
-        )}
 
         {/* ------------------------------------------------------------------ */}
         {/* LIST */}
