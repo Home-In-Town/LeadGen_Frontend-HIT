@@ -5,9 +5,9 @@ import { useNotifications } from '../context/NotificationContext';
 
 const CATEGORIES = ['Residential', 'Commercial', 'Mixed Use'];
 const PROPERTY_TYPES = {
-  Residential: ['Flat / Apartment', 'Plot', 'Villa', 'Row House', 'Penthouse', 'Duplex', 'Studio', 'Farm House'],
-  Commercial: ['Office Space', 'Shop', 'Showroom', 'Warehouse', 'Commercial Land'],
-  'Mixed Use': ['Mixed Development', 'IT Park', 'SEZ'],
+  Residential: ['Apartment / Flat', 'Villa', 'Independent House', 'Row House', 'Township', 'Residential Plot', 'Farm House', 'Farm Land', 'Studio Apartment', 'Penthouse', 'Duplex', 'Serviced Apartment', 'Other'],
+  Commercial: ['Office Space', 'Retail', 'Showroom', 'Commercial Plot / Land', 'Industry', 'Co-working Space', 'Warehouse / Storage', 'Hospitality', 'Other'],
+  'Mixed Use': ['Residential + Retail', 'Residential + Office', 'Residential + Commercial Complex', 'Mixed-Use Tower', 'Mixed-Use Township', 'Integrated Development', 'Other'],
 };
 const PROJECT_STATUSES = [
   { value: 'pre-launch', label: 'Pre-Launch' },
@@ -19,6 +19,8 @@ const ALL_AMENITIES = [
   'Children Play Area', 'Jogging Track', 'Community Hall', 'Fire Safety', 'CCTV Surveillance',
   'Gated Community', 'Visitor Parking', 'Intercom Facility', '24x7 Water Supply',
   'Rain Water Harvesting', 'Sewage Treatment Plant', 'EV Charging Station', 'Indoor Games Room',
+  'Outdoor Sports Court', 'Tennis Court', 'Basketball Court', 'Badminton Court',
+  'Multipurpose Hall', 'Yoga Deck', 'Senior Citizen Zone', 'Pet Park', 'Library',
 ];
 
 const cardClass = 'rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200/70 dark:border-white/10 shadow-sm p-6';
@@ -54,8 +56,16 @@ export default function AddProjectPage() {
     if (status === 'published') {
       if (!form.location.trim()) { addToast('Location / Area is required to publish', 'error'); return; }
       if (!form.propertyType) { addToast('Property Type is required to publish', 'error'); return; }
-      if (!form.startingPrice && !form.pricePerSqFt) { addToast('At least one pricing field is required to publish', 'error'); return; }
-      if (!form.whatsappNumber && !form.callNumber) { addToast('At least one contact number is required to publish', 'error'); return; }
+      if (!form.googleMapLink.trim()) { addToast('Google Map Link is required to publish', 'error'); return; }
+      if (!form.startingPrice) { addToast('Starting Price is required to publish', 'error'); return; }
+      // BHK required for non-plot, non-mixed types
+      const isPlot = (form.propertyType || '').toLowerCase().includes('plot') || (form.propertyType || '').toLowerCase().includes('land');
+      const isMixed = form.category === 'Mixed Use';
+      if (!isPlot && !isMixed && !form.bhkOptions.trim()) { addToast('BHK Options are required for this property type', 'error'); return; }
+      if (form.amenities.length === 0) { addToast('Select at least one amenity', 'error'); return; }
+      if (!form.whatsappNumber) { addToast('WhatsApp number is required to publish', 'error'); return; }
+      if (!form.callNumber) { addToast('Call number is required to publish', 'error'); return; }
+      if (form.reraApproved && !form.reraNumber.trim()) { addToast('RERA Number is required when RERA Approved', 'error'); return; }
     }
 
     setSaving(true);

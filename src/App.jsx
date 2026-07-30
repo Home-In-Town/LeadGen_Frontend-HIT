@@ -72,6 +72,7 @@ const EmailTemplatesPage    = lazy(() => import('./pages/EmailTemplatesPage'));
 const ProfilePage           = lazy(() => import('./pages/ProfilePage'));
 const ProjectsPage          = lazy(() => import('./pages/ProjectsPage'));
 const AddProjectPage        = lazy(() => import('./pages/AddProjectPage'));
+const EditProjectPage       = lazy(() => import('./pages/EditProjectPage'));
 const ProjectSettingsPage   = lazy(() => import('./pages/ProjectSettingsPage'));
 const MetaSocialPage        = lazy(() => import('./pages/MetaSocialPage'));
 
@@ -153,6 +154,7 @@ function App() {
                 <Route path="/profile" element={<ProfilePage />} />
                 <Route path="/projects" element={<ProjectsPage />} />
                 <Route path="/projects/new" element={<AddProjectPage />} />
+                <Route path="/projects/:hitProjectId/edit" element={<EditProjectPage />} />
                 <Route path="/projects/:hitProjectId" element={<ProjectSettingsPage />} />
                 <Route path="/meta-social" element={<MetaSocialPage />} />
                 <Route path="/meta-social/*" element={<MetaSocialPage />} />

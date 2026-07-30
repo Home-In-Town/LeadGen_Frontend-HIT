@@ -143,7 +143,14 @@ const ProjectsPage = () => {
             key={project.hitProjectId}
             className={`${cardClass} overflow-hidden group relative`}
           >
-            {/* Delete button */}
+            {/* Edit + Delete buttons */}
+            <button
+              onClick={(e) => { e.stopPropagation(); navigate(`/projects/${project.hitProjectId}/edit`); }}
+              className="absolute top-2 left-2 z-10 w-7 h-7 rounded-lg bg-white/90 dark:bg-slate-900/90 border border-slate-200 dark:border-white/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-blue-50 dark:hover:bg-blue-500/10"
+              title="Edit project"
+            >
+              <span className="material-symbols-outlined text-sm text-blue-500">edit</span>
+            </button>
             <button
               onClick={async (e) => {
                 e.stopPropagation();
@@ -156,7 +163,7 @@ const ProjectsPage = () => {
                   addToast(err.response?.data?.error || 'Delete failed', 'error');
                 }
               }}
-              className="absolute top-2 left-2 z-10 w-7 h-7 rounded-lg bg-white/90 dark:bg-slate-900/90 border border-slate-200 dark:border-white/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50 dark:hover:bg-red-500/10"
+              className="absolute top-2 left-11 z-10 w-7 h-7 rounded-lg bg-white/90 dark:bg-slate-900/90 border border-slate-200 dark:border-white/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50 dark:hover:bg-red-500/10"
               title="Delete project"
             >
               <span className="material-symbols-outlined text-sm text-red-500">delete</span>
