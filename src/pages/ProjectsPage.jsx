@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { listProjects, syncProjects } from '../api';
+import { listProjects, syncProjects, deleteHitProject } from '../api';
 import { useNotifications } from '../context/NotificationContext';
 import { useAuth } from '../context/AuthContext';
 
@@ -48,13 +48,24 @@ const ProjectsPage = () => {
           <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
             Connect your HomeInTown account to see your real estate projects here and manage leads per project.
           </p>
-          <button
-            onClick={() => navigate('/profile')}
-            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary to-emerald-600 px-6 py-3 text-[11px] font-black uppercase tracking-[0.15em] text-white shadow-lg shadow-primary/25 hover:shadow-xl transition-all"
-          >
-            <span className="material-symbols-outlined text-base">person</span>
-            Go to Profile to Connect
-          </button>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <button
+              onClick={() => navigate('/profile')}
+              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary to-emerald-600 px-6 py-3 text-[11px] font-black uppercase tracking-[0.15em] text-white shadow-lg shadow-primary/25 hover:shadow-xl transition-all"
+            >
+              <span className="material-symbols-outlined text-base">person</span>
+              Connect in Profile
+            </button>
+            <a
+              href="https://www.homeintown.in/login"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 dark:border-white/15 px-6 py-3 text-[11px] font-black uppercase tracking-[0.15em] text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-all"
+            >
+              <span className="material-symbols-outlined text-base">open_in_new</span>
+              Create HomeInTown Account
+            </a>
+          </div>
         </div>
       </div>
     );
@@ -79,33 +90,49 @@ const ProjectsPage = () => {
             Your HomeInTown projects with per-project lead automation
           </p>
         </div>
-        <button
-          onClick={async () => {
-            try {
-              setSyncing(true);
-              const res = await syncProjects();
-              addToast(`Synced ${res.data.synced} projects from HomeInTown`, 'success');
-              fetchProjects();
-            } catch (err) {
-              addToast(err.response?.data?.error || 'Sync failed', 'error');
-            } finally {
-              setSyncing(false);
-            }
-          }}
-          disabled={syncing}
-          className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 dark:border-white/15 px-4 py-2 text-[10px] font-black uppercase tracking-[0.15em] text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-all disabled:opacity-50"
-        >
-          <span className={`material-symbols-outlined text-sm ${syncing ? 'animate-spin' : ''}`}>sync</span>
-          {syncing ? 'Syncing...' : 'Sync Projects'}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => navigate('/projects/new')}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-[10px] font-black uppercase tracking-[0.15em] text-white shadow-lg shadow-primary/25 hover:brightness-110 transition-all"
+          >
+            <span className="material-symbols-outlined text-sm">add</span>
+            Add Project
+          </button>
+          <button
+            onClick={async () => {
+              try {
+                setSyncing(true);
+                const res = await syncProjects();
+                addToast(`Synced ${res.data.synced} projects from HomeInTown`, 'success');
+                fetchProjects();
+              } catch (err) {
+                addToast(err.response?.data?.error || 'Sync failed', 'error');
+              } finally {
+                setSyncing(false);
+              }
+            }}
+            disabled={syncing}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 dark:border-white/15 px-4 py-2 text-[10px] font-black uppercase tracking-[0.15em] text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-all disabled:opacity-50"
+          >
+            <span className={`material-symbols-outlined text-sm ${syncing ? 'animate-spin' : ''}`}>sync</span>
+            {syncing ? 'Syncing...' : 'Sync'}
+          </button>
+        </div>
       </div>
 
       {/* Empty state */}
       {projects.length === 0 && (
         <div className="rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200/70 dark:border-white/10 p-12 text-center">
           <span className="material-symbols-outlined text-5xl text-slate-300 dark:text-slate-600 mb-4 block">apartment</span>
-          <p className="text-sm font-bold text-slate-700 dark:text-slate-300">No projects found</p>
-          <p className="text-xs text-slate-500 mt-1">Create projects in your HomeInTown dashboard and they will appear here.</p>
+          <p className="text-sm font-bold text-slate-700 dark:text-slate-300">No projects yet</p>
+          <p className="text-xs text-slate-500 mt-1 mb-4">Add your first project to start managing leads per property.</p>
+          <button
+            onClick={() => navigate('/projects/new')}
+            className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-[11px] font-black uppercase tracking-[0.15em] text-white shadow-lg shadow-primary/25 hover:brightness-110 transition-all"
+          >
+            <span className="material-symbols-outlined text-base">add</span>
+            Add Your First Project
+          </button>
         </div>
       )}
 
@@ -114,9 +141,28 @@ const ProjectsPage = () => {
         {projects.map((project) => (
           <div
             key={project.hitProjectId}
-            onClick={() => navigate(`/projects/${project.hitProjectId}`)}
-            className={`${cardClass} cursor-pointer overflow-hidden group`}
+            className={`${cardClass} overflow-hidden group relative`}
           >
+            {/* Delete button */}
+            <button
+              onClick={async (e) => {
+                e.stopPropagation();
+                if (!confirm(`Delete "${project.projectName}"? This cannot be undone.`)) return;
+                try {
+                  await deleteHitProject(project.hitProjectId);
+                  addToast(`Project "${project.projectName}" deleted`, 'success');
+                  fetchProjects();
+                } catch (err) {
+                  addToast(err.response?.data?.error || 'Delete failed', 'error');
+                }
+              }}
+              className="absolute top-2 left-2 z-10 w-7 h-7 rounded-lg bg-white/90 dark:bg-slate-900/90 border border-slate-200 dark:border-white/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50 dark:hover:bg-red-500/10"
+              title="Delete project"
+            >
+              <span className="material-symbols-outlined text-sm text-red-500">delete</span>
+            </button>
+
+            <div onClick={() => navigate(`/projects/${project.hitProjectId}`)} className="cursor-pointer">
             {/* Cover image or placeholder */}
             <div className="h-32 bg-gradient-to-br from-primary/10 to-emerald-500/10 dark:from-primary/5 dark:to-emerald-500/5 relative overflow-hidden">
               {project.coverImage ? (
@@ -188,6 +234,7 @@ const ProjectsPage = () => {
                 </p>
               )}
             </div>
+            </div>{/* end clickable area */}
           </div>
         ))}
       </div>
