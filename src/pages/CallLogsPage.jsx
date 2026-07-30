@@ -16,20 +16,20 @@ const STATUS_STYLES = {
 const PAGE_LIMIT = 20;
 
 const StatCard = ({ title, value, icon }) => (
-  <div className="rounded-[18px] border border-slate-200/70 dark:border-white/10 bg-white/70 dark:bg-white/[0.04] backdrop-blur-xl p-5 shadow-sm">
+  <div className="rounded-[14px] border border-slate-200/70 dark:border-white/10 bg-white/70 dark:bg-white/[0.04] backdrop-blur-xl p-4 shadow-sm">
     <div className="flex items-center justify-between">
-      <div>
-        <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400">
+      <div className="min-w-0">
+        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
           {title}
         </p>
 
-        <h3 className="mt-2 text-3xl font-black tracking-tight text-slate-900 dark:text-white">
+        <h3 className="mt-1 text-2xl font-black tracking-tight text-slate-900 dark:text-white">
           {value}
         </h3>
       </div>
 
-      <div className="flex h-12 w-12 items-center justify-center rounded-[14px] bg-primary/10 text-primary">
-        <span className="material-symbols-outlined text-[24px]">
+      <div className="flex h-10 w-10 items-center justify-center rounded-[12px] bg-primary/10 text-primary flex-shrink-0">
+        <span className="material-symbols-outlined text-[20px]">
           {icon}
         </span>
       </div>
@@ -239,115 +239,110 @@ const CallLogsPage = () => {
       />
 
       {/* Header */}
-      <div className="mb-8 rounded-[24px] border border-slate-200/70 bg-white/70 p-5 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/40">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <div className="flex items-center gap-3">
-              <div className="flex h-14 w-14 items-center justify-center rounded-[18px] bg-primary/10 text-primary">
-                <span className="material-symbols-outlined text-[28px]">
-                  record_voice_over
-                </span>
-              </div>
-
-              <div>
-                <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white">
-                  Voice Call Logs
-                </h1>
-
-                <p className="mt-1 text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400">
-                  AI Agent Conversation History
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Search */}
+      <div className="mb-6 rounded-[18px] border border-slate-200/70 bg-white/70 p-4 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/40 overflow-hidden">
+        <div className="flex flex-col gap-4">
           <div className="flex items-center gap-3">
-            {/* View Toggle Tabs */}
-            <div className="flex items-center rounded-[14px] border border-slate-200/70 dark:border-white/10 bg-slate-50/70 dark:bg-white/[0.03] p-1">
-              <button
-                onClick={() => setActiveView('logs')}
-                className={`
-                  flex items-center gap-2 rounded-[10px] px-4 py-2
-                  text-[10px] font-black uppercase tracking-[0.15em]
-                  transition-all duration-200
-                  ${
-                    activeView === 'logs'
-                      ? 'bg-white dark:bg-white/[0.08] text-primary shadow-sm'
-                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
-                  }
-                `}
-              >
-                <span className="material-symbols-outlined text-[18px]">call</span>
-                Call Logs
-              </button>
-
-              <button
-                onClick={() => setActiveView('settings')}
-                className={`
-                  flex items-center gap-2 rounded-[10px] px-4 py-2
-                  text-[10px] font-black uppercase tracking-[0.15em]
-                  transition-all duration-200
-                  ${
-                    activeView === 'settings'
-                      ? 'bg-white dark:bg-white/[0.08] text-primary shadow-sm'
-                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
-                  }
-                `}
-              >
-                <span className="material-symbols-outlined text-[18px]">settings_voice</span>
-                Voice Settings
-              </button>
-
-              <button
-                onClick={() => setActiveView('whatsapp-ai')}
-                className={`
-                  flex items-center gap-2 rounded-[10px] px-4 py-2
-                  text-[10px] font-black uppercase tracking-[0.15em]
-                  transition-all duration-200
-                  ${
-                    activeView === 'whatsapp-ai'
-                      ? 'bg-white dark:bg-white/[0.08] shadow-sm'
-                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
-                  }
-                `}
-                style={activeView === 'whatsapp-ai' ? { color: '#25D366' } : {}}
-              >
-                <span className="material-symbols-outlined text-[18px]">smart_toy</span>
-                WhatsApp AI
-              </button>
+            <div className="flex h-11 w-11 items-center justify-center rounded-[14px] bg-primary/10 text-primary flex-shrink-0">
+              <span className="material-symbols-outlined text-[22px]">
+                record_voice_over
+              </span>
             </div>
 
-            {/* Search (only visible in logs view) */}
-            {activeView === 'logs' && (
-              <div className="relative w-full lg:w-[320px]">
-                <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
-                  search
-                </span>
+            <div className="min-w-0">
+              <h1 className="text-lg font-black tracking-tight text-slate-900 dark:text-white">
+                Voice Call Logs
+              </h1>
 
-                <input
-                  type="text"
-                  placeholder="Search customer or phone..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="
-                    h-14 w-full rounded-[16px]
-                    border border-slate-200 dark:border-white/10
-                    bg-white dark:bg-white/[0.04]
-                    pl-12 pr-4
-                    text-sm font-semibold
-                    text-slate-900 dark:text-white
-                    placeholder:text-slate-400
-                    outline-none
-                    transition-all
-                    focus:border-primary
-                    focus:ring-4
-                    focus:ring-primary/10
-                  "
-                />
-              </div>
-            )}
+              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                AI Agent Conversation History
+              </p>
+            </div>
           </div>
+
+          {/* View Toggle Tabs */}
+          <div className="flex items-center rounded-[12px] border border-slate-200/70 dark:border-white/10 bg-slate-50/70 dark:bg-white/[0.03] p-1 overflow-x-auto">
+            <button
+              onClick={() => setActiveView('logs')}
+              className={`
+                flex items-center gap-1.5 rounded-[8px] px-3 py-2 whitespace-nowrap
+                text-[9px] font-black uppercase tracking-[0.12em]
+                transition-all duration-200
+                ${
+                  activeView === 'logs'
+                    ? 'bg-white dark:bg-white/[0.08] text-primary shadow-sm'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                }
+              `}
+            >
+              <span className="material-symbols-outlined text-[15px]">call</span>
+              Call Logs
+            </button>
+
+            <button
+              onClick={() => setActiveView('settings')}
+              className={`
+                flex items-center gap-1.5 rounded-[8px] px-3 py-2 whitespace-nowrap
+                text-[9px] font-black uppercase tracking-[0.12em]
+                transition-all duration-200
+                ${
+                  activeView === 'settings'
+                    ? 'bg-white dark:bg-white/[0.08] text-primary shadow-sm'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                }
+              `}
+            >
+              <span className="material-symbols-outlined text-[15px]">settings_voice</span>
+              Voice Settings
+            </button>
+
+            <button
+              onClick={() => setActiveView('whatsapp-ai')}
+              className={`
+                flex items-center gap-1.5 rounded-[8px] px-3 py-2 whitespace-nowrap
+                text-[9px] font-black uppercase tracking-[0.12em]
+                transition-all duration-200
+                ${
+                  activeView === 'whatsapp-ai'
+                    ? 'bg-white dark:bg-white/[0.08] shadow-sm'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                }
+              `}
+              style={activeView === 'whatsapp-ai' ? { color: '#25D366' } : {}}
+            >
+              <span className="material-symbols-outlined text-[15px]">smart_toy</span>
+              WhatsApp AI
+            </button>
+          </div>
+
+          {/* Search (only visible in logs view) */}
+          {activeView === 'logs' && (
+            <div className="relative w-full">
+              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">
+                search
+              </span>
+
+              <input
+                type="text"
+                placeholder="Search customer or phone..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="
+                  h-10 w-full rounded-[12px]
+                  border border-slate-200 dark:border-white/10
+                  bg-white dark:bg-white/[0.04]
+                  pl-10 pr-4
+                  text-sm font-semibold
+                  text-slate-900 dark:text-white
+                  placeholder:text-slate-400
+                  outline-none
+                  transition-all
+                  focus:border-primary
+                  focus:ring-2
+                  focus:ring-primary/10
+                "
+              />
+            </div>
+          )}
         </div>
       </div>
 
@@ -361,7 +356,7 @@ const CallLogsPage = () => {
       {activeView === 'logs' && (
         <>
           {/* Stats */}
-          <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <StatCard
               title="Total Calls"
               value={total}

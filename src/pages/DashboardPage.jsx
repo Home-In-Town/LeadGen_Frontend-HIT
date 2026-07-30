@@ -7,7 +7,7 @@ import { syncIntegrationStatus } from '../api';
 
 /* ── stat card definitions ── */
 const STATS = [
-  { icon: 'group',     label: 'People',      path: '/users',           iconColor: '#6366F1', iconBg: '#EEF2FF', darkBg: '#1E2040', barColor: '#6366F1' },
+  { icon: 'group',     label: 'Users',       path: '/users',           iconColor: '#6366F1', iconBg: '#EEF2FF', darkBg: '#1E2040', barColor: '#6366F1' },
   { icon: 'person',    label: 'Leads',        path: '/crm',             iconColor: '#0EA5E9', iconBg: '#E0F2FE', darkBg: '#0C2234', barColor: '#0EA5E9' },
   { icon: 'campaign',  label: 'Campaigns',    path: '/campaigns',       iconColor: '#F59E0B', iconBg: '#FEF3C7', darkBg: '#2A1E06', barColor: '#F59E0B' },
   { icon: 'chat',      label: 'Unread Chats', path: '/chat/whatsapp',   iconColor: '#10B981', iconBg: '#D1FAE5', darkBg: '#062A1C', barColor: '#10B981' },
@@ -61,6 +61,12 @@ const DashboardPage = () => {
   const [showAdd,       setShowAdd]       = useState(false);
   const [showImport,    setShowImport]    = useState(false);
 
+  // Call Analytics Graph state
+  const [graphData,     setGraphData]     = useState([]);
+  const [graphLoading,  setGraphLoading]  = useState(true);
+  const [graphFilter,   setGraphFilter]   = useState('7d');
+  const [showFilter,    setShowFilter]    = useState(false);
+
   const fetchDashboardData = useCallback(async () => {
     if (!user) { setLoading(false); return; }
     setLoading(true);
@@ -88,6 +94,53 @@ const DashboardPage = () => {
   }, [user]);
 
   useEffect(() => { fetchDashboardData(); }, [fetchDashboardData]);
+
+  // Fetch call analytics graph data
+  useEffect(() => {
+    const fetchGraphData = async () => {
+      setGraphLoading(true);
+      try {
+        const days = graphFilter === '1d' ? 1 : graphFilter === '7d' ? 7 : graphFilter === '30d' ? 30 : 90;
+        
+        // Fetch all pages of call logs
+        let allLogs = [];
+        let page = 1;
+        let totalPages = 1;
+        while (page <= totalPages && page <= 10) { // max 10 pages safety
+          const res = await api.getCallLogs({ page, limit: 100 });
+          const data = res.data || {};
+          allLogs = allLogs.concat(data.data || []);
+          totalPages = data.totalPages || 1;
+          page++;
+        }
+
+        const now = new Date();
+        const startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+        const grouped = {};
+        for (let d = new Date(startDate); d <= now; d.setDate(d.getDate() + 1)) {
+          const key = d.toISOString().split('T')[0];
+          grouped[key] = { calls: 0, duration: 0 };
+        }
+        allLogs.forEach(log => {
+          const dateStr = log.calledAt || log.createdAt || log.startTime;
+          if (!dateStr) return;
+          const date = new Date(dateStr).toISOString().split('T')[0];
+          if (grouped[date]) {
+            grouped[date].calls += 1;
+            grouped[date].duration += (log.duration || log.callDuration || 0);
+          }
+        });
+        setGraphData(Object.entries(grouped).map(([date, data]) => ({
+          date,
+          label: new Date(date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }),
+          calls: data.calls,
+          duration: Math.round(data.duration / 60)
+        })));
+      } catch { setGraphData([]); }
+      finally { setGraphLoading(false); }
+    };
+    fetchGraphData();
+  }, [graphFilter]);
 
   const handleSync = useCallback(async () => {
     setSyncing(true);
@@ -180,137 +233,179 @@ const DashboardPage = () => {
     <div className="animate-fade-in pb-28 sm:pb-8" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
 
       {/* ══ WELCOME BANNER ════════════════════════════════ */}
-      <div className="rounded-[20px] p-6 mb-6 relative overflow-hidden"
+      <div className="rounded-[14px] px-4 py-3 mb-3 relative overflow-hidden"
         style={{ background: dark ? '#1A1033' : '#1E1B4B' }}>
-        {/* decorative blobs */}
-        <div className="pointer-events-none absolute -top-8 -right-8 w-40 h-40 rounded-full"
-          style={{ background: 'radial-gradient(circle, rgba(139,92,246,0.35) 0%, transparent 70%)' }} />
-        <div className="pointer-events-none absolute bottom-0 left-12 w-28 h-28 rounded-full"
-          style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.25) 0%, transparent 70%)' }} />
-        <div className="relative flex items-start justify-between gap-4">
+        <div className="relative flex items-center justify-between gap-3">
           <div className="flex-1 min-w-0">
-            <p className="text-[13px] font-medium mb-1" style={{ color: 'rgba(199,210,254,0.7)' }}>
+            <p className="text-[11px] font-medium" style={{ color: 'rgba(199,210,254,0.7)' }}>
               {greet()},
             </p>
-            <h1 className="font-black text-white uppercase tracking-tight leading-tight mb-2"
-              style={{ fontSize: 'clamp(18px,4vw,24px)' }}>
+            <h1 className="font-black text-white uppercase tracking-tight leading-tight"
+              style={{ fontSize: 'clamp(15px,3.5vw,20px)' }}>
               {user?.name || 'Dashboard'}
             </h1>
-            <p className="text-[13px]" style={{ color: 'rgba(199,210,254,0.55)' }}>
-              Here&#39;s what&#39;s happening with your system today.
-            </p>
           </div>
-          <div className="flex-shrink-0 w-12 h-12 rounded-[16px] flex items-center justify-center"
-            style={{ background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.12)' }}>
-            <span className="material-symbols-outlined text-[24px]"
-              style={{ color: '#A5B4FC', fontVariationSettings: "'FILL' 1" }}>trending_up</span>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <button onClick={handleSync} disabled={syncing}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-[10px] text-[10px] font-semibold text-white border-none cursor-pointer transition-all"
+              style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.2)' }}>
+              <span className={`material-symbols-outlined text-[14px] ${syncing ? 'animate-spin' : ''}`}
+                style={{ fontVariationSettings: "'FILL' 1" }}>sync</span>
+              {syncing ? '…' : 'Sync'}
+            </button>
+            <div className="w-9 h-9 rounded-[12px] flex items-center justify-center"
+              style={{ background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.12)' }}>
+              <span className="material-symbols-outlined text-[18px]"
+                style={{ color: '#A5B4FC', fontVariationSettings: "'FILL' 1" }}>trending_up</span>
+            </div>
           </div>
         </div>
       </div>
 
       {/* ══ OVERVIEW ══════════════════════════════════════ */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-3">
         <p className="sec-lbl">Overview</p>
         <button onClick={() => navigate('/crm')}
-          className="flex items-center gap-0.5 text-[12px] font-semibold bg-transparent border-none cursor-pointer"
+          className="flex items-center gap-0.5 text-[11px] font-semibold bg-transparent border-none cursor-pointer"
           style={{ color: '#6366F1' }}>
-          View All <span className="material-symbols-outlined text-[14px]">chevron_right</span>
+          View All <span className="material-symbols-outlined text-[13px]">chevron_right</span>
         </button>
       </div>
 
-      {/* ── Stats 3×2 ── */}
-      <div className="grid grid-cols-3 gap-3 mb-5">
+      {/* ── Stats 3×2 (compact) ── */}
+      <div className="grid grid-cols-3 gap-2 mb-5">
         {STATS.map((s, i) => (
           <button key={s.label} onClick={() => navigate(s.path)}
-            className="c3 text-left p-4 border-none w-full"
+            className="c3 text-left p-3 border-none w-full"
             style={{ background: T.cardBg, borderColor: T.cardBorder }}>
-            <div className="ipill w-10 h-10 mb-3"
+            <div className="ipill w-8 h-8 mb-2"
               style={{ background: dark ? s.darkBg : s.iconBg }}>
-              <span className="material-symbols-outlined text-[19px]"
+              <span className="material-symbols-outlined text-[16px]"
                 style={{ color: s.iconColor, fontVariationSettings: "'FILL' 1" }}>{s.icon}</span>
             </div>
-            <p className="text-[22px] sm:text-[24px] font-black leading-none mb-1" style={{ color: T.text }}>
-              {loading ? <span className="skeleton inline-block w-9 h-5 align-middle" /> : statValues[i]}
+            <p className="text-[18px] sm:text-[20px] font-black leading-none mb-0.5" style={{ color: T.text }}>
+              {loading ? <span className="skeleton inline-block w-8 h-4 align-middle" /> : statValues[i]}
             </p>
-            <p className="text-[11px] leading-tight mb-3" style={{ color: T.text2 }}>{s.label}</p>
-            <div className="w-6 h-[3px] rounded-full" style={{ background: s.barColor }} />
+            <p className="text-[10px] leading-tight mb-2" style={{ color: T.text2 }}>{s.label}</p>
+            <div className="w-5 h-[2px] rounded-full" style={{ background: s.barColor }} />
           </button>
         ))}
       </div>
 
-      {/* ══ INTEGRATION STATUS ════════════════════════════ */}
-      <div className="c p-5 mb-5" style={{ background: T.cardBg, borderColor: T.cardBorder }}>
-        <div className="flex items-center gap-4">
-          <div className="ipill flex-shrink-0 w-[52px] h-[52px]"
-            style={{ background: dark ? '#1E2040' : '#EEF2FF' }}>
-            <span className={`material-symbols-outlined text-[24px] ${syncing ? 'animate-spin' : ''}`}
-              style={{ color: '#6366F1', fontVariationSettings: "'FILL' 1" }}>sync</span>
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-[15px] font-semibold mb-0.5" style={{ color: T.text }}>Integration Status</p>
-            <p className="text-[12px] leading-relaxed" style={{ color: T.text2 }}>
-              {syncedAt ? `Last synced ${timeAgo(syncedAt)}` : 'Click Sync All to check live status of all your integrations.'}
-            </p>
-          </div>
-          <button onClick={handleSync} disabled={syncing} className="btn-pri flex-shrink-0">
-            <span className={`material-symbols-outlined text-[15px] ${syncing ? 'animate-spin' : ''}`}
-              style={{ fontVariationSettings: "'FILL' 1" }}>sync</span>
-            {syncing ? 'Syncing…' : 'Sync All'}
-          </button>
-        </div>
-        {syncData && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4 pt-4"
-            style={{ borderTop: `1px solid ${T.cardBorder}` }}>
-            {INTEGRATIONS.map(item => {
-              const ok = item.ok(syncData);
-              return (
-                <button key={item.k} onClick={() => navigate(item.path)}
-                  className="c3 p-3 text-left border-none w-full"
-                  style={{ background: T.cardBg, borderColor: T.cardBorder }}>
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="ipill w-8 h-8" style={{ background: dark ? item.darkBg : item.bg }}>
-                      <span className="material-symbols-outlined text-[15px]"
-                        style={{ color: item.color, fontVariationSettings: "'FILL' 1" }}>{item.icon}</span>
-                    </div>
-                    <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full"
-                      style={{ background: ok ? (dark ? '#062A1C' : '#D1FAE5') : T.pillBg,
-                               color:      ok ? '#10B981' : T.text3 }}>
-                      {ok ? 'OK' : 'Off'}
-                    </span>
-                  </div>
-                  <p className="text-[12px] font-semibold" style={{ color: T.text }}>{item.label}</p>
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </div>
+      {/* ══ CALL ANALYTICS GRAPH ═════════════════════════ */}
+      {(() => {
+        const filterOptions = [
+          { label: 'Today', value: '1d' },
+          { label: '7 Days', value: '7d' },
+          { label: '30 Days', value: '30d' },
+          { label: '90 Days', value: '90d' },
+        ];
 
-      {/* ══ QUICK ACTIONS ═════════════════════════════════ */}
-      <p className="sec-lbl mb-4">Quick Actions</p>
-      <div className="grid grid-cols-4 gap-3 mb-6">
-        {QUICK_ACTIONS.map((item, i) => {
-          const action = [
-            () => setShowAdd(true),
-            () => setShowImport(true),
-            () => navigate('/call-logs'),
-            () => navigate('/crm'),
-          ][i];
-          return (
-            <button key={item.label} onClick={action}
-              className="c3 flex flex-col items-center gap-3 py-5 px-2 border-none w-full"
-              style={{ background: T.cardBg, borderColor: T.cardBorder }}>
-              <div className="ipill w-12 h-12" style={{ background: dark ? item.darkBg : item.iconBg }}>
-                <span className="material-symbols-outlined text-[22px]"
-                  style={{ color: item.iconColor, fontVariationSettings: "'FILL' 1" }}>{item.icon}</span>
+        const maxCalls = Math.max(...graphData.map(d => d.calls), 1);
+        const maxDuration = Math.max(...graphData.map(d => d.duration), 1);
+        const h = 100, w = 100;
+        const stepX = graphData.length > 1 ? w / (graphData.length - 1) : w;
+
+        const toPath = (data, key, max) => {
+          return data.map((d, i) => {
+            const x = i * stepX;
+            const y = h - (d[key] / max) * h;
+            return `${i === 0 ? 'M' : 'L'} ${x} ${Math.max(2, y)}`;
+          }).join(' ');
+        };
+        const toArea = (data, key, max) => {
+          const line = data.map((d, i) => {
+            const x = i * stepX;
+            const y = h - (d[key] / max) * h;
+            return `${i === 0 ? 'M' : 'L'} ${x} ${Math.max(2, y)}`;
+          }).join(' ');
+          return `${line} L ${w} ${h} L 0 ${h} Z`;
+        };
+
+        return (
+          <div className="c p-4 mb-5" style={{ background: T.cardBg, borderColor: T.cardBorder }}>
+            {/* Header with filter */}
+            <div className="flex items-center justify-between mb-3">
+              <p className="sec-lbl">Call Analytics</p>
+              <div className="relative">
+                <button onClick={() => setShowFilter(!showFilter)}
+                  className="flex items-center gap-1 px-2 py-1 rounded-[8px] text-[10px] font-semibold border-none cursor-pointer transition-all"
+                  style={{ background: dark ? '#1E2A3A' : '#F0F2F8', color: T.text2 }}>
+                  <span className="material-symbols-outlined text-[12px]">filter_list</span>
+                  {filterOptions.find(f => f.value === graphFilter)?.label}
+                </button>
+                {showFilter && (
+                  <div className="absolute right-0 top-7 z-10 rounded-[10px] p-1 shadow-lg border"
+                    style={{ background: T.cardBg, borderColor: T.cardBorder, minWidth: '90px' }}>
+                    {filterOptions.map(opt => (
+                      <button key={opt.value}
+                        onClick={() => { setGraphFilter(opt.value); setShowFilter(false); }}
+                        className="block w-full text-left px-3 py-1.5 rounded-[6px] text-[10px] font-semibold border-none cursor-pointer transition-all"
+                        style={{ background: graphFilter === opt.value ? (dark ? '#2D3748' : '#EEF2FF') : 'transparent', color: graphFilter === opt.value ? '#6366F1' : T.text2 }}>
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
-              <span className="text-[11px] font-semibold text-center leading-tight" style={{ color: T.text }}>
-                {item.label}
-              </span>
-            </button>
-          );
-        })}
-      </div>
+            </div>
+
+            {/* Graph - always show */}
+            {graphLoading ? (
+              <div className="h-32 flex items-center justify-center">
+                <span className="material-symbols-outlined text-[20px] animate-spin" style={{ color: T.text3 }}>progress_activity</span>
+              </div>
+            ) : (
+              <div className="relative h-32 sm:h-40">
+                <svg viewBox={`0 0 ${w} ${h + 10}`} className="w-full h-full" preserveAspectRatio="none">
+                  {[0, 25, 50, 75, 100].map(v => (
+                    <line key={v} x1="0" y1={h - (v / 100) * h} x2={w} y2={h - (v / 100) * h}
+                      stroke={dark ? '#2D3748' : '#E2E8F0'} strokeWidth="0.3" />
+                  ))}
+                  {graphData.length > 1 && (
+                    <>
+                      <path d={toArea(graphData, 'calls', maxCalls)} fill="#6366F1" opacity="0.1" />
+                      <path d={toArea(graphData, 'duration', maxDuration)} fill="#10B981" opacity="0.08" />
+                      <path d={toPath(graphData, 'calls', maxCalls)} fill="none" stroke="#6366F1" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                      <path d={toPath(graphData, 'duration', maxDuration)} fill="none" stroke="#10B981" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                      {graphData.map((d, i) => (
+                        <circle key={`c${i}`} cx={i * stepX} cy={Math.max(2, h - (d.calls / maxCalls) * h)} r="1.5" fill="#6366F1" />
+                      ))}
+                      {graphData.map((d, i) => (
+                        <circle key={`d${i}`} cx={i * stepX} cy={Math.max(2, h - (d.duration / maxDuration) * h)} r="1.5" fill="#10B981" />
+                      ))}
+                    </>
+                  )}
+                  {graphData.length <= 1 && (
+                    <text x="50" y="55" textAnchor="middle" fill={dark ? '#4B5563' : '#94A3B8'} fontSize="5">No data for this period</text>
+                  )}
+                </svg>
+                {graphData.length > 1 && (
+                  <div className="absolute bottom-0 left-0 right-0 flex justify-between">
+                    {graphData.length <= 10 ? graphData.map((d, i) => (
+                      <span key={i} className="text-[7px] font-medium" style={{ color: T.text3 }}>{d.label}</span>
+                    )) : [0, Math.floor(graphData.length / 2), graphData.length - 1].map(i => (
+                      <span key={i} className="text-[7px] font-medium" style={{ color: T.text3 }}>{graphData[i]?.label}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Legend */}
+            <div className="flex items-center justify-center gap-4 mt-2 pt-2" style={{ borderTop: `1px solid ${T.cardBorder}` }}>
+              <div className="flex items-center gap-1.5">
+                <div className="w-3 h-[2px] rounded-full" style={{ background: '#6366F1' }} />
+                <span className="text-[9px] font-medium" style={{ color: T.text2 }}>Calls</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-3 h-[2px] rounded-full" style={{ background: '#10B981' }} />
+                <span className="text-[9px] font-medium" style={{ color: T.text2 }}>Duration (min)</span>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ══ RECENT LEADS ══════════════════════════════════ */}
       <div className="hidden sm:block">

@@ -51,13 +51,14 @@ const CRMPage = () => {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [showFilterPopup, setShowFilterPopup] = useState(false);
 
   const [activeTab, setActiveTab] = useState('site');
   const [currentPage, setCurrentPage] = useState(1);
 
   const [selectedAutomationGroup, setSelectedAutomationGroup] = useState(null);
 
-  const itemsPerPage = 10;
+  const itemsPerPage = 5;
   const debounceRef = useRef(null);
 
   const [leadTypeFilter, setLeadTypeFilter] = useState('ALL');
@@ -311,111 +312,91 @@ const searchFilteredLeads = useMemo(() => {
     <>
       <div className="animate-fade-in pb-10 font-display text-slate-900 dark:text-slate-100">
         {/* ------------------------------------------------------------------ */}
-        {/* HEADER */}
+        {/* SEARCH BAR */}
         {/* ------------------------------------------------------------------ */}
 
-        <div
-          className="
-            mb-5
-            overflow-hidden
-            rounded-[26px]
-            border
-            border-slate-200/70
-            bg-white/80
-            p-4
-            shadow-sm
-            backdrop-blur-xl
-            transition-colors
-            duration-300
-
-            dark:border-white/10
-            dark:bg-white/[0.03]
-          "
-        >
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <div className="mb-2 flex items-center gap-2">
-                {/* <div
-                  className="
-                    flex
-                    h-10
-                    w-10
-                    items-center
-                    justify-center
-                    rounded-2xl
-                    bg-primary/10
-                    text-primary
-                  "
-                >
-                  <span className="material-symbols-outlined text-[20px]">
-                    hub
-                  </span>
-                </div> */}
-
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400">
-                    Workspace
-                  </p>
-
-                  <h1 className="text-xl font-black tracking-tight">
-                    Lead CRM
-                  </h1>
-                </div>
-              </div>
-
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                Manage leads, automations, and follow-up records.
-              </p>
-            </div>
-
-            {/* Search */}
-            <div className="relative w-full lg:w-[320px]">
-              <span
-                className="
-                  material-symbols-outlined
-                  absolute
-                  left-4
-                  top-1/2
-                  -translate-y-1/2
-                  text-[18px]
-                  text-slate-400
-                "
-              >
-                search
-              </span>
-
-              <input
-                type="text"
-                placeholder="Search lead name or phone..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="
-                  h-12
-                  w-full
-                  rounded-2xl
-                  border
-                  border-slate-200
-                  bg-slate-50
-                  pl-12
-                  pr-4
-                  text-sm
-                  font-medium
-                  outline-none
-                  transition-all
-
-                  focus:border-primary
-                  focus:bg-white
-
-                  dark:border-white/10
-                  dark:bg-white/[0.04]
-                  dark:text-white
-                  dark:placeholder:text-slate-500
-                  dark:focus:bg-white/[0.06]
-                "
-              />
-            </div>
+        <div className="mb-4 flex items-center gap-2">
+          <div className="relative flex-1">
+            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[18px] text-slate-400">
+              search
+            </span>
+            <input
+              type="text"
+              placeholder="Search lead name or phone..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="
+                h-10
+                w-full
+                rounded-[14px]
+                border
+                border-slate-200
+                bg-white
+                pl-10
+                pr-4
+                text-sm
+                font-medium
+                outline-none
+                transition-all
+                focus:border-primary
+                focus:ring-2
+                focus:ring-primary/10
+                dark:border-white/10
+                dark:bg-white/[0.04]
+                dark:text-white
+                dark:placeholder:text-slate-500
+              "
+            />
           </div>
+          <button
+            onClick={() => setShowFilterPopup(prev => !prev)}
+            className="flex items-center justify-center w-10 h-10 rounded-[14px] border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.04] transition-all hover:border-primary hover:text-primary cursor-pointer"
+            title="Filter"
+          >
+            <span className="material-symbols-outlined text-[20px] text-slate-500 dark:text-slate-400">filter_list</span>
+          </button>
         </div>
+
+        {/* LEAD TYPE FILTERS (popup - below search) */}
+        {activeTab !== 'automation' && showFilterPopup && (
+          <div
+            className="
+              mb-3
+              flex
+              flex-wrap
+              items-center
+              gap-2
+              p-2
+              rounded-[14px]
+              border
+              border-slate-200/70
+              bg-white
+              shadow-sm
+              animate-fade-in
+              dark:border-white/10
+              dark:bg-slate-800
+            "
+          >
+            {[
+              { label: 'All', value: 'ALL', active: 'bg-slate-900 text-white dark:bg-white dark:text-slate-900' },
+              { label: 'Hot', value: 'HOT', active: 'bg-red-500 text-white' },
+              { label: 'Warm', value: 'WARM', active: 'bg-orange-500 text-white' },
+              { label: 'Cold', value: 'COLD', active: 'bg-emerald-500 text-white' }
+            ].map((filter) => (
+              <button
+                key={filter.value}
+                onClick={() => { setLeadTypeFilter(filter.value); setCurrentPage(1); setShowFilterPopup(false); }}
+                className={`rounded-xl px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.15em] transition-all duration-300 ${
+                  leadTypeFilter === filter.value
+                    ? filter.active
+                    : 'border border-slate-200 bg-white text-slate-600 hover:border-primary/30 hover:text-primary dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-400'
+                }`}
+              >
+                {filter.label}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* ------------------------------------------------------------------ */}
         {/* TABS */}
@@ -508,85 +489,6 @@ const searchFilteredLeads = useMemo(() => {
             </button>
           ))}
         </div>
-
-        {/* ------------------------------------------------------------------ */}
-        {/* LEAD TYPE FILTERS */}
-        {/* ------------------------------------------------------------------ */}
-
-        {activeTab !== 'automation' && (
-          <div
-            className="
-              mb-5
-              flex
-              flex-wrap
-              items-center
-              gap-3
-            "
-          >
-            {[
-              {
-                label: 'All',
-                value: 'ALL',
-                active:
-                  'bg-slate-900 text-white dark:bg-white dark:text-slate-900'
-              },
-              {
-                label: 'Hot',
-                value: 'HOT',
-                active: 'bg-red-500 text-white'
-              },
-              {
-                label: 'Warm',
-                value: 'WARM',
-                active: 'bg-orange-500 text-white'
-              },
-              {
-                label: 'Cold',
-                value: 'COLD',
-                active: 'bg-emerald-500 text-white'
-              }
-            ].map((filter) => (
-              <button
-                key={filter.value}
-                onClick={() => {
-                  setLeadTypeFilter(filter.value);
-                  setCurrentPage(1);
-                }}
-                className={`
-                  rounded-2xl
-                  px-4
-                  py-2.5
-                  text-[11px]
-                  font-black
-                  uppercase
-                  tracking-[0.18em]
-                  transition-all
-                  duration-300
-
-                  ${
-                    leadTypeFilter === filter.value
-                      ? filter.active
-                      : `
-                        border
-                        border-slate-200
-                        bg-white
-                        text-slate-600
-
-                        hover:border-primary/30
-                        hover:text-primary
-
-                        dark:border-white/10
-                        dark:bg-white/[0.03]
-                        dark:text-slate-400
-                      `
-                  }
-                `}
-              >
-                {filter.label}
-              </button>
-            ))}
-          </div>
-        )}
 
         {/* ------------------------------------------------------------------ */}
         {/* LIST */}
@@ -792,11 +694,11 @@ const searchFilteredLeads = useMemo(() => {
                     className="
                       group
                       cursor-pointer
-                      rounded-[24px]
+                      rounded-[16px]
                       border
                       border-slate-200/70
                       bg-white/80
-                      p-5
+                      p-3
                       shadow-sm
                       backdrop-blur-xl
                       transition-all
@@ -810,17 +712,17 @@ const searchFilteredLeads = useMemo(() => {
                       dark:bg-white/[0.03]
                     "
                   >
-                    <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
-                      <div className="flex min-w-0 items-start gap-4">
+                    <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+                      <div className="flex min-w-0 items-start gap-3">
                         <div
                           className="
                             flex
-                            h-12
-                            w-12
+                            h-10
+                            w-10
                             shrink-0
                             items-center
                             justify-center
-                            rounded-2xl
+                            rounded-xl
                             bg-slate-100
                             text-slate-600
                             transition-all
@@ -837,11 +739,11 @@ const searchFilteredLeads = useMemo(() => {
                         </div>
 
                         <div className="min-w-0">
-                          <h3 className="truncate text-lg font-black tracking-tight">
+                          <h3 className="truncate text-base font-semibold">
                             {lead.first_name} {lead.last_name}
                           </h3>
 
-                          <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+                          <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[13px] text-slate-500 dark:text-slate-400">
                             <span>{lead.phone_number}</span>
 
                             <span>•</span>
@@ -900,7 +802,7 @@ const searchFilteredLeads = useMemo(() => {
                         </div>
                       </div>
 
-                      <div className="flex flex-wrap items-center gap-3">
+                      <div className="flex flex-wrap items-center gap-2">
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -909,17 +811,17 @@ const searchFilteredLeads = useMemo(() => {
                           className="
                             flex
                             items-center
-                            gap-2
-                            rounded-2xl
+                            gap-1.5
+                            rounded-lg
                             border
                             border-slate-200
                             bg-white
-                            px-4
-                            py-3
-                            text-[11px]
-                            font-black
+                            px-2.5
+                            py-1.5
+                            text-[10px]
+                            font-semibold
                             uppercase
-                            tracking-[0.16em]
+                            tracking-[0.08em]
                             transition-all
 
                             hover:border-primary
@@ -931,7 +833,7 @@ const searchFilteredLeads = useMemo(() => {
                             dark:hover:bg-primary
                           "
                         >
-                          <span className="material-symbols-outlined text-[16px]">
+                          <span className="material-symbols-outlined text-[14px]">
                             calendar_month
                           </span>
 
@@ -940,14 +842,14 @@ const searchFilteredLeads = useMemo(() => {
 
                         <div
                           className={`
-                            rounded-2xl
+                            rounded-lg
                             border
-                            px-4
-                            py-3
-                            text-[11px]
-                            font-black
+                            px-2.5
+                            py-1.5
+                            text-[10px]
+                            font-semibold
                             uppercase
-                            tracking-[0.16em]
+                            tracking-[0.08em]
                             ${getStatusClasses(
                               lead.score,
                               lead.status
@@ -961,18 +863,6 @@ const searchFilteredLeads = useMemo(() => {
                           ({lead.score}%)
                         </div>
 
-                        <span
-                          className="
-                            material-symbols-outlined
-                            text-slate-400
-                            transition-all
-                            duration-300
-                            group-hover:translate-x-1
-                            group-hover:text-primary
-                          "
-                        >
-                          arrow_forward
-                        </span>
                       </div>
                     </div>
                   </div>
@@ -1479,21 +1369,21 @@ const searchFilteredLeads = useMemo(() => {
           "
         >
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+            <p className="text-[10px] font-medium uppercase tracking-[0.15em] text-slate-500 dark:text-slate-400">
               Total Records
             </p>
 
-            <h3 className="mt-1 text-2xl font-black tracking-tight">
+            <h3 className="mt-1 text-lg font-medium">
               {filteredLeads.length}
             </h3>
           </div>
 
           <div className="text-left sm:text-right">
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+            <p className="text-[10px] font-medium uppercase tracking-[0.15em] text-slate-500 dark:text-slate-400">
               Navigation
             </p>
 
-            <h3 className="mt-1 text-lg font-black tracking-tight">
+            <h3 className="mt-1 text-base font-medium">
               Page {currentPage} / {totalPages}
             </h3>
           </div>

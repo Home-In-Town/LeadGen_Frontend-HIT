@@ -57,21 +57,15 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
     {
       label: 'COMMUNICATION',
       items: [
-        { name: 'WhatsApp', path: '/chat/whatsapp', icon: 'chat', children: [
-          { name: 'Setup', path: '/whatsapp-setup', icon: 'settings' },
-          { name: 'Templates', path: '/whatsapp-templates', icon: 'description' },
-        ]},
         { name: 'Email', path: '/chat/email', icon: 'mail', children: [
           { name: 'Templates', path: '/email-templates', icon: 'description' },
         ]},
-        { name: 'Voice Calls', path: '/call-logs', icon: 'record_voice_over' },
       ],
     },
     {
       label: 'AUTOMATION',
       items: [
         { name: 'Lead Automation', path: '/lead-automation', icon: 'settings_suggest' },
-        { name: 'Facebook Ads', path: '/integrations/facebook', icon: 'data_exploration' },
         { name: 'Google Ads', path: '/integrations/google', icon: 'ads_click' },
       ],
     },

@@ -2,10 +2,10 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
 
 const NAV_ITEMS = [
-  { label: 'Home',       icon: 'home',          path: '/dashboard'       },
-  { label: 'Leads',      icon: 'person',         path: '/crm'             },
-  { label: 'Campaigns',  icon: 'campaign',       path: '/campaigns'       },
-  { label: 'Automation', icon: 'smart_toy',      path: '/lead-automation' },
+  { label: 'Home',       icon: 'home',              path: '/dashboard'              },
+  { label: 'Facebook',   icon: 'data_exploration',  path: '/integrations/facebook'  },
+  { label: 'WhatsApp',   icon: 'chat',              path: '/chat/whatsapp'          },
+  { label: 'Voice',      icon: 'call',              path: '/call-logs'              },
 ];
 
 const MobileBottomNav = () => {

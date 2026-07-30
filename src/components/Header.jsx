@@ -40,16 +40,14 @@ const Header = ({ onMenuClick }) => {
           </button>
 
           <Link to="/dashboard" className="no-underline flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-[10px] flex items-center justify-center"
-              style={{ background: 'linear-gradient(135deg,#6366F1,#8B5CF6)' }}>
-              <span className="material-symbols-outlined text-white text-[17px]"
-                style={{ fontVariationSettings: "'FILL' 1" }}>hub</span>
-            </div>
-            <div className="hidden sm:flex flex-col leading-none">
-              <span className="text-[14px] font-black tracking-tight" style={{ color: C.text }}>
-                One<span style={{ color: '#6366F1' }}>Employee</span>
+            <span className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-[#10B981] text-white shadow-lg shadow-[#10B981]/25">
+              <span className="material-symbols-outlined text-[20px]">hub</span>
+            </span>
+            <div className="flex flex-col leading-none">
+              <span className="text-[14px] font-semibold tracking-tight" style={{ color: C.text }}>
+                One Employee
               </span>
-              <span className="text-[10px] font-medium" style={{ color: C.icon }}>CRM Workspace</span>
+              <span className="hidden sm:block text-[10px] font-medium" style={{ color: C.icon }}>CRM Workspace</span>
             </div>
           </Link>
         </div>
@@ -57,21 +55,8 @@ const Header = ({ onMenuClick }) => {
         {/* RIGHT */}
         <div className="flex items-center gap-1.5">
 
-          {/* theme toggle */}
-          <button onClick={toggleTheme}
-            className="flex items-center justify-center w-9 h-9 rounded-[10px] cursor-pointer border-none transition-all"
-            style={{ background: C.btnBg, color: C.icon }}
-            onMouseEnter={e => { e.currentTarget.style.color = '#6366F1'; e.currentTarget.style.background = isDark ? '#2D3A55' : '#EEF2FF'; }}
-            onMouseLeave={e => { e.currentTarget.style.color = C.icon;   e.currentTarget.style.background = C.btnBg; }}
-            aria-label="Toggle theme"
-            title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}>
-            <span className="material-symbols-outlined text-[19px]">
-              {isDark ? 'light_mode' : 'dark_mode'}
-            </span>
-          </button>
-
           {/* notification */}
-          <div className="flex items-center justify-center w-9 h-9 rounded-[10px] relative"
+          <div className="flex items-center justify-center w-8 h-8 rounded-[8px] relative"
             style={{ background: C.btnBg }}>
             <NotificationCenter />
           </div>
@@ -86,14 +71,14 @@ const Header = ({ onMenuClick }) => {
             onMouseEnter={e => e.currentTarget.style.background = C.btnBg}
             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
             title="Profile">
-            <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-[13px] text-white flex-shrink-0"
-              style={{ background: 'linear-gradient(135deg,#6366F1,#8B5CF6)' }}>
-              {initial}
+            <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+              style={{ background: 'linear-gradient(135deg,#10B981,#059669)' }}>
+              <span className="material-symbols-outlined text-[18px] text-white"
+                style={{ fontVariationSettings: "'FILL' 1" }}>person</span>
             </div>
             <span className="hidden sm:block text-[13px] font-semibold max-w-[90px] truncate" style={{ color: C.text }}>
               {userName}
             </span>
-            <span className="material-symbols-outlined text-[15px]" style={{ color: C.icon }}>expand_more</span>
           </button>
 
         </div>

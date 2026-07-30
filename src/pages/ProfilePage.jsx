@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
+import { useTheme } from '../context/ThemeContext';
 import {
   getProfile, updateProfile, changePin,
   getHomeinTownStatus, verifyHitAccount, confirmLinkHomeintown, unlinkHomeintown,
@@ -27,6 +28,7 @@ const SETUP_STEPS = [
 const ProfilePage = () => {
   const { user, checkAuth } = useAuth();
   const { addToast } = useNotifications();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
 
   // ── State ───────────────────────────────────────────────────────────────────
@@ -242,6 +244,28 @@ const ProfilePage = () => {
           </div>
         </div>
       )}
+
+      {/* ═══════ Appearance ═══════ */}
+      <div className={`${cardClass} p-5`}>
+        <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-3">Appearance</h3>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-300">
+              <span className="material-symbols-outlined text-[18px]">{theme === 'dark' ? 'dark_mode' : 'light_mode'}</span>
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-slate-900 dark:text-white">{theme === 'dark' ? 'Dark Mode' : 'Light Mode'}</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Switch between light and dark theme</p>
+            </div>
+          </div>
+          <button onClick={toggleTheme}
+            className="relative w-11 h-6 rounded-full transition-colors duration-200 cursor-pointer border-none"
+            style={{ background: theme === 'dark' ? '#6366F1' : '#CBD5E1' }}>
+            <div className="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-200"
+              style={{ transform: theme === 'dark' ? 'translateX(22px)' : 'translateX(2px)' }} />
+          </button>
+        </div>
+      </div>
 
       {/* ═══════ Company Details ═══════ */}
       <div className={`${cardClass} p-5`}>

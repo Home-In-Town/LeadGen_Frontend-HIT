@@ -166,68 +166,68 @@ function TabOverview({ status, campaigns, fbLeads, onConnect, onDisconnect, disc
     ];
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-4">
             {/* Connection card */}
-            <div className={`${cardClass} p-6`}>
-                <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex items-center gap-4">
-                        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-lg flex-shrink-0">
-                            <span className="text-2xl font-black">f</span>
+            <div className={`${cardClass} p-4`}>
+                <div className="flex flex-col gap-3">
+                    <div className="flex items-center gap-3">
+                        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-600 text-white shadow-lg flex-shrink-0">
+                            <span className="text-lg font-black">f</span>
                         </div>
-                        <div>
-                            <h2 className="text-xl font-black text-slate-900 dark:text-white">Facebook Lead Ads</h2>
+                        <div className="min-w-0 flex-1">
+                            <h2 className="text-base font-black text-slate-900 dark:text-white">Facebook Lead Ads</h2>
                             {isConnected && status?.connectedAt && (
-                                <p className="text-xs text-slate-500 mt-0.5">
+                                <p className="text-[11px] text-slate-500 truncate">
                                     Connected {new Date(status.connectedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                                     {status?.pageName ? ` · ${status.pageName}` : ''}
                                 </p>
                             )}
                         </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                        <div className={`inline-flex items-center gap-2 rounded-2xl px-4 py-2 text-sm font-black uppercase tracking-[0.2em]
+                    <div className="flex items-center gap-2 flex-wrap">
+                        <div className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.15em]
                             ${isConnected
                                 ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
                                 : 'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20'}`}>
-                            <span className={`h-2.5 w-2.5 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
+                            <span className={`h-2 w-2 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
                             {isConnected ? 'Connected' : 'Disconnected'}
                         </div>
                         {!isConnected && (
                             <button onClick={onConnect}
-                                className="rounded-2xl bg-blue-600 px-5 py-2.5 text-sm font-black uppercase tracking-[0.2em] text-white hover:bg-blue-700 transition-all">
+                                className="rounded-lg bg-blue-600 px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.15em] text-white hover:bg-blue-700 transition-all">
                                 Connect
                             </button>
                         )}
                         {isConnected && (
                             <button onClick={onDisconnect} disabled={disconnecting}
-                                className="rounded-2xl border border-red-500/20 bg-red-500/10 px-5 py-2.5 text-sm font-black uppercase tracking-[0.2em] text-red-600 dark:text-red-400 hover:bg-red-500/20 disabled:opacity-50 transition-all">
+                                className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.15em] text-red-600 dark:text-red-400 hover:bg-red-500/20 disabled:opacity-50 transition-all">
                                 {disconnecting ? 'Disconnecting…' : 'Disconnect'}
                             </button>
                         )}
                     </div>
                 </div>
                 {status?.degraded && (
-                    <div className="mt-4 flex items-center gap-3 rounded-2xl bg-yellow-500/10 border border-yellow-500/20 px-4 py-3">
-                        <span className="material-symbols-outlined text-yellow-500">warning</span>
-                        <p className="text-sm text-yellow-700 dark:text-yellow-300">Facebook API temporarily unreachable. Showing cached data.</p>
+                    <div className="mt-3 flex items-center gap-2 rounded-xl bg-yellow-500/10 border border-yellow-500/20 px-3 py-2">
+                        <span className="material-symbols-outlined text-yellow-500 text-[18px]">warning</span>
+                        <p className="text-xs text-yellow-700 dark:text-yellow-300">Facebook API temporarily unreachable.</p>
                     </div>
                 )}
                 {status?.tokenExpired && (
-                    <div className="mt-4 flex items-center gap-3 rounded-2xl bg-red-500/10 border border-red-500/20 px-4 py-3">
-                        <span className="material-symbols-outlined text-red-500">error</span>
-                        <p className="text-sm text-red-700 dark:text-red-300">Your Facebook token has expired. Please reconnect.</p>
+                    <div className="mt-3 flex items-center gap-2 rounded-xl bg-red-500/10 border border-red-500/20 px-3 py-2">
+                        <span className="material-symbols-outlined text-red-500 text-[18px]">error</span>
+                        <p className="text-xs text-red-700 dark:text-red-300">Token expired. Please reconnect.</p>
                     </div>
                 )}
             </div>
 
             {/* Stats grid */}
             {isConnected && (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     {stats.map(({ label, value, icon }) => (
-                        <div key={label} className={`${cardClass} p-5 flex flex-col gap-2`}>
-                            <span className="material-symbols-outlined text-2xl text-blue-500">{icon}</span>
-                            <p className="text-2xl font-black text-slate-900 dark:text-white">{value}</p>
-                            <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500">{label}</p>
+                        <div key={label} className={`${cardClass} p-4 flex flex-col gap-1.5`}>
+                            <span className="material-symbols-outlined text-xl text-blue-500">{icon}</span>
+                            <p className="text-xl font-black text-slate-900 dark:text-white">{value}</p>
+                            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500">{label}</p>
                         </div>
                     ))}
                 </div>
@@ -1030,24 +1030,24 @@ const FacebookIntegrationPage = () => {
     }
 
     return (
-        <div className="min-h-screen px-4 py-6 md:px-8 md:py-10">
+        <div className="min-h-screen px-2 py-4 sm:px-4 sm:py-6 md:px-8 md:py-10 overflow-x-hidden">
             <div className="mx-auto max-w-7xl">
 
                 {/* ── Header ── */}
-                <div className={`${cardClass} mb-6 p-6 md:p-8`}>
-                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className={`${cardClass} mb-4 p-4 sm:p-6`}>
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <div>
-                            <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/10 px-4 py-1.5">
+                            <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/10 px-3 py-1">
                                 <span className="h-2 w-2 animate-pulse rounded-full bg-blue-500" />
-                                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-600 dark:text-blue-400">Meta Lead Ads</span>
+                                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-blue-600 dark:text-blue-400">Meta Lead Ads</span>
                             </div>
-                            <h1 className="text-3xl font-black tracking-tight text-slate-900 dark:text-white">Facebook Integration</h1>
+                            <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white">Facebook Integration</h1>
                         </div>
-                        <div className={`inline-flex items-center gap-2 rounded-2xl px-4 py-2 text-sm font-black uppercase tracking-[0.2em]
+                        <div className={`inline-flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-black uppercase tracking-[0.15em]
                             ${isConnected
                                 ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
                                 : 'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20'}`}>
-                            <span className={`h-2.5 w-2.5 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
+                            <span className={`h-2 w-2 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
                             {isConnected ? 'Connected' : 'Disconnected'}
                         </div>
                     </div>
@@ -1074,14 +1074,14 @@ const FacebookIntegrationPage = () => {
                 </div>
 
                 {/* ── Tab bar ── */}
-                <div className="flex gap-1 mb-6 p-1 rounded-2xl bg-slate-100/80 dark:bg-white/[0.03] border border-slate-200/70 dark:border-white/10 overflow-x-auto">
+                <div className="flex gap-1 mb-4 p-1 rounded-xl bg-slate-100/80 dark:bg-white/[0.03] border border-slate-200/70 dark:border-white/10 overflow-x-auto">
                     {TABS.map(tab => (
                         <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                            className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-[11px] font-black uppercase tracking-[0.2em] transition-all whitespace-nowrap flex-shrink-0
+                            className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-[9px] font-black uppercase tracking-[0.15em] transition-all whitespace-nowrap flex-shrink-0
                                 ${activeTab === tab.id
                                     ? 'bg-white dark:bg-white/10 text-slate-900 dark:text-white shadow-sm'
                                     : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}>
-                            <span className="material-symbols-outlined text-base">{tab.icon}</span>
+                            <span className="material-symbols-outlined text-[14px]">{tab.icon}</span>
                             {tab.label}
                         </button>
                     ))}

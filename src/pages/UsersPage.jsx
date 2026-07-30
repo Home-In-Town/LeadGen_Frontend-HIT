@@ -274,75 +274,39 @@ const UsersPage = () => {
     <div className="relative animate-fade-in font-display pb-10">
 
       {/* ---------------------------------- */}
-      {/* Header */}
+      {/* Header - compact */}
       {/* ---------------------------------- */}
 
-      <div className="mb-8 rounded-[20px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#161B27] p-4 sm:p-6 shadow-sm">
-        <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-5">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-5">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900 dark:text-white">
-                User Management
-              </h1>
+      <div className="mb-3">
+        <h1 className="text-base font-bold text-slate-900 dark:text-white mb-1">
+          User Management
+        </h1>
+        <p className="text-[11px] text-slate-500 dark:text-slate-400">
+          {filteredUsers.length} registered users
+        </p>
+      </div>
 
-              <p className="mt-1 text-[10px] font-black uppercase tracking-[0.25em] text-slate-600/70 dark:text-slate-300/60">
-                Manage registered users
-              </p>
-            </div>
-
-            <div className="hidden sm:block h-12 w-px bg-slate-200 dark:bg-white/10" />
-
-            <div className="rounded-[16px] border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#1A2030] px-4 py-3">
-              <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-[14px] bg-primary/10 text-primary">
-                  <span className="material-symbols-outlined">
-                    groups
-                  </span>
-                </div>
-
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
-                    Total Users
-                  </p>
-
-                  <div className="text-2xl font-black text-slate-900 dark:text-white">
-                    {filteredUsers.length}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Search + Add */}
-          <div className="flex flex-col sm:flex-row items-center gap-3 w-full xl:w-auto">
-            <div className="relative w-full sm:w-72">
-              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">
-                search
-              </span>
-
-              <input
-                type="text"
-                placeholder="Search users..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full rounded-[14px] border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#1A2030] pl-10 pr-4 py-3 text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 outline-none transition-all focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"
-              />
-            </div>
-
-            <button
-              onClick={() => navigate('/add-user')}
-              className="w-full sm:w-auto rounded-[14px] bg-primary px-5 py-3 text-[11px] font-black uppercase tracking-[0.2em] text-white transition-all hover:bg-charcoal shadow-lg"
-            >
-              <div className="flex items-center justify-center gap-2">
-                <span className="material-symbols-outlined text-[18px]">
-                  person_add
-                </span>
-
-                Add User
-              </div>
-            </button>
-          </div>
+      {/* Search + Add */}
+      <div className="mb-4 flex items-center gap-2">
+        <div className="relative flex-1">
+          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">
+            search
+          </span>
+          <input
+            type="text"
+            placeholder="Search users..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full h-10 rounded-[14px] border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#1A2030] pl-10 pr-4 text-sm font-medium text-slate-900 dark:text-white placeholder:text-slate-400 outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/10"
+          />
         </div>
+        <button
+          onClick={() => navigate('/add-user')}
+          className="flex items-center justify-center w-10 h-10 rounded-[14px] bg-primary text-white border-none cursor-pointer shadow-sm"
+          title="Add User"
+        >
+          <span className="material-symbols-outlined text-[20px]">person_add</span>
+        </button>
       </div>
 
       {/* ---------------------------------- */}
@@ -425,7 +389,7 @@ const UsersPage = () => {
       ) : (
         <div className="overflow-hidden rounded-[20px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#161B27] shadow-sm">
           {/* Header */}
-          <div className="grid grid-cols-[40px_1fr_140px] sm:grid-cols-[40px_1fr_180px_160px] items-center gap-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#1A2030] px-4 py-3">
+          <div className="grid grid-cols-[40px_1fr_60px_36px] sm:grid-cols-[40px_1fr_180px_70px_36px] items-center gap-3 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#1A2030] px-4 py-3">
             <input
               type="checkbox"
               onChange={handleSelectAll}
@@ -438,17 +402,19 @@ const UsersPage = () => {
               className="h-4 w-4 accent-primary"
             />
 
-            <div className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400">
+            <div className="text-[10px] font-medium uppercase tracking-[0.15em] text-slate-500 dark:text-slate-400">
               User
             </div>
 
-            <div className="hidden sm:block text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400">
+            <div className="hidden sm:block text-[10px] font-medium uppercase tracking-[0.15em] text-slate-500 dark:text-slate-400">
               Phone
             </div>
 
-            <div className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400">
-              Source
+            <div className="text-[10px] font-medium uppercase tracking-[0.15em] text-slate-500 dark:text-slate-400">
+              Date
             </div>
+
+            <div></div>
           </div>
 
           {/* Rows */}
@@ -456,7 +422,7 @@ const UsersPage = () => {
             {paginatedUsers.map((u) => (
               <div
                 key={u.id}
-                className={`grid grid-cols-[40px_1fr_140px] sm:grid-cols-[40px_1fr_180px_160px] items-center gap-4 px-4 py-4 transition-all ${
+                className={`grid grid-cols-[40px_1fr_60px_36px] sm:grid-cols-[40px_1fr_180px_70px_36px] items-center gap-3 px-4 py-3 transition-all ${
                   selectedUsers.has(u.id)
                     ? 'bg-indigo-50 dark:bg-indigo-950/30'
                     : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
@@ -470,7 +436,7 @@ const UsersPage = () => {
                 />
 
                 <div className="min-w-0">
-                  <div className="truncate text-sm font-black uppercase tracking-tight text-slate-900 dark:text-white">
+                  <div className="truncate text-sm font-semibold text-slate-900 dark:text-white">
                     {u.first_name} {u.last_name}
                   </div>
 
@@ -483,9 +449,28 @@ const UsersPage = () => {
                   {u.phone_number}
                 </div>
 
-                <div className="truncate text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-                  {u.createdBy?.name || '—'}
+                <div className="truncate text-[11px] text-slate-400 dark:text-slate-500">
+                  {u.createdAt ? new Date(u.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '—'}
                 </div>
+
+                <button
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    try {
+                      const res = await api.getAllLeads({ search: u.phone_number, limit: 1 });
+                      const leads = res.data?.leads || res.data?.data || [];
+                      if (leads.length > 0) {
+                        navigate(`/lead/${leads[0].id || leads[0]._id}`);
+                      } else {
+                        navigate(`/crm`);
+                      }
+                    } catch { navigate('/crm'); }
+                  }}
+                  className="flex items-center justify-center w-7 h-7 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-primary hover:text-primary transition-all cursor-pointer"
+                  title="View Lead"
+                >
+                  <span className="material-symbols-outlined text-[14px]">visibility</span>
+                </button>
               </div>
             ))}
           </div>
