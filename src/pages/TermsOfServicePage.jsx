@@ -49,7 +49,7 @@ const TermsOfServicePage = () => {
             className="group flex cursor-pointer items-center gap-3"
           >
             <span className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-gradient-to-br from-primary to-emerald-600 text-white shadow-lg shadow-primary/25">
-                                    <span className="material-symbols-outlined text-[20px]">hub</span>
+                                    <img src="/logo.svg" alt="" className="h-6 w-6" />
                                 </span>
 
             <div>

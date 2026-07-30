@@ -126,9 +126,7 @@ export default function ChatSelectionPage() {
       {/* HERO */}
       <div className="max-w-6xl mx-auto mb-10 sm:mb-14">
         <div className="inline-flex items-center gap-2 px-4 h-10 rounded-full bg-primary/10 border border-primary/20 text-primary mb-5">
-          <span className="material-symbols-outlined text-[16px]">
-            hub
-          </span>
+          <img src="/logo.svg" alt="" className="h-4 w-4" />
 
           <span className="text-[10px] font-black uppercase tracking-[0.25em]">
             Communication Hub

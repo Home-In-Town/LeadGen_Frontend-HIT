@@ -557,9 +557,7 @@ const LandingPage = () => {
             <div className="mx-auto flex max-w-6xl flex-col gap-10 lg:flex-row lg:justify-between">
               <div>
                 <div className="flex items-center gap-2 font-semibold text-white">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-emerald-500 text-white shadow-lg shadow-emerald-500/25">
-                    <span className="material-symbols-outlined text-[20px]">hub</span>
-                  </span>
+                  <img src="/logo.svg" alt="OneEmployee" className="h-9 w-9" />
                   OneEmployee<span className="text-emerald-400">®</span>
                 </div>
                 <p className="mt-4 max-w-sm text-sm text-white/60">

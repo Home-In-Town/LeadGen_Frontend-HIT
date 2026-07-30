@@ -23,7 +23,7 @@ const LandingNavbar = ({ onLogin }) => {
           className={`flex items-center gap-3 font-semibold tracking-tight transition-colors ${isDark ? 'text-white' : 'text-slate-900'}`}
         >
           <span className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-[#6D28D9] text-white shadow-lg shadow-[#6D28D9]/25">
-                    <span className="material-symbols-outlined text-[20px]">hub</span>
+                    <img src="/logo.svg" alt="" className="h-6 w-6" />
                   </span>
 
           <span className={`text-lg font-bold tracking-tight sm:text-xl ${isDark ? 'text-white' : 'text-slate-900'}`}>
