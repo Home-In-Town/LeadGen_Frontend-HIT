@@ -58,7 +58,10 @@ export default function MetaSocialPage() {
 
   useEffect(() => {
     if (connection?.connected) {
-      getSocialOverview({}).then(res => setOverview(res.data?.overview)).catch(() => {});
+      // Use the page that has IG linked (most relevant), fallback to first page
+      const mainPage = connection.pages?.find(p => p.igAccountId) || connection.pages?.[0];
+      const pageId = mainPage?.pageId || '';
+      getSocialOverview({ pageId }).then(res => setOverview(res.data?.overview)).catch(() => {});
     }
   }, [connection?.connected]);
 
@@ -398,7 +401,15 @@ function PostsTab({ connection, addToast }) {
   const pages = connection?.pages || [];
 
   useEffect(() => {
-    const pageId = selectedPageId || pages[0]?.pageId || '';
+    // Default to page with IG linked (most relevant page)
+    if (!selectedPageId && pages.length > 0) {
+      const igPage = pages.find(p => p.igAccountId);
+      setSelectedPageId(igPage?.pageId || pages[0]?.pageId || '');
+    }
+  }, [pages]);
+
+  useEffect(() => {
+    const pageId = selectedPageId;
     if (!pageId) { setLoading(false); return; }
     setLoading(true);
     getAllPlatformPosts({ pageId, limit: 50 }).then(res => {
