@@ -248,7 +248,8 @@ function ComposeTab({ connection, addToast }) {
   const [mediaUrl, setMediaUrl] = useState('');
 
   const pages = connection?.pages || [];
-  const selectedPage = pages[0];
+  const [selectedPageIdx, setSelectedPageIdx] = useState(0);
+  const selectedPage = pages[selectedPageIdx];
 
   const handlePublish = async () => {
     if (!message.trim() && !mediaUrl.trim()) { addToast('Message or image URL is required', 'error'); return; }
@@ -281,6 +282,19 @@ function ComposeTab({ connection, addToast }) {
     <div className="max-w-2xl mx-auto space-y-4">
       <div className="rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200/70 dark:border-white/10 p-5 space-y-4">
         <h3 className="text-sm font-bold text-slate-900 dark:text-white">Create Post</h3>
+
+        {/* Page selector */}
+        {pages.length > 1 && (
+          <div>
+            <label className="text-[10px] font-bold text-slate-500 block mb-1">Post to Page</label>
+            <select value={selectedPageIdx} onChange={e => setSelectedPageIdx(Number(e.target.value))}
+              className="w-full p-2.5 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-bold bg-slate-50 dark:bg-white/[0.04]">
+              {pages.map((p, i) => (
+                <option key={p.pageId} value={i}>{p.pageName} {p.igAccountId ? '(+IG)' : ''}</option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {/* Platform selector */}
         <div className="flex gap-2">
@@ -351,18 +365,35 @@ function ComposeTab({ connection, addToast }) {
 function PostsTab({ connection, addToast }) {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedPageId, setSelectedPageId] = useState('');
+  const pages = connection?.pages || [];
 
   useEffect(() => {
-    getAllPlatformPosts({}).then(res => {
+    const pageId = selectedPageId || pages[0]?.pageId || '';
+    if (!pageId) { setLoading(false); return; }
+    setLoading(true);
+    getAllPlatformPosts({ pageId }).then(res => {
       setPosts(res.data?.posts || []);
     }).catch(() => {}).finally(() => setLoading(false));
-  }, []);
+  }, [selectedPageId]);
 
   if (loading) return <div className="flex justify-center p-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>;
 
   return (
     <div className="space-y-4">
-      <h2 className="text-sm font-bold text-slate-900 dark:text-white">Your Posts ({posts.length})</h2>
+      {/* Page selector */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-bold text-slate-900 dark:text-white">Posts ({posts.length})</h2>
+        <select
+          value={selectedPageId}
+          onChange={e => setSelectedPageId(e.target.value)}
+          className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 text-xs font-bold bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300"
+        >
+          {pages.map(p => (
+            <option key={p.pageId} value={p.pageId}>{p.pageName} {p.igAccountId ? '(+IG)' : ''}</option>
+          ))}
+        </select>
+      </div>
       {posts.length === 0 ? (
         <div className="rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200/70 dark:border-white/10 p-8 text-center">
           <p className="text-sm text-slate-500">No posts found. Connect your pages and start posting!</p>
