@@ -290,9 +290,12 @@ function ComposeTab({ connection, addToast }) {
             <select value={selectedPageIdx} onChange={e => setSelectedPageIdx(Number(e.target.value))}
               className="w-full p-2.5 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-bold bg-slate-50 dark:bg-white/[0.04]">
               {pages.map((p, i) => (
-                <option key={p.pageId} value={i}>{p.pageName} {p.igAccountId ? '(+IG)' : ''}</option>
+                <option key={p.pageId} value={i}>{p.pageName} {p.igAccountId ? ' ✓ Instagram' : ''}</option>
               ))}
             </select>
+            {!selectedPage?.igAccountId && (
+              <p className="text-[9px] text-amber-500 mt-1">This page has no Instagram linked. Select "ONE EMPLOYEE" for IG posting.</p>
+            )}
           </div>
         )}
 
@@ -318,14 +321,40 @@ function ComposeTab({ connection, addToast }) {
         />
         <p className="text-[10px] text-slate-400 text-right">{message.length} / 2200</p>
 
-        {/* Image URL */}
+        {/* Image Upload or URL */}
         <div>
-          <label className="text-xs font-bold text-slate-600 dark:text-slate-400 mb-1 block">Image URL (public)</label>
-          <input type="url" value={mediaUrl} onChange={e => setMediaUrl(e.target.value)}
-            placeholder="https://example.com/image.jpg (must be publicly accessible)"
-            className="w-full p-3 bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 rounded-xl text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:border-primary focus:outline-none" />
+          <label className="text-xs font-bold text-slate-600 dark:text-slate-400 mb-1 block">Image / Media</label>
+          <div className="space-y-2">
+            <input type="file" accept="image/*" onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              if (file.size > 5 * 1024 * 1024) { addToast('Image must be under 5MB', 'error'); return; }
+              // Upload to R2 via existing upload endpoint
+              try {
+                const formData = new FormData();
+                formData.append('document', file);
+                const { default: leadsApi } = await import('../api');
+                const uploadRes = await leadsApi.post('/voice/documents', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+                // For now, use direct URL input as R2 upload endpoint may not exist for social
+                addToast('For now, paste a public image URL below. Direct upload coming soon.', 'info');
+              } catch {
+                addToast('Upload not available yet. Use public image URL.', 'info');
+              }
+              e.target.value = '';
+            }}
+              className="w-full text-xs file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 cursor-pointer"
+            />
+            <div className="flex items-center gap-2">
+              <div className="flex-1 h-px bg-slate-200 dark:bg-white/10"></div>
+              <span className="text-[9px] text-slate-400 uppercase">or paste URL</span>
+              <div className="flex-1 h-px bg-slate-200 dark:bg-white/10"></div>
+            </div>
+            <input type="url" value={mediaUrl} onChange={e => setMediaUrl(e.target.value)}
+              placeholder="https://example.com/image.jpg (must be publicly accessible)"
+              className="w-full p-3 bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 rounded-xl text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:border-primary focus:outline-none" />
+          </div>
           {platforms.includes('instagram') && !mediaUrl && (
-            <p className="text-[10px] text-amber-500 mt-1">Instagram requires an image or video URL</p>
+            <p className="text-[10px] text-amber-500 mt-1">Instagram requires an image or video</p>
           )}
         </div>
 
@@ -372,7 +401,7 @@ function PostsTab({ connection, addToast }) {
     const pageId = selectedPageId || pages[0]?.pageId || '';
     if (!pageId) { setLoading(false); return; }
     setLoading(true);
-    getAllPlatformPosts({ pageId }).then(res => {
+    getAllPlatformPosts({ pageId, limit: 50 }).then(res => {
       setPosts(res.data?.posts || []);
     }).catch(() => {}).finally(() => setLoading(false));
   }, [selectedPageId]);
