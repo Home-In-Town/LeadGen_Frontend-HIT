@@ -8,6 +8,10 @@ import {
   getSocialOverview,
   getCommentReplyStats,
   getMetaSocialPages,
+  createSocialPost,
+  getCommentReplyConfig,
+  updateCommentReplyConfig,
+  testCommentReplyPrompt,
 } from '../api';
 import { useNotifications } from '../context/NotificationContext';
 import { useTheme } from '../context/ThemeContext';
@@ -236,11 +240,110 @@ function OverviewTab({ connection, overview, navigate, addToast, onDisconnect })
 // ── Placeholder Tabs (to be expanded) ────────────────────────────────────────
 
 function ComposeTab({ connection, addToast }) {
+  const [message, setMessage] = useState('');
+  const [platforms, setPlatforms] = useState(['facebook']);
+  const [publishType, setPublishType] = useState('instant');
+  const [scheduledAt, setScheduledAt] = useState('');
+  const [publishing, setPublishing] = useState(false);
+  const [mediaUrl, setMediaUrl] = useState('');
+
+  const pages = connection?.pages || [];
+  const selectedPage = pages[0];
+
+  const handlePublish = async () => {
+    if (!message.trim() && !mediaUrl.trim()) { addToast('Message or image URL is required', 'error'); return; }
+    if (!selectedPage) { addToast('No page connected', 'error'); return; }
+    if (publishType === 'scheduled' && !scheduledAt) { addToast('Select a schedule date', 'error'); return; }
+
+    setPublishing(true);
+    try {
+      const payload = {
+        message: message.trim(),
+        platforms,
+        pageId: selectedPage.pageId,
+        igAccountId: selectedPage.igAccountId || null,
+        publishType,
+        mediaType: mediaUrl ? 'image' : 'text',
+        mediaUrls: mediaUrl ? [mediaUrl.trim()] : [],
+        ...(publishType === 'scheduled' && { scheduledAt }),
+      };
+      await createSocialPost(payload);
+      addToast(publishType === 'scheduled' ? 'Post scheduled!' : 'Post published!', 'success');
+      setMessage(''); setMediaUrl(''); setScheduledAt('');
+    } catch (err) {
+      addToast(err.response?.data?.error || 'Failed to publish', 'error');
+    } finally {
+      setPublishing(false);
+    }
+  };
+
   return (
-    <div className="rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200/70 dark:border-white/10 p-8 text-center">
-      <span className="material-symbols-outlined text-5xl text-primary/40 mb-4 block">edit_square</span>
-      <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Post Composer</h2>
-      <p className="text-sm text-slate-500 dark:text-slate-400">Create and schedule posts for Facebook Page and Instagram — coming in next update.</p>
+    <div className="max-w-2xl mx-auto space-y-4">
+      <div className="rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200/70 dark:border-white/10 p-5 space-y-4">
+        <h3 className="text-sm font-bold text-slate-900 dark:text-white">Create Post</h3>
+
+        {/* Platform selector */}
+        <div className="flex gap-2">
+          <button onClick={() => setPlatforms(p => p.includes('facebook') ? p.filter(x => x !== 'facebook') : [...p, 'facebook'])}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-bold transition-all ${platforms.includes('facebook') ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10 text-blue-600' : 'border-slate-200 dark:border-white/10 text-slate-500'}`}>
+            <span className="material-symbols-outlined text-sm">public</span> Facebook
+          </button>
+          <button onClick={() => setPlatforms(p => p.includes('instagram') ? p.filter(x => x !== 'instagram') : [...p, 'instagram'])}
+            disabled={!selectedPage?.igAccountId}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-bold transition-all disabled:opacity-40 ${platforms.includes('instagram') ? 'border-pink-500 bg-pink-50 dark:bg-pink-500/10 text-pink-600' : 'border-slate-200 dark:border-white/10 text-slate-500'}`}>
+            <span className="material-symbols-outlined text-sm">photo_camera</span> Instagram
+          </button>
+        </div>
+
+        {/* Message */}
+        <textarea
+          value={message}
+          onChange={e => setMessage(e.target.value)}
+          placeholder="Write your post caption..."
+          className="w-full p-4 bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 rounded-xl text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/10 focus:outline-none resize-none h-32"
+        />
+        <p className="text-[10px] text-slate-400 text-right">{message.length} / 2200</p>
+
+        {/* Image URL */}
+        <div>
+          <label className="text-xs font-bold text-slate-600 dark:text-slate-400 mb-1 block">Image URL (public)</label>
+          <input type="url" value={mediaUrl} onChange={e => setMediaUrl(e.target.value)}
+            placeholder="https://example.com/image.jpg (must be publicly accessible)"
+            className="w-full p-3 bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 rounded-xl text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:border-primary focus:outline-none" />
+          {platforms.includes('instagram') && !mediaUrl && (
+            <p className="text-[10px] text-amber-500 mt-1">Instagram requires an image or video URL</p>
+          )}
+        </div>
+
+        {/* Schedule toggle */}
+        <div className="flex items-center gap-3">
+          <button onClick={() => setPublishType('instant')} className={`px-3 py-2 rounded-lg text-xs font-bold ${publishType === 'instant' ? 'bg-primary text-white' : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400'}`}>
+            Publish Now
+          </button>
+          <button onClick={() => setPublishType('scheduled')} className={`px-3 py-2 rounded-lg text-xs font-bold ${publishType === 'scheduled' ? 'bg-primary text-white' : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400'}`}>
+            Schedule
+          </button>
+        </div>
+
+        {publishType === 'scheduled' && (
+          <input type="datetime-local" value={scheduledAt} onChange={e => setScheduledAt(e.target.value)}
+            min={new Date(Date.now() + 11 * 60000).toISOString().slice(0, 16)}
+            className="w-full p-3 bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 rounded-xl text-sm" />
+        )}
+
+        {/* Publish button */}
+        <button onClick={handlePublish} disabled={publishing || platforms.length === 0}
+          className="w-full py-3 rounded-xl bg-primary text-sm font-bold text-white shadow-lg shadow-primary/25 hover:brightness-110 transition-all disabled:opacity-50">
+          {publishing ? 'Publishing...' : publishType === 'scheduled' ? 'Schedule Post' : 'Publish Post'}
+        </button>
+      </div>
+
+      {/* Info */}
+      <div className="rounded-xl bg-blue-50 dark:bg-blue-500/5 border border-blue-100 dark:border-blue-500/20 p-3">
+        <p className="text-[10px] text-blue-700 dark:text-blue-300">
+          <strong>Page:</strong> {selectedPage?.pageName || 'None'} | <strong>IG:</strong> {selectedPage?.igUsername ? `@${selectedPage.igUsername}` : 'Not linked'}
+        </p>
+      </div>
     </div>
   );
 }
@@ -291,11 +394,158 @@ function PostsTab({ connection, addToast }) {
 }
 
 function CommentsTab({ addToast }) {
+  const [config, setConfig] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [testComment, setTestComment] = useState('');
+  const [testResult, setTestResult] = useState(null);
+  const [testing, setTesting] = useState(false);
+  const [stats, setStats] = useState(null);
+
+  useEffect(() => {
+    Promise.all([
+      getCommentReplyConfig().then(r => setConfig(r.data?.config)),
+      getCommentReplyStats().then(r => setStats(r.data?.stats)),
+    ]).catch(() => {}).finally(() => setLoading(false));
+  }, []);
+
+  const handleSave = async (updates) => {
+    setSaving(true);
+    try {
+      const res = await updateCommentReplyConfig(updates);
+      setConfig(res.data?.config);
+      addToast('Settings saved', 'success');
+    } catch (err) {
+      addToast(err.response?.data?.error || 'Save failed', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleTest = async () => {
+    if (!testComment.trim()) { addToast('Enter a sample comment', 'error'); return; }
+    setTesting(true); setTestResult(null);
+    try {
+      const res = await testCommentReplyPrompt({ sampleComment: testComment });
+      setTestResult(res.data);
+    } catch (err) {
+      addToast(err.response?.data?.error || 'Test failed', 'error');
+    } finally {
+      setTesting(false);
+    }
+  };
+
+  if (loading) return <div className="flex justify-center p-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>;
+
   return (
-    <div className="rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200/70 dark:border-white/10 p-8 text-center">
-      <span className="material-symbols-outlined text-5xl text-green-500/40 mb-4 block">forum</span>
-      <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-2">AI Comment Reply</h2>
-      <p className="text-sm text-slate-500 dark:text-slate-400">Configure auto-reply settings, view reply logs, and test your AI prompt — coming in next update.</p>
+    <div className="max-w-2xl mx-auto space-y-5">
+      {/* Stats */}
+      {stats && (
+        <div className="grid grid-cols-4 gap-3">
+          <div className="rounded-xl bg-emerald-50 dark:bg-emerald-500/10 p-3 text-center">
+            <p className="text-lg font-black text-emerald-700 dark:text-emerald-300">{stats.today}</p>
+            <p className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 uppercase">Today</p>
+          </div>
+          <div className="rounded-xl bg-blue-50 dark:bg-blue-500/10 p-3 text-center">
+            <p className="text-lg font-black text-blue-700 dark:text-blue-300">{stats.thisWeek}</p>
+            <p className="text-[9px] font-bold text-blue-600 dark:text-blue-400 uppercase">This Week</p>
+          </div>
+          <div className="rounded-xl bg-purple-50 dark:bg-purple-500/10 p-3 text-center">
+            <p className="text-lg font-black text-purple-700 dark:text-purple-300">{stats.total}</p>
+            <p className="text-[9px] font-bold text-purple-600 dark:text-purple-400 uppercase">Total</p>
+          </div>
+          <div className="rounded-xl bg-slate-50 dark:bg-white/5 p-3 text-center">
+            <p className="text-lg font-black text-slate-700 dark:text-slate-300">{stats.skipped}</p>
+            <p className="text-[9px] font-bold text-slate-500 uppercase">Skipped</p>
+          </div>
+        </div>
+      )}
+
+      {/* Enable/Disable Toggle */}
+      <div className="rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200/70 dark:border-white/10 p-5">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white">Auto Comment Reply</h3>
+            <p className="text-[10px] text-slate-500 mt-0.5">AI will automatically reply to comments on your posts</p>
+          </div>
+          <button onClick={() => handleSave({ enabled: !config?.enabled })}
+            className={`relative w-12 h-6 rounded-full transition-colors ${config?.enabled ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600'}`}>
+            <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${config?.enabled ? 'translate-x-6' : 'translate-x-0.5'}`} />
+          </button>
+        </div>
+
+        {/* Platform toggles */}
+        <div className="flex gap-3 mt-4">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" checked={config?.facebookEnabled !== false} onChange={e => handleSave({ facebookEnabled: e.target.checked })} className="w-4 h-4 rounded" />
+            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Facebook</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" checked={config?.instagramEnabled || false} onChange={e => handleSave({ instagramEnabled: e.target.checked })} className="w-4 h-4 rounded" />
+            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Instagram</span>
+          </label>
+        </div>
+      </div>
+
+      {/* AI Prompt */}
+      <div className="rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200/70 dark:border-white/10 p-5 space-y-3">
+        <h3 className="text-sm font-bold text-slate-900 dark:text-white">AI Reply Prompt</h3>
+        <p className="text-[10px] text-slate-500">Customize how AI replies to comments. Leave empty for default behavior.</p>
+        <textarea
+          value={config?.aiPrompt || ''}
+          onChange={e => setConfig(prev => ({ ...prev, aiPrompt: e.target.value }))}
+          placeholder="e.g., Always mention our current offer of 10% off. Invite people to DM for pricing. Keep replies friendly and short."
+          className="w-full p-3 bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 rounded-xl text-sm resize-none h-24 focus:border-primary focus:outline-none"
+        />
+        <button onClick={() => handleSave({ aiPrompt: config?.aiPrompt || '' })} disabled={saving}
+          className="px-4 py-2 rounded-lg bg-primary text-xs font-bold text-white disabled:opacity-50">
+          {saving ? 'Saving...' : 'Save Prompt'}
+        </button>
+      </div>
+
+      {/* Rate Limits */}
+      <div className="rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200/70 dark:border-white/10 p-5 space-y-3">
+        <h3 className="text-sm font-bold text-slate-900 dark:text-white">Rate Limits & Timing</h3>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="text-[10px] font-bold text-slate-500 block mb-1">Reply Delay (seconds)</label>
+            <input type="number" value={Math.round((config?.replyDelayMs || 30000) / 1000)}
+              onChange={e => setConfig(prev => ({ ...prev, replyDelayMs: Number(e.target.value) * 1000 }))}
+              min="10" max="300"
+              className="w-full p-2 border border-slate-200 dark:border-white/10 rounded-lg text-sm bg-slate-50 dark:bg-white/[0.04]" />
+          </div>
+          <div>
+            <label className="text-[10px] font-bold text-slate-500 block mb-1">Max Replies / Hour</label>
+            <input type="number" value={config?.maxRepliesPerHour || 20}
+              onChange={e => setConfig(prev => ({ ...prev, maxRepliesPerHour: Number(e.target.value) }))}
+              min="1" max="60"
+              className="w-full p-2 border border-slate-200 dark:border-white/10 rounded-lg text-sm bg-slate-50 dark:bg-white/[0.04]" />
+          </div>
+        </div>
+        <button onClick={() => handleSave({ replyDelayMs: config?.replyDelayMs, maxRepliesPerHour: config?.maxRepliesPerHour })} disabled={saving}
+          className="px-4 py-2 rounded-lg bg-slate-800 dark:bg-slate-700 text-xs font-bold text-white disabled:opacity-50">
+          Save Limits
+        </button>
+      </div>
+
+      {/* Test AI */}
+      <div className="rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200/70 dark:border-white/10 p-5 space-y-3">
+        <h3 className="text-sm font-bold text-slate-900 dark:text-white">Test AI Reply</h3>
+        <input type="text" value={testComment} onChange={e => setTestComment(e.target.value)}
+          placeholder="Type a sample comment (e.g., 'What is the price of 2BHK?')"
+          className="w-full p-3 bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 rounded-xl text-sm focus:border-primary focus:outline-none" />
+        <button onClick={handleTest} disabled={testing}
+          className="px-4 py-2 rounded-lg bg-emerald-600 text-xs font-bold text-white disabled:opacity-50">
+          {testing ? 'Generating...' : 'Test Reply'}
+        </button>
+        {testResult && (
+          <div className="rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 p-3">
+            <p className="text-[10px] text-emerald-600 font-bold uppercase mb-1">AI would reply:</p>
+            <p className="text-sm text-emerald-900 dark:text-emerald-200">{testResult.generatedReply}</p>
+            <p className="text-[9px] text-emerald-500 mt-1">Generated in {testResult.latencyMs}ms</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
