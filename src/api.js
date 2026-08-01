@@ -352,3 +352,11 @@ export const searchAdInterests         = (q) => adLauncherApi.get('/targeting/in
 export const searchAdLocations         = (q) => adLauncherApi.get('/targeting/locations', { params: { q } });
 export const getAdAccounts             = () => adLauncherApi.get('/ad-accounts');
 export const getAdLeadForms            = (pageId) => adLauncherApi.get('/lead-forms', { params: { pageId } });
+
+// ====== META SOCIAL MESSAGING (FB Messenger + IG DMs) ======
+const messagingApi = createApiInstance('/meta-social/messages');
+export const getMetaConversations       = (params) => messagingApi.get('/conversations', { params });
+export const getFBConversationMessages  = (conversationId, params) => messagingApi.get(`/facebook/${conversationId}`, { params });
+export const sendFBMessageReply         = (data) => messagingApi.post('/facebook/send', data);
+export const getIGConversationMessages  = (conversationId, params) => messagingApi.get(`/instagram/${conversationId}`, { params });
+export const sendIGMessageReply         = (data) => messagingApi.post('/instagram/send', data);

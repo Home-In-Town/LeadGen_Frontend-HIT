@@ -12,6 +12,11 @@ import {
   getCommentReplyConfig,
   updateCommentReplyConfig,
   testCommentReplyPrompt,
+  getMetaConversations,
+  getFBConversationMessages,
+  sendFBMessageReply,
+  getIGConversationMessages,
+  sendIGMessageReply,
 } from '../api';
 import { useNotifications } from '../context/NotificationContext';
 import { useTheme } from '../context/ThemeContext';
@@ -20,6 +25,7 @@ const TAB_CONFIG = [
   { key: 'hub',        label: 'Overview',       icon: 'hub',           path: '/meta-social' },
   { key: 'compose',    label: 'Create Post',    icon: 'edit_square',   path: '/meta-social/compose' },
   { key: 'posts',      label: 'My Posts',       icon: 'dynamic_feed',  path: '/meta-social/posts' },
+  { key: 'messages',   label: 'Messages',       icon: 'chat',          path: '/meta-social/messages' },
   { key: 'comments',   label: 'Comment Reply',  icon: 'forum',         path: '/meta-social/comments' },
   { key: 'analytics',  label: 'Analytics',      icon: 'monitoring',    path: '/meta-social/analytics' },
   { key: 'ad-launcher', label: 'Ad Launcher',   icon: 'rocket_launch', path: '/meta-social/ad-launcher' },
@@ -139,6 +145,7 @@ export default function MetaSocialPage() {
 
       {activeTab === 'compose' && <ComposeTab connection={connection} addToast={addToast} />}
       {activeTab === 'posts' && <PostsTab connection={connection} addToast={addToast} />}
+      {activeTab === 'messages' && <MessagesTab connection={connection} addToast={addToast} />}
       {activeTab === 'comments' && <CommentsTab addToast={addToast} />}
       {activeTab === 'analytics' && <AnalyticsTab connection={connection} />}
       {activeTab === 'ad-launcher' && <AdLauncherTab connection={connection} addToast={addToast} />}
@@ -615,6 +622,157 @@ function CommentsTab({ addToast }) {
             <p className="text-sm text-emerald-900 dark:text-emerald-200">{testResult.generatedReply}</p>
             <p className="text-[9px] text-emerald-500 mt-1">Generated in {testResult.latencyMs}ms</p>
           </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function MessagesTab({ connection, addToast }) {
+  const [conversations, setConversations] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedConv, setSelectedConv] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [msgLoading, setMsgLoading] = useState(false);
+  const [replyText, setReplyText] = useState('');
+  const [sending, setSending] = useState(false);
+
+  const pages = connection?.pages || [];
+  const [selectedPageId, setSelectedPageId] = useState('');
+
+  useEffect(() => {
+    if (!selectedPageId && pages.length > 0) {
+      const igPage = pages.find(p => p.igAccountId);
+      setSelectedPageId(igPage?.pageId || pages[0]?.pageId || '');
+    }
+  }, [pages]);
+
+  useEffect(() => {
+    if (!selectedPageId) return;
+    setLoading(true);
+    getMetaConversations({ pageId: selectedPageId, limit: 30 })
+      .then(res => setConversations(res.data?.conversations || []))
+      .catch(() => setConversations([]))
+      .finally(() => setLoading(false));
+  }, [selectedPageId]);
+
+  const openConversation = async (conv) => {
+    setSelectedConv(conv);
+    setMsgLoading(true);
+    setMessages([]);
+    try {
+      const getter = conv.platform === 'instagram' ? getIGConversationMessages : getFBConversationMessages;
+      const res = await getter(conv.id, { pageId: selectedPageId, limit: 30 });
+      setMessages(res.data?.messages || []);
+    } catch { addToast('Failed to load messages', 'error'); }
+    finally { setMsgLoading(false); }
+  };
+
+  const handleSendReply = async () => {
+    if (!replyText.trim() || !selectedConv) return;
+    const recipient = selectedConv.participants?.find(p => p.id !== selectedPageId);
+    if (!recipient) { addToast('Cannot identify recipient', 'error'); return; }
+
+    setSending(true);
+    try {
+      const sender = selectedConv.platform === 'instagram' ? sendIGMessageReply : sendFBMessageReply;
+      await sender({ pageId: selectedPageId, recipientId: recipient.id, message: replyText.trim() });
+      setMessages(prev => [...prev, { id: Date.now(), text: replyText.trim(), from: { name: 'You' }, createdTime: new Date().toISOString() }]);
+      setReplyText('');
+      addToast('Reply sent!', 'success');
+    } catch (err) { addToast(err.response?.data?.error || 'Send failed', 'error'); }
+    finally { setSending(false); }
+  };
+
+  if (loading) return <div className="flex justify-center p-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>;
+
+  return (
+    <div className="flex gap-4 h-[70vh]">
+      {/* Conversations List */}
+      <div className="w-80 flex-shrink-0 rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200/70 dark:border-white/10 overflow-hidden flex flex-col">
+        <div className="p-3 border-b border-slate-100 dark:border-white/5">
+          <select value={selectedPageId} onChange={e => { setSelectedPageId(e.target.value); setSelectedConv(null); }}
+            className="w-full px-2 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 text-[10px] font-bold bg-white dark:bg-slate-900">
+            {pages.map(p => <option key={p.pageId} value={p.pageId}>{p.pageName}</option>)}
+          </select>
+        </div>
+        <div className="flex-1 overflow-y-auto">
+          {conversations.length === 0 ? (
+            <div className="p-6 text-center text-xs text-slate-400">No conversations yet</div>
+          ) : conversations.map(conv => (
+            <button key={conv.id} onClick={() => openConversation(conv)}
+              className={`w-full text-left px-4 py-3 border-b border-slate-50 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors ${selectedConv?.id === conv.id ? 'bg-primary/5' : ''}`}>
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-bold text-slate-800 dark:text-white truncate">
+                  {conv.participants?.map(p => p.name).join(', ') || 'Unknown'}
+                </p>
+                <span className={`text-[8px] font-bold uppercase px-1.5 py-0.5 rounded-full ${conv.platform === 'instagram' ? 'bg-pink-100 text-pink-600' : 'bg-blue-100 text-blue-600'}`}>
+                  {conv.platform === 'instagram' ? 'IG' : 'FB'}
+                </span>
+              </div>
+              <p className="text-[10px] text-slate-500 truncate mt-0.5">{conv.snippet || 'No message'}</p>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Message View */}
+      <div className="flex-1 rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200/70 dark:border-white/10 overflow-hidden flex flex-col">
+        {!selectedConv ? (
+          <div className="flex-1 flex items-center justify-center text-sm text-slate-400">
+            <div className="text-center">
+              <span className="material-symbols-outlined text-4xl text-slate-300 block mb-2">chat</span>
+              Select a conversation
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* Header */}
+            <div className="px-4 py-3 border-b border-slate-100 dark:border-white/5 flex items-center gap-2">
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${selectedConv.platform === 'instagram' ? 'bg-gradient-to-br from-purple-500 to-pink-500' : 'bg-blue-500'}`}>
+                <span className="material-symbols-outlined text-sm text-white">{selectedConv.platform === 'instagram' ? 'photo_camera' : 'chat'}</span>
+              </div>
+              <div>
+                <p className="text-xs font-bold text-slate-800 dark:text-white">{selectedConv.participants?.map(p => p.name).join(', ')}</p>
+                <p className="text-[9px] text-slate-400 uppercase">{selectedConv.platform} Messenger</p>
+              </div>
+            </div>
+
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {msgLoading ? (
+                <div className="flex justify-center py-8"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" /></div>
+              ) : messages.length === 0 ? (
+                <p className="text-center text-xs text-slate-400 py-8">No messages in this conversation</p>
+              ) : (
+                [...messages].reverse().map(msg => {
+                  const isMe = msg.from?.name === 'You' || msg.from?.id === selectedPageId;
+                  return (
+                    <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`max-w-[70%] px-3 py-2 rounded-2xl text-xs ${isMe ? 'bg-primary text-white rounded-br-md' : 'bg-slate-100 dark:bg-white/10 text-slate-800 dark:text-white rounded-bl-md'}`}>
+                        <p>{msg.text}</p>
+                        <p className={`text-[9px] mt-1 ${isMe ? 'text-white/60' : 'text-slate-400'}`}>
+                          {msg.createdTime ? new Date(msg.createdTime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : ''}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Reply Input */}
+            <div className="p-3 border-t border-slate-100 dark:border-white/5 flex gap-2">
+              <input type="text" value={replyText} onChange={e => setReplyText(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSendReply()}
+                placeholder="Type a reply..."
+                className="flex-1 px-4 py-2.5 bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 rounded-xl text-xs focus:border-primary focus:outline-none" />
+              <button onClick={handleSendReply} disabled={sending || !replyText.trim()}
+                className="px-4 py-2.5 bg-primary text-white rounded-xl text-xs font-bold disabled:opacity-50 hover:brightness-110 transition-all">
+                {sending ? '...' : 'Send'}
+              </button>
+            </div>
+          </>
         )}
       </div>
     </div>
