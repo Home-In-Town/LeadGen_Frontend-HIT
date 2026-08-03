@@ -7,6 +7,7 @@ import {
   getHomeinTownStatus, verifyHitAccount, confirmLinkHomeintown, unlinkHomeintown,
   getUsageStats, syncIntegrationStatus,
 } from '../api';
+import { FEATURES } from '../config/phase';
 
 const cardClass = 'rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200/70 dark:border-white/10 shadow-sm';
 const inputClass = 'w-full rounded-xl border border-slate-200 dark:border-white/15 bg-white dark:bg-slate-800/60 px-4 py-3 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all';
@@ -15,14 +16,17 @@ const btnOutline = 'inline-flex items-center justify-center gap-2 rounded-xl bor
 const labelClass = 'block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 mb-1.5';
 
 // ── Setup Step Definition ─────────────────────────────────────────────────────
-const SETUP_STEPS = [
-  { id: 'profile', label: 'Company Details', icon: 'business', desc: 'Set your company name, agent name, and contact info' },
-  { id: 'facebook', label: 'Connect Facebook', icon: 'data_exploration', desc: 'Link Facebook Lead Ads to capture leads automatically', path: '/integrations/facebook' },
-  { id: 'whatsapp', label: 'Connect WhatsApp', icon: 'chat', desc: 'Connect WhatsApp Business to send templates and auto-replies', path: '/whatsapp-setup' },
-  { id: 'email', label: 'Connect Email', icon: 'mail', desc: 'Link Gmail/Outlook for automated email follow-ups', path: '/integrations' },
-  { id: 'project', label: 'Set Up Project', icon: 'apartment', desc: 'Configure a project with AI prompt and automation settings', path: '/projects' },
-  { id: 'homeintown', label: 'HomeInTown Link', icon: 'link', desc: 'Connect your homeintown.in account for project sync' },
+const ALL_SETUP_STEPS = [
+  { id: 'profile',    label: 'Company Details',   icon: 'business',        desc: 'Set your company name, agent name, and contact info' },
+  { id: 'facebook',   label: 'Connect Facebook',  icon: 'data_exploration', desc: 'Link Facebook Lead Ads to capture leads automatically', path: '/integrations/facebook' },
+  { id: 'whatsapp',   label: 'Connect WhatsApp',  icon: 'chat',            desc: 'Connect WhatsApp Business to send templates and auto-replies', path: '/whatsapp-setup' },
+  { id: 'email',      label: 'Connect Email',     icon: 'mail',            desc: 'Link Gmail/Outlook for automated email follow-ups', path: '/integrations' },
+  ...(FEATURES.projects ? [
+    { id: 'project',    label: 'Set Up Project',    icon: 'apartment',       desc: 'Configure a project with AI prompt and automation settings', path: '/projects' },
+    { id: 'homeintown', label: 'HomeInTown Link',   icon: 'link',            desc: 'Connect your homeintown.in account for project sync' },
+  ] : []),
 ];
+const SETUP_STEPS = ALL_SETUP_STEPS;
 
 const ProfilePage = () => {
   const { user, checkAuth } = useAuth();

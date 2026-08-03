@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import ConfirmationModal from './ConfirmationModal';
 import IntegrationSelectorModal from './IntegrationSelectorModal';
 import { useAuth } from '../context/AuthContext';
+import { APP_NAME, APP_TAGLINE, FEATURES } from '../config/phase';
 
 const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
   const location = useLocation();
@@ -47,7 +48,7 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
       items: [
         { name: 'CRM', path: '/crm', icon: 'assignment' },
         { name: 'Users', path: '/users', icon: 'group' },
-        ...(hitLinked
+        ...(FEATURES.projects && hitLinked
           ? [{ name: 'Projects', path: '/projects', icon: 'apartment' }]
           : []
         ),
@@ -124,10 +125,10 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
                   </span>
               <div className="flex flex-col">
                 <span className="text-sm font-semibold tracking-tight text-slate-900 dark:text-white whitespace-nowrap">
-                  One Employee
+                  {APP_NAME}
                 </span>
                 <span className="text-[10px] font-medium tracking-wide text-slate-500 dark:text-slate-400 whitespace-nowrap">
-                  CRM Workspace
+                  {APP_TAGLINE}
                 </span>
               </div>
             </Link>

@@ -5,6 +5,7 @@ import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { useNotifications } from './context/NotificationContext';
 import NotificationToastContainer from './components/NotificationToast';
+import { FEATURES } from './config/phase';
 
 // ── Error Boundary — catches unhandled React errors in any page ───────────────
 // Prevents a single page crash from taking down the entire dashboard.
@@ -152,10 +153,11 @@ function App() {
                 <Route path="/whatsapp-templates" element={<WhatsAppTemplatesPage />} />
                 <Route path="/email-templates" element={<EmailTemplatesPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
-                <Route path="/projects" element={<ProjectsPage />} />
-                <Route path="/projects/new" element={<AddProjectPage />} />
-                <Route path="/projects/:hitProjectId/edit" element={<EditProjectPage />} />
-                <Route path="/projects/:hitProjectId" element={<ProjectSettingsPage />} />
+                {/* Phase 2 only — HIT-connected features */}
+                {FEATURES.projects && <Route path="/projects" element={<ProjectsPage />} />}
+                {FEATURES.projects && <Route path="/projects/new" element={<AddProjectPage />} />}
+                {FEATURES.projects && <Route path="/projects/:hitProjectId/edit" element={<EditProjectPage />} />}
+                {FEATURES.projects && <Route path="/projects/:hitProjectId" element={<ProjectSettingsPage />} />}
                 <Route path="/meta-social" element={<MetaSocialPage />} />
                 <Route path="/meta-social/*" element={<MetaSocialPage />} />
               </Route>

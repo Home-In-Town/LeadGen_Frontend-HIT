@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { listProjects, syncProjects, deleteHitProject } from '../api';
 import { useNotifications } from '../context/NotificationContext';
 import { useAuth } from '../context/AuthContext';
+import { FEATURES } from '../config/phase';
 
 const cardClass = 'rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200/70 dark:border-white/10 shadow-sm hover:shadow-md transition-all';
 
