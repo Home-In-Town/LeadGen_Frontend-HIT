@@ -292,6 +292,7 @@ const ProfilePage = () => {
       </div>
 
       {/* ═══════ HomeInTown Connection (bottom) ═══════ */}
+      {FEATURES.hitLinking && (
       <div className={`${cardClass} p-5`}>
         <div className="flex items-center gap-2 mb-3">
           <span className="material-symbols-outlined text-lg text-primary">link</span>
@@ -334,6 +335,7 @@ const ProfilePage = () => {
           </div>
         )}
       </div>
+      )}
 
       {/* Account Info */}
       <div className="text-center pb-4">

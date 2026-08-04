@@ -2,6 +2,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import NotificationCenter from './NotificationCenter';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { APP_NAME, APP_TAGLINE, LOGO_PATH, BRAND_GRADIENT, IS_PHASE_1 } from '../config/phase';
 
 const Header = ({ onMenuClick }) => {
   const navigate          = useNavigate();
@@ -40,16 +41,24 @@ const Header = ({ onMenuClick }) => {
           </button>
 
           <Link to="/dashboard" className="no-underline flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-[10px] flex items-center justify-center"
-              style={{ background: 'linear-gradient(135deg,#6366F1,#8B5CF6)' }}>
-              <span className="material-symbols-outlined text-white text-[17px]"
-                style={{ fontVariationSettings: "'FILL' 1" }}>hub</span>
-            </div>
+            {IS_PHASE_1 ? (
+              <img src={LOGO_PATH} alt={APP_NAME} className="w-8 h-8 rounded-[10px]" />
+            ) : (
+              <div className="w-8 h-8 rounded-[10px] flex items-center justify-center"
+                style={{ background: 'linear-gradient(135deg,#6366F1,#8B5CF6)' }}>
+                <span className="material-symbols-outlined text-white text-[17px]"
+                  style={{ fontVariationSettings: "'FILL' 1" }}>hub</span>
+              </div>
+            )}
             <div className="hidden sm:flex flex-col leading-none">
               <span className="text-[14px] font-black tracking-tight" style={{ color: C.text }}>
-                One<span style={{ color: '#6366F1' }}>Employee</span>
+                {IS_PHASE_1 ? (
+                  <><span style={{ color: '#F47B20' }}>WebMagnet</span>Media</>
+                ) : (
+                  <>One<span style={{ color: '#6366F1' }}>Employee</span></>
+                )}
               </span>
-              <span className="text-[10px] font-medium" style={{ color: C.icon }}>CRM Workspace</span>
+              <span className="text-[10px] font-medium" style={{ color: C.icon }}>{APP_TAGLINE}</span>
             </div>
           </Link>
         </div>
@@ -87,7 +96,7 @@ const Header = ({ onMenuClick }) => {
             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
             title="Profile">
             <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-[13px] text-white flex-shrink-0"
-              style={{ background: 'linear-gradient(135deg,#6366F1,#8B5CF6)' }}>
+              style={{ background: BRAND_GRADIENT }}>
               {initial}
             </div>
             <span className="hidden sm:block text-[13px] font-semibold max-w-[90px] truncate" style={{ color: C.text }}>

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
+import { APP_NAME, LOGO_PATH, BRAND_COLOR, IS_PHASE_1 } from '../../config/phase';
 
 const navLinks = [
   { href: '#features', label: 'Platform' },
@@ -22,12 +23,16 @@ const LandingNavbar = ({ onLogin }) => {
           to="/"
           className={`flex items-center gap-3 font-semibold tracking-tight transition-colors ${isDark ? 'text-white' : 'text-slate-900'}`}
         >
-          <span className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-[#6D28D9] text-white shadow-lg shadow-[#6D28D9]/25">
+          {IS_PHASE_1 ? (
+            <img src={LOGO_PATH} alt={APP_NAME} className="h-9 w-9 rounded-[10px]" />
+          ) : (
+            <span className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-[#6D28D9] text-white shadow-lg shadow-[#6D28D9]/25">
                     <span className="material-symbols-outlined text-[20px]">hub</span>
                   </span>
+          )}
 
           <span className={`text-lg font-bold tracking-tight sm:text-xl ${isDark ? 'text-white' : 'text-slate-900'}`}>
-            OneEmployee
+            {APP_NAME}
           </span>
       </Link>
 

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import LandingNavbar from '../components/landing/LandingNavbar';
 import { useTheme } from '../context/ThemeContext';
+import { APP_NAME, APP_TAGLINE, IS_PHASE_1, BRAND_COLOR } from '../config/phase';
 
 const THEME_STORAGE_KEY = 'hit-landing-theme';
 
@@ -118,7 +119,7 @@ const workflowSteps = [
 const testimonials = [
   {
     quote:
-      'We replaced three tools with OneEmployee. Voice plus WhatsApp in one CRM finally matches how our reps actually work.',
+      `We replaced three tools with ${IS_PHASE_1 ? 'WebMagnetMedia' : 'OneEmployee'}. Voice plus WhatsApp in one CRM finally matches how our reps actually work.`,
     name: 'Priya Menon',
     role: 'VP Revenue Operations',
     org: 'Northwind Labs',
@@ -202,13 +203,16 @@ const LandingPage = () => {
 
               <div className="mt-6 sm:mt-8">
                 <h1 className={`normal-case text-[28px] sm:text-4xl md:text-5xl lg:text-6xl font-semibold leading-[1.12] tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                  <span className="font-extrabold text-emerald-400">
-                    OneEmployee:
+                  <span className="font-extrabold" style={{ color: IS_PHASE_1 ? BRAND_COLOR : '#34D399' }}>
+                    {APP_NAME}:
                   </span>{' '}
-                  The Revenue Workforce for Modern Businesses.
+                  {IS_PHASE_1 ? 'AI-Powered Lead Generation & Automation.' : 'The Revenue Workforce for Modern Businesses.'}
                 </h1>
                 <p className={`mt-4 sm:mt-6 max-w-2xl text-sm sm:text-base leading-relaxed ${isDark ? 'text-white/70' : 'text-slate-600'}`}>
-                  OneEmployee helps businesses capture leads, engage customers, automate follow-ups, and grow revenue with AI-powered employees that work 24/7.
+                  {IS_PHASE_1
+                    ? 'WebMagnetMedia helps businesses capture leads, automate follow-ups, and grow revenue with AI-powered automation that works 24/7.'
+                    : 'OneEmployee helps businesses capture leads, engage customers, automate follow-ups, and grow revenue with AI-powered employees that work 24/7.'
+                  }
                 </p>
               </div>
 
@@ -378,7 +382,7 @@ const LandingPage = () => {
                   From Lead to Customer in Three Simple Steps
                 </h2>
                 <p className="mt-4 text-white/60">
-                  OneEmployee helps businesses capture opportunities, engage customers, and drive conversions automatically.
+                  {APP_NAME} helps businesses capture opportunities, engage customers, and drive conversions automatically.
                 </p>
               </div>
 
@@ -557,14 +561,24 @@ const LandingPage = () => {
             <div className="mx-auto flex max-w-6xl flex-col gap-10 lg:flex-row lg:justify-between">
               <div>
                 <div className="flex items-center gap-2 font-semibold text-white">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-emerald-500 text-white shadow-lg shadow-emerald-500/25">
-                    <span className="material-symbols-outlined text-[20px]">hub</span>
-                  </span>
-                  OneEmployee<span className="text-emerald-400">®</span>
+                  {IS_PHASE_1 ? (
+                    <img src="/webmagnetmedia-logo.svg" alt={APP_NAME} className="h-9 w-9 rounded-[10px]" />
+                  ) : (
+                    <span className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-emerald-500 text-white shadow-lg shadow-emerald-500/25">
+                      <span className="material-symbols-outlined text-[20px]">hub</span>
+                    </span>
+                  )}
+                  {APP_NAME}{!IS_PHASE_1 && <span className="text-emerald-400">®</span>}
                 </div>
                 <p className="mt-4 max-w-sm text-sm text-white/60">
-                  OneEmployee helps businesses automate customer engagement, streamline sales processes, and unlock new revenue opportunities with AI-powered workforce solutions.
+                  {IS_PHASE_1
+                    ? 'WebMagnetMedia helps businesses automate lead generation, streamline follow-ups, and grow revenue with AI-powered automation solutions.'
+                    : 'OneEmployee helps businesses automate customer engagement, streamline sales processes, and unlock new revenue opportunities with AI-powered workforce solutions.'
+                  }
                 </p>
+                {IS_PHASE_1 && (
+                  <p className="mt-3 text-xs text-white/40">Powered by <span className="text-indigo-400 font-medium">OneEmployee</span></p>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-10 sm:grid-cols-3">
                 <div>

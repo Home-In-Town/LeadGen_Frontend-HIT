@@ -12,6 +12,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
+import { FEATURES } from '../config/phase';
 import {
     uploadCampaign as apiUpload,
     listCampaigns as apiListCampaigns,
@@ -69,7 +70,7 @@ function ProgressBar({ value, color = 'bg-emerald-500' }) {
 
 function UploadPanel({ onSuccess }) {
     const { user } = useAuth();
-    const hitLinked = user?.hitLinked || false;
+    const hitLinked = FEATURES.projects && (user?.hitLinked || false);
     const [file, setFile]               = useState(null);
     const [dragging, setDragging]       = useState(false);
     const [loading, setLoading]         = useState(false);

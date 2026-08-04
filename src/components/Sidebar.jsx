@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import ConfirmationModal from './ConfirmationModal';
 import IntegrationSelectorModal from './IntegrationSelectorModal';
 import { useAuth } from '../context/AuthContext';
-import { APP_NAME, APP_TAGLINE, FEATURES } from '../config/phase';
+import { APP_NAME, APP_TAGLINE, FEATURES, LOGO_PATH, BRAND_COLOR, BRAND_GRADIENT, SHOW_POWERED_BY, IS_PHASE_1 } from '../config/phase';
 
 const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
   const location = useLocation();
@@ -120,9 +120,13 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
         {!isCollapsed ? (
           <>
             <Link to="/dashboard" className="no-underline flex items-center gap-2 overflow-hidden">
-              <span className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-[#6D28D9] text-white shadow-lg shadow-[#6D28D9]/25">
+              {IS_PHASE_1 ? (
+                <img src={LOGO_PATH} alt={APP_NAME} className="h-9 w-9 rounded-[10px]" />
+              ) : (
+                <span className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-[#6D28D9] text-white shadow-lg shadow-[#6D28D9]/25">
                     <span className="material-symbols-outlined text-[20px]">hub</span>
                   </span>
+              )}
               <div className="flex flex-col">
                 <span className="text-sm font-semibold tracking-tight text-slate-900 dark:text-white whitespace-nowrap">
                   {APP_NAME}
@@ -198,9 +202,10 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
                                 : 'gap-3 px-4 py-2.5 sm:py-3 rounded-l-[12px] uppercase tracking-[0.12em] text-[9px] sm:text-[10px] font-black'
                             } ${
                               isActive(item.path) || item.children.some(c => isActive(c.path))
-                                ? 'bg-[#6D28D9] text-white shadow-md shadow-[#6D28D9]/30'
+                                ? `text-white shadow-md`
                                 : 'text-slate-500 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-900/5 dark:hover:bg-white/10'
                             }`}
+                          style={isActive(item.path) || item.children.some(c => isActive(c.path)) ? { background: BRAND_COLOR, boxShadow: `0 4px 6px -1px ${BRAND_COLOR}40` } : {}}
                           >
                             <span className={`material-symbols-outlined transition-all duration-300 ${isCollapsed ? 'text-lg sm:text-xl' : 'text-base sm:text-lg'}`}>
                               {item.icon}
@@ -222,9 +227,10 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
                               onClick={() => toggleItem(item.path)}
                               className={`p-2 rounded-r-[12px] transition-all duration-200 cursor-pointer border-none ${
                                 isActive(item.path) || item.children.some(c => isActive(c.path))
-                                  ? 'bg-[#6D28D9] text-white/90 hover:text-white'
+                                  ? 'text-white/90 hover:text-white'
                                   : 'bg-transparent text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
                               }`}
+                              style={isActive(item.path) || item.children.some(c => isActive(c.path)) ? { background: BRAND_COLOR } : {}}
                             >
                               <span className={`material-symbols-outlined text-[14px] transition-transform duration-200 ${expandedItems[item.path] ? 'rotate-0' : '-rotate-90'}`}>
                                 expand_more
@@ -294,9 +300,10 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
                             : 'gap-3 px-4 py-2.5 sm:py-3 rounded-[12px] uppercase tracking-[0.12em] text-[9px] sm:text-[10px] font-black'
                         } ${
                           isActive(item.path)
-                            ? 'bg-[#6D28D9] text-white shadow-md shadow-[#6D28D9]/30'
+                            ? `text-white shadow-md`
                             : 'text-slate-500 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-900/5 dark:hover:bg-white/10'
                         }`}
+                        style={isActive(item.path) ? { background: BRAND_COLOR, boxShadow: `0 4px 6px -1px ${BRAND_COLOR}40` } : {}}
                       >
                         <span className={`material-symbols-outlined transition-all duration-300 ${isCollapsed ? 'text-lg sm:text-xl' : 'text-base sm:text-lg'}`}>
                           {item.icon}
@@ -325,6 +332,14 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
 
       {/* Footer */}
       <div className={`border-t border-slate-200/70 dark:border-white/10 transition-all duration-300 ${isCollapsed ? 'p-1.5 sm:p-2 pb-20 sm:pb-2 space-y-1' : 'p-3 sm:p-4 pb-20 sm:pb-4 space-y-2'}`}>
+
+        {/* Powered by OneEmployee badge (Phase 1 only) */}
+        {SHOW_POWERED_BY && !isCollapsed && (
+          <div className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-white/5">
+            <span className="text-[9px] font-medium text-slate-400 dark:text-slate-500">Powered by</span>
+            <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400">OneEmployee</span>
+          </div>
+        )}
 
         <button
           onClick={() => openConfirmation('logout')}
