@@ -576,9 +576,6 @@ const LandingPage = () => {
                     : 'OneEmployee helps businesses automate customer engagement, streamline sales processes, and unlock new revenue opportunities with AI-powered workforce solutions.'
                   }
                 </p>
-                {IS_PHASE_1 && (
-                  <p className="mt-3 text-xs text-white/40">Powered by <span className="text-indigo-400 font-medium">OneEmployee</span></p>
-                )}
               </div>
               <div className="grid grid-cols-2 gap-10 sm:grid-cols-3">
                 <div>
@@ -639,7 +636,7 @@ const LandingPage = () => {
               </div>
             </div>
             <div className="mx-auto mt-12 flex max-w-6xl flex-col gap-2 border-t border-white/10 pt-8 text-xs text-white/50 sm:flex-row sm:items-center sm:justify-between">
-              <span>© {new Date().getFullYear()} OneEmployee. All rights reserved.</span>
+              <span>© {new Date().getFullYear()} {APP_NAME}. All rights reserved.</span>
               <span className="font-mono text-[11px] text-white/30">
                 BUILD V1.0.4 · EDGE LATENCY ~4.2ms
               </span>

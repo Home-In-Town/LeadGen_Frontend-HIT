@@ -25,7 +25,7 @@ export const SHOW_POWERED_BY = IS_PHASE_1;
 export const POWERED_BY_TEXT = 'Powered by OneEmployee';
 
 // Logo paths
-export const LOGO_PATH = IS_PHASE_1 ? '/webmagnetmedia-logo.svg' : '/One Employee.svg';
+export const LOGO_PATH = IS_PHASE_1 ? '/webmagnetmedia-logo.png' : '/One Employee.svg';
 
 // Brand colors
 export const BRAND_COLOR = IS_PHASE_1 ? '#F47B20' : '#6D28D9'; // Orange for WMM, Purple for OE
