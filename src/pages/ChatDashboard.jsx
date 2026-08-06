@@ -25,7 +25,7 @@ import leadsApi from '../api';
 
 import { useNotifications } from '../context/NotificationContext';
 import { useAuth } from '../context/AuthContext';
-import { ConversationSidebar, MessagePanel, ContactInfoPanel, BulkActionToolbar, TemplatePicker } from '../components/chat';
+import { ConversationSidebar, MessagePanel, ContactInfoPanel, BulkActionToolbar, TemplatePicker, NewChatDialog } from '../components/chat';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -90,6 +90,7 @@ export default function ChatDashboard() {
     const [activeWANumber, setActiveWANumber] = useState(undefined);
     const [campaignProgress, setCampaignProgress] = useState(null);
     const [showTemplatePicker, setShowTemplatePicker] = useState(false);
+    const [showNewChatDialog, setShowNewChatDialog] = useState(false);
 
     // -----------------------------------------------------------------------
     // State: Contact Info Panel
@@ -677,9 +678,7 @@ export default function ChatDashboard() {
                     onLoadMore={handleLoadMoreConversations}
                     hasMore={convHasMore}
                     integrationHealth={integrationHealth}
-                    onNewChat={() => {
-                        // Placeholder: will be wired to NewChatDialog in a later task
-                    }}
+                    onNewChat={() => setShowNewChatDialog(true)}
                 />
             </div>
 
@@ -759,6 +758,19 @@ export default function ChatDashboard() {
                     } else if (activeLeadId) {
                         handleSendTemplate(name);
                     }
+                }}
+            />
+
+            {/* New conversation dialog */}
+            <NewChatDialog
+                open={showNewChatDialog}
+                onClose={() => setShowNewChatDialog(false)}
+                onSuccess={(leadId) => {
+                    setShowNewChatDialog(false);
+                    // Navigate to the new conversation
+                    navigate(`/chat/whatsapp/${leadId}`);
+                    // Refresh conversation list
+                    fetchConversations();
                 }}
             />
         </div>
