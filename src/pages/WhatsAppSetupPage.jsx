@@ -22,8 +22,16 @@ const SIGNUP_CONFIG_ID = import.meta.env.VITE_META_SIGNUP_CONFIG_ID || '10051122
 import axios from 'axios';
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://lead-filteration-backend-vvsvqafcoa-el.a.run.app';
 
-function StatusBadge({ connected }) {
+function StatusBadge({ connected, pending }) {
     if (connected === null) return null;
+    if (pending) {
+        return (
+            <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                Pending Verification
+            </span>
+        );
+    }
     return (
         <span className={`inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full ${
             connected
@@ -265,7 +273,10 @@ export default function WhatsAppSetupPage() {
                         <div className="flex-1 min-w-0">
                             <div className="flex flex-wrap items-center gap-3">
                                 <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white">WhatsApp Setup</h1>
-                                <StatusBadge connected={connected} />
+                                <StatusBadge
+                                    connected={connected}
+                                    pending={connected && phoneNumbers.length > 0 && phoneNumbers.every(p => p.status === 'PENDING' || p.status === 'PENDING_REVIEW' || (p.qualityRating === 'UNKNOWN' && p.status !== 'CONNECTED'))}
+                                />
                             </div>
                             <p className="mt-1 text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400">Direct Meta WhatsApp Cloud API</p>
                         </div>
@@ -285,13 +296,27 @@ export default function WhatsAppSetupPage() {
                         <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 mb-5">Connected Numbers</h2>
                         <div className="space-y-3">
                             {phoneNumbers.map(num => (
-                                <div key={num.id || num.phoneNumberId} className="flex items-center gap-4 p-4 rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.02]">
+                                <div key={num.id || num.phoneNumberId} className={`flex items-center gap-4 p-4 rounded-2xl border ${
+                                    (num.status === 'PENDING' || num.status === 'PENDING_REVIEW')
+                                        ? 'border-amber-200 dark:border-amber-900/30 bg-amber-50/50 dark:bg-amber-900/5'
+                                        : 'border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.02]'
+                                }`}>
                                     <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2">
+                                        <div className="flex items-center gap-2 flex-wrap">
                                             <p className="text-sm font-bold text-slate-900 dark:text-white">{num.display_phone_number || num.displayPhoneNumber}</p>
                                             {num.isDefault && <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#25D366]/10 text-[#25D366]">Default</span>}
+                                            {(num.status === 'PENDING' || num.status === 'PENDING_REVIEW' || num.quality_rating === 'UNKNOWN' || num.qualityRating === 'UNKNOWN') && num.status !== 'CONNECTED' && (
+                                                <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 animate-pulse">
+                                                    Under Verification
+                                                </span>
+                                            )}
                                         </div>
                                         <p className="text-xs text-slate-500 mt-0.5">{num.verified_name || num.verifiedName} • Quality: {num.quality_rating || num.qualityRating || '—'}</p>
+                                        {(num.status === 'PENDING' || num.qualityRating === 'UNKNOWN') && num.status !== 'CONNECTED' && (
+                                            <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-1.5 leading-relaxed">
+                                                Meta is reviewing your business. This typically takes 1-2 business days. You'll be able to send messages once verification is complete.
+                                            </p>
+                                        )}
                                     </div>
                                     <button onClick={async () => {
                                         try {
