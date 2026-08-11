@@ -139,11 +139,17 @@ const UsersPage = () => {
       } else {
         const res = await getFBCampaigns({ limit: 200 });
         const campaignList = res.data?.campaigns || res.data?.data || [];
-        if (!campaignList.length) {
-          addToast('No campaigns found. Sync your Facebook campaigns first.', 'warning');
-          return;
-        }
-        setCampaigns(campaignList);
+        // Add "Default Settings" option at the top so users without FB campaigns can still proceed
+        const defaultOption = {
+          campaignId: '__default__',
+          campaignName: 'Default Automation (Call + WhatsApp)',
+          status: 'ACTIVE',
+          leadsCount: 0,
+          autoCallEnabled: true,
+          autoWaEnabled: true,
+          isDefault: true,
+        };
+        setCampaigns([defaultOption, ...campaignList]);
       }
       // Store the mode so executeBulkCreate knows whether to trigger automation
       setBulkMode(mode);
@@ -166,12 +172,15 @@ const UsersPage = () => {
         return;
       }
 
+      // If "Default Automation" selected, don't pass projectSlug — backend uses owner.defaultAutomation
+      const isDefault = campaignId === '__default__';
+
       const creatorData = {
         creatorId:   user.id || user._id,
         creatorName: user.name || `${user.first_name || ''} ${user.last_name || ''}`.trim(),
         creatorRole: user.role || 'agent',
-        projectSlug: campaignId,
-        projectName: campaignName,
+        projectSlug: isDefault ? undefined : campaignId,
+        projectName: isDefault ? undefined : campaignName,
       };
 
       const userIds = Array.from(selectedUsers);
@@ -214,7 +223,7 @@ const UsersPage = () => {
           const blob = new Blob([csvContent], { type: 'text/csv' });
           const csvFile = new File([blob], `auto_${Date.now()}.csv`, { type: 'text/csv' });
 
-          await uploadCampaign(csvFile, `Auto - ${campaignName}`, campaignId);
+          await uploadCampaign(csvFile, `Auto - ${campaignName || 'Default'}`, isDefault ? null : campaignId);
           addToast(
             `Automation started! ${successCount} lead${successCount !== 1 ? 's' : ''} will receive voice calls shortly.`,
             'success'
