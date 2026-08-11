@@ -119,7 +119,7 @@ const workflowSteps = [
 const testimonials = [
   {
     quote:
-      `We replaced three tools with ${IS_PHASE_1 ? 'WebMagnetMedia' : 'OneEmployee'}. Voice plus WhatsApp in one CRM finally matches how our reps actually work.`,
+      `We replaced three tools with ${IS_PHASE_1 ? 'Web Magnet Media' : 'OneEmployee'}. Voice plus WhatsApp in one CRM finally matches how our reps actually work.`,
     name: 'Priya Menon',
     role: 'VP Revenue Operations',
     org: 'Northwind Labs',
@@ -210,7 +210,7 @@ const LandingPage = () => {
                 </h1>
                 <p className={`mt-4 sm:mt-6 max-w-2xl text-sm sm:text-base leading-relaxed ${isDark ? 'text-white/70' : 'text-slate-600'}`}>
                   {IS_PHASE_1
-                    ? 'WebMagnetMedia helps businesses capture leads, automate follow-ups, and grow revenue with AI-powered automation that works 24/7.'
+                    ? 'Web Magnet Media helps businesses capture leads, automate follow-ups, and grow revenue with AI-powered automation that works 24/7.'
                     : 'OneEmployee helps businesses capture leads, engage customers, automate follow-ups, and grow revenue with AI-powered employees that work 24/7.'
                   }
                 </p>
@@ -562,7 +562,7 @@ const LandingPage = () => {
               <div>
                 <div className="flex items-center gap-2 font-semibold text-white">
                   {IS_PHASE_1 ? (
-                    <img src="/webmagnetmedia-logo.svg" alt={APP_NAME} className="h-9 w-9 rounded-[10px]" />
+                    <img src="/webmagnetmedia-logo.png" alt={APP_NAME} className="h-9 w-9 rounded-[10px]" />
                   ) : (
                     <span className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-emerald-500 text-white shadow-lg shadow-emerald-500/25">
                       <span className="material-symbols-outlined text-[20px]">hub</span>
@@ -572,10 +572,22 @@ const LandingPage = () => {
                 </div>
                 <p className="mt-4 max-w-sm text-sm text-white/60">
                   {IS_PHASE_1
-                    ? 'WebMagnetMedia helps businesses automate lead generation, streamline follow-ups, and grow revenue with AI-powered automation solutions.'
+                    ? 'Web Magnet Media helps businesses automate lead generation, streamline follow-ups, and grow revenue with AI-powered automation solutions.'
                     : 'OneEmployee helps businesses automate customer engagement, streamline sales processes, and unlock new revenue opportunities with AI-powered workforce solutions.'
                   }
                 </p>
+                {IS_PHASE_1 && (
+                  <div className="mt-4 space-y-1.5">
+                    <p className="text-sm text-white/50 flex items-center gap-2">
+                      <span className="material-symbols-outlined text-[16px] text-orange-400">mail</span>
+                      <a href="mailto:webmagnetmedia@gmail.com" className="hover:text-white/80 transition-colors">webmagnetmedia@gmail.com</a>
+                    </p>
+                    <p className="text-sm text-white/50 flex items-center gap-2">
+                      <span className="material-symbols-outlined text-[16px] text-orange-400">call</span>
+                      <a href="tel:+919325700804" className="hover:text-white/80 transition-colors">+91 93257 00804</a>
+                    </p>
+                  </div>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-10 sm:grid-cols-3">
                 <div>

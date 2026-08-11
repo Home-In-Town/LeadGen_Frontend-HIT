@@ -53,7 +53,7 @@ const Header = ({ onMenuClick }) => {
             <div className="hidden sm:flex flex-col leading-none">
               <span className="text-[14px] font-black tracking-tight" style={{ color: C.text }}>
                 {IS_PHASE_1 ? (
-                  <><span style={{ color: '#F47B20' }}>WebMagnet</span>Media</>
+                  <><span style={{ color: '#F47B20' }}>Web Magnet</span> Media</>
                 ) : (
                   <>One<span style={{ color: '#6366F1' }}>Employee</span></>
                 )}

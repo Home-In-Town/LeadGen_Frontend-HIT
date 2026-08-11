@@ -21,7 +21,7 @@ const LandingNavbar = ({ onLogin }) => {
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
         <Link
           to="/"
-          className={`flex items-center gap-3 font-semibold tracking-tight transition-colors ${isDark ? 'text-white' : 'text-slate-900'}`}
+          className={`flex items-center gap-2 sm:gap-3 font-semibold tracking-tight transition-colors min-w-0 ${isDark ? 'text-white' : 'text-slate-900'}`}
         >
           {IS_PHASE_1 ? (
             <img src={LOGO_PATH} alt={APP_NAME} className="h-9 w-9 rounded-[10px]" />
@@ -31,7 +31,7 @@ const LandingNavbar = ({ onLogin }) => {
                   </span>
           )}
 
-          <span className={`text-lg font-bold tracking-tight sm:text-xl ${isDark ? 'text-white' : 'text-slate-900'}`}>
+          <span className={`text-base font-bold tracking-tight sm:text-xl ${isDark ? 'text-white' : 'text-slate-900'} truncate max-w-[140px] sm:max-w-none`}>
             {APP_NAME}
           </span>
       </Link>
@@ -48,12 +48,12 @@ const LandingNavbar = ({ onLogin }) => {
           ))}
         </nav>
 
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
           {/* Theme toggle button */}
           <button
             type="button"
             onClick={toggleTheme}
-            className={`inline-flex items-center justify-center w-9 h-9 rounded-[10px] transition-colors ${isDark ? 'bg-white/10 text-white/70 hover:bg-white/20 hover:text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'}`}
+            className={`inline-flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-[10px] transition-colors ${isDark ? 'bg-white/10 text-white/70 hover:bg-white/20 hover:text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'}`}
             aria-label="Toggle theme"
           >
             <span className="material-symbols-outlined text-[18px]">
@@ -63,7 +63,7 @@ const LandingNavbar = ({ onLogin }) => {
           <button
             type="button"
             onClick={onLogin}
-            className={`inline-flex rounded-[10px] border px-4 py-2 text-sm font-semibold transition-all ${isDark ? 'border-white/20 bg-white/10 text-white hover:bg-white/20' : 'border-slate-200 bg-white text-slate-800 shadow-sm hover:bg-slate-50'}`}
+            className={`inline-flex rounded-[10px] border px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-semibold transition-all ${isDark ? 'border-white/20 bg-white/10 text-white hover:bg-white/20' : 'border-slate-200 bg-white text-slate-800 shadow-sm hover:bg-slate-50'}`}
           >
             Sign in
           </button>
@@ -76,7 +76,7 @@ const LandingNavbar = ({ onLogin }) => {
           </button>
           <button
             type="button"
-            className={`inline-flex rounded-[10px] p-2 md:hidden ${isDark ? 'text-white/70' : 'text-slate-600'}`}
+            className={`inline-flex rounded-[10px] p-1.5 sm:p-2 md:hidden ${isDark ? 'text-white/70' : 'text-slate-600'}`}
             aria-expanded={mobileOpen}
             aria-controls="landing-mobile-nav"
             onClick={() => setMobileOpen((o) => !o)}

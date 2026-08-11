@@ -14,7 +14,7 @@ export const IS_PHASE_1 = PHASE === 1;
 export const IS_PHASE_2 = PHASE === 2;
 
 // App branding
-export const APP_NAME   = IS_PHASE_1 ? 'WebMagnetMedia' : 'OneEmployee';
+export const APP_NAME   = IS_PHASE_1 ? 'Web Magnet Media' : 'OneEmployee';
 export const APP_DOMAIN = IS_PHASE_1 ? 'webmagnetmedia.com' : 'oneemployee.in';
 export const APP_TAGLINE = IS_PHASE_1
     ? 'AI-Powered Lead Automation'

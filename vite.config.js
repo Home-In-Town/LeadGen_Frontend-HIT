@@ -10,8 +10,8 @@ function phaseHtmlPlugin() {
       const phase = Number(process.env.VITE_PHASE) || 2;
       if (phase === 1) {
         return html
-          .replace(/__APP_TITLE__/g, 'WebMagnetMedia | AI-Powered Lead Automation')
-          .replace(/__APP_DESCRIPTION__/g, 'WebMagnetMedia helps businesses capture leads, automate follow-ups, and grow revenue with AI-powered automation.')
+          .replace(/__APP_TITLE__/g, 'Web Magnet Media | AI-Powered Lead Automation')
+          .replace(/__APP_DESCRIPTION__/g, 'Web Magnet Media helps businesses capture leads, automate follow-ups, and grow revenue with AI-powered automation.')
           .replace(/__APP_OG_IMAGE__/g, '/webmagnetmedia-logo.png')
           .replace(/__APP_FAVICON__/g, '/webmagnetmedia-favicon.png')
           .replace(/__APP_FAVICON_TYPE__/g, 'image/png');
