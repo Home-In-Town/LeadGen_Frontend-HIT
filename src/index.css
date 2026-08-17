@@ -1,0 +1,286 @@
+@import "tailwindcss";
+
+/* Tailwind v4 class-based dark mode */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-primary: #1877F2;
+  --color-primary-hover: #166FE5;
+  --color-charcoal: #0F172A;
+
+  --font-display: "Inter", system-ui, sans-serif;
+  --font-mono:    "JetBrains Mono", monospace;
+
+  --animate-fade-in:  fadeIn  0.3s ease-out  forwards;
+  --animate-slide-up: slideUp 0.36s cubic-bezier(0.16,1,0.3,1) forwards;
+  --animate-toast-in: toastIn 0.3s  cubic-bezier(0.16,1,0.3,1) forwards;
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0);   }
+  }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0)    scale(1);    }
+  }
+  @keyframes toastIn {
+    from { opacity: 0; transform: translateX(20px); }
+    to   { opacity: 1; transform: translateX(0);    }
+  }
+  @keyframes shimmer {
+    0%   { background-position: -500px 0; }
+    100% { background-position:  500px 0; }
+  }
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+}
+
+/* ════════════════ BASE ════════════════ */
+@layer base {
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: #F0F2F8;
+    color: #1E1B3A;
+    font-family: var(--font-display);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    min-height: 100vh;
+    overflow-x: hidden;
+    font-size: 15px;
+    transition: background 0.3s, color 0.3s;
+  }
+
+  /* Dark mode body */
+  html.dark body { background: #0D1117; color: #E2E8F0; }
+  html.dark { background: #0D1117; }
+
+  h1,h2,h3,h4,h5,h6 { font-weight: 700; letter-spacing: -0.025em; }
+  ::selection { background: #1877F2; color: #fff; }
+}
+
+/* ════════════════ UTILITIES ════════════════ */
+@layer utilities {
+
+  /* ─── Scrollbar ─── */
+  .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+  .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+  .custom-scrollbar::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 99px; }
+  .dark .custom-scrollbar::-webkit-scrollbar-thumb, html.dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #374151; }
+
+  /* ─── Skeleton ─── */
+  .skeleton {
+    background: linear-gradient(90deg, #E2E8F0 25%, #CBD5E1 50%, #E2E8F0 75%);
+    background-size: 500px 100%;
+    animation: shimmer 1.5s ease-in-out infinite;
+    border-radius: 6px;
+  }
+  html.dark .skeleton, .dark .skeleton {
+    background: linear-gradient(90deg, #1E2A3A 25%, #253347 50%, #1E2A3A 75%);
+    background-size: 500px 100%;
+  }
+
+  /* ─── Base card — light ─── */
+  .c {
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 18px;
+    box-shadow: 0 1px 3px rgba(30,27,58,0.05), 0 4px 14px rgba(30,27,58,0.05);
+    transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
+  }
+  .dark .c, html.dark .c {
+    background: #161B27;
+    border-color: #2D3748;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.3), 0 4px 16px rgba(0,0,0,0.2);
+  }
+
+  /* ─── 3-D pressable card ─── */
+  .c3 {
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 18px;
+    box-shadow:
+      0 5px 0 0   #C7D2E8,
+      0 8px 20px  rgba(30,27,58,0.07);
+    transform: translateY(0);
+    transition: transform 120ms ease, box-shadow 120ms ease, border-color 150ms ease;
+    cursor: pointer;
+  }
+  .dark .c3, html.dark .c3 {
+    background: #161B27;
+    border-color: #2D3748;
+    box-shadow:
+      0 5px 0 0  #0D1117,
+      0 8px 20px rgba(0,0,0,0.35);
+  }
+  .c3:hover {
+    border-color: #1877F2;
+    box-shadow:
+      0 6px 0 0   #90CAF9,
+      0 12px 28px rgba(24,119,242,0.18);
+    transform: translateY(-2px);
+  }
+  .dark .c3:hover, html.dark .c3:hover {
+    box-shadow:
+      0 6px 0 0  #0D47A1,
+      0 12px 28px rgba(24,119,242,0.25);
+  }
+  .c3:active {
+    box-shadow:
+      0 1px 0 0  #C7D2E8,
+      0 2px 6px  rgba(30,27,58,0.08);
+    transform: translateY(4px);
+  }
+  .dark .c3:active, html.dark .c3:active {
+    box-shadow:
+      0 1px 0 0  #0D1117,
+      0 2px 6px  rgba(0,0,0,0.3);
+  }
+
+  /* ─── Section label ─── */
+  .sec-lbl {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #94A3B8;
+  }
+  .dark .sec-lbl, html.dark .sec-lbl { color: #4B5563; }
+
+  /* ─── Icon pill ─── */
+  .ipill {
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  /* ─── PRIMARY button — indigo 3D ─── */
+  .btn-pri {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 0 18px;
+    height: 40px;
+    background: #1877F2;
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 13px;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    box-shadow:
+      0 4px 0 0  #0D47A1,
+      0 6px 16px rgba(24,119,242,0.35);
+    transform: translateY(0);
+    transition: background 150ms, box-shadow 100ms, transform 100ms;
+    white-space: nowrap;
+  }
+  .btn-pri:hover {
+    background: #4293F5;
+    box-shadow:
+      0 5px 0 0  #0D47A1,
+      0 8px 20px rgba(24,119,242,0.42);
+    transform: translateY(-1px);
+  }
+  .btn-pri:active {
+    background: #166FE5;
+    box-shadow:
+      0 1px 0 0  #0D47A1,
+      0 2px 6px  rgba(24,119,242,0.25);
+    transform: translateY(3px);
+  }
+  .btn-pri:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    pointer-events: none;
+    box-shadow: none;
+  }
+
+  /* ─── SECONDARY button — outline 3D ─── */
+  .btn-sec {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 0 16px;
+    height: 38px;
+    background: #FFFFFF;
+    color: #1877F2;
+    border: 1.5px solid #1877F2;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    box-shadow: 0 4px 0 0 #BBDEFB, 0 4px 12px rgba(24,119,242,0.12);
+    transform: translateY(0);
+    transition: background 150ms, box-shadow 100ms, transform 100ms;
+  }
+  .dark .btn-sec, html.dark .btn-sec {
+    background: #1E2A3A;
+    border-color: #1877F2;
+    box-shadow: 0 4px 0 0 #0D47A1, 0 4px 12px rgba(24,119,242,0.20);
+    color: #90CAF9;
+  }
+  .btn-sec:hover {
+    background: #E3F2FD;
+    box-shadow: 0 5px 0 0 #BBDEFB, 0 6px 16px rgba(24,119,242,0.18);
+    transform: translateY(-1px);
+  }
+  .dark .btn-sec:hover, html.dark .btn-sec:hover { background: #253347; }
+  .btn-sec:active {
+    background: #BBDEFB;
+    box-shadow: 0 1px 0 0 #BBDEFB;
+    transform: translateY(3px);
+  }
+
+  /* ─── DANGER button ─── */
+  .btn-danger {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 0 16px; height: 38px;
+    background: #EF4444; color: #fff; border: none; border-radius: 12px;
+    font-weight: 600; font-size: 13px; cursor: pointer;
+    box-shadow: 0 4px 0 0 #991B1B, 0 6px 14px rgba(239,68,68,0.30);
+    transform: translateY(0);
+    transition: background 150ms, box-shadow 100ms, transform 100ms;
+  }
+  .btn-danger:hover  { background: #F87171; transform: translateY(-1px); }
+  .btn-danger:active { background: #DC2626; box-shadow: 0 1px 0 0 #991B1B; transform: translateY(3px); }
+
+  /* ─── Marquee ─── */
+  .landing-gradient-mesh { display: none; }
+  .landing-grid-bg        { display: none; }
+}
+
+/* marquee — unchanged */
+.marquee-track { width: max-content; animation: marquee-scroll 22s linear infinite; }
+.marquee-track:hover { animation-play-state: paused; }
+@keyframes marquee-scroll {
+  from { transform: translateX(0%);   }
+  to   { transform: translateX(-50%); }
+}
+
+/* floating orb animation for landing page */
+@keyframes floatOrb {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  25%      { transform: translate(20px, -15px) scale(1.05); }
+  50%      { transform: translate(-10px, 20px) scale(0.95); }
+  75%      { transform: translate(15px, 10px) scale(1.02); }
+}
+
+/* ─── Legacy aliases so other pages don't break ─── */
+.btn-p     { }
+.btn-ghost { }
+.p-card    { }
+.p-card-hover { }
+.p-card-3d { }
+.icon-pill { border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.section-label { font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #94A3B8; }
+.nav-chip-active { }
+.animate-count-up { }
+.lux-card { background: #fff; border: 1px solid #E2E8F0; border-radius: 18px; }
+.icon-beige { border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
