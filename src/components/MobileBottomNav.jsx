@@ -36,20 +36,20 @@ const MobileBottomNav = () => {
               className="flex flex-col items-center gap-1 flex-1 py-2 px-1 rounded-[16px] transition-all duration-200 cursor-pointer border-none min-w-0"
               style={{
                 background: active
-                  ? isDark ? 'rgba(99,102,241,0.20)' : '#EEF2FF'
+                  ? isDark ? 'rgba(24,119,242,0.20)' : '#E3F2FD'
                   : 'transparent',
-                boxShadow: active ? '0 2px 0 0 rgba(99,102,241,0.3)' : 'none',
+                boxShadow: active ? '0 2px 0 0 rgba(24,119,242,0.3)' : 'none',
               }}
               aria-label={item.label}>
               <span className="material-symbols-outlined text-[22px] transition-all duration-150"
                 style={{
-                  color: active ? '#6366F1' : isDark ? '#4B5563' : '#94A3B8',
+                  color: active ? '#1877F2' : isDark ? '#4B5563' : '#94A3B8',
                   fontVariationSettings: active ? "'FILL' 1,'wght' 700" : "'FILL' 0,'wght' 400",
                 }}>
                 {item.icon}
               </span>
               <span className="text-[10px] font-semibold leading-none truncate"
-                style={{ color: active ? '#6366F1' : isDark ? '#4B5563' : '#94A3B8', maxWidth: '100%' }}>
+                style={{ color: active ? '#1877F2' : isDark ? '#4B5563' : '#94A3B8', maxWidth: '100%' }}>
                 {item.label}
               </span>
             </button>
