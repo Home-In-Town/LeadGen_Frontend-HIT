@@ -4,8 +4,8 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --color-primary: #6366F1;
-  --color-primary-hover: #4F46E5;
+  --color-primary: #1877F2;
+  --color-primary-hover: #166FE5;
   --color-charcoal: #0F172A;
 
   --font-display: "Inter", system-ui, sans-serif;
@@ -57,7 +57,7 @@
   html.dark { background: #0D1117; }
 
   h1,h2,h3,h4,h5,h6 { font-weight: 700; letter-spacing: -0.025em; }
-  ::selection { background: #6366F1; color: #fff; }
+  ::selection { background: #1877F2; color: #fff; }
 }
 
 /* ════════════════ UTILITIES ════════════════ */
@@ -115,16 +115,16 @@
       0 8px 20px rgba(0,0,0,0.35);
   }
   .c3:hover {
-    border-color: #6366F1;
+    border-color: #1877F2;
     box-shadow:
-      0 6px 0 0   #A5B4FC,
-      0 12px 28px rgba(99,102,241,0.18);
+      0 6px 0 0   #90CAF9,
+      0 12px 28px rgba(24,119,242,0.18);
     transform: translateY(-2px);
   }
   .dark .c3:hover, html.dark .c3:hover {
     box-shadow:
-      0 6px 0 0  #312E81,
-      0 12px 28px rgba(99,102,241,0.25);
+      0 6px 0 0  #0D47A1,
+      0 12px 28px rgba(24,119,242,0.25);
   }
   .c3:active {
     box-shadow:
@@ -165,7 +165,7 @@
     gap: 6px;
     padding: 0 18px;
     height: 40px;
-    background: #6366F1;
+    background: #1877F2;
     color: #fff;
     border: none;
     border-radius: 12px;
@@ -174,24 +174,24 @@
     letter-spacing: 0.01em;
     cursor: pointer;
     box-shadow:
-      0 4px 0 0  #3730A3,
-      0 6px 16px rgba(99,102,241,0.35);
+      0 4px 0 0  #0D47A1,
+      0 6px 16px rgba(24,119,242,0.35);
     transform: translateY(0);
     transition: background 150ms, box-shadow 100ms, transform 100ms;
     white-space: nowrap;
   }
   .btn-pri:hover {
-    background: #7577F5;
+    background: #4293F5;
     box-shadow:
-      0 5px 0 0  #3730A3,
-      0 8px 20px rgba(99,102,241,0.42);
+      0 5px 0 0  #0D47A1,
+      0 8px 20px rgba(24,119,242,0.42);
     transform: translateY(-1px);
   }
   .btn-pri:active {
-    background: #4F46E5;
+    background: #166FE5;
     box-shadow:
-      0 1px 0 0  #3730A3,
-      0 2px 6px  rgba(99,102,241,0.25);
+      0 1px 0 0  #0D47A1,
+      0 2px 6px  rgba(24,119,242,0.25);
     transform: translateY(3px);
   }
   .btn-pri:disabled {
@@ -210,31 +210,31 @@
     padding: 0 16px;
     height: 38px;
     background: #FFFFFF;
-    color: #6366F1;
-    border: 1.5px solid #6366F1;
+    color: #1877F2;
+    border: 1.5px solid #1877F2;
     border-radius: 12px;
     font-weight: 600;
     font-size: 13px;
     cursor: pointer;
-    box-shadow: 0 4px 0 0 #C7D2FD, 0 4px 12px rgba(99,102,241,0.12);
+    box-shadow: 0 4px 0 0 #BBDEFB, 0 4px 12px rgba(24,119,242,0.12);
     transform: translateY(0);
     transition: background 150ms, box-shadow 100ms, transform 100ms;
   }
   .dark .btn-sec, html.dark .btn-sec {
     background: #1E2A3A;
-    border-color: #6366F1;
-    box-shadow: 0 4px 0 0 #312E81, 0 4px 12px rgba(99,102,241,0.20);
-    color: #A5B4FC;
+    border-color: #1877F2;
+    box-shadow: 0 4px 0 0 #0D47A1, 0 4px 12px rgba(24,119,242,0.20);
+    color: #90CAF9;
   }
   .btn-sec:hover {
-    background: #EEF2FF;
-    box-shadow: 0 5px 0 0 #C7D2FD, 0 6px 16px rgba(99,102,241,0.18);
+    background: #E3F2FD;
+    box-shadow: 0 5px 0 0 #BBDEFB, 0 6px 16px rgba(24,119,242,0.18);
     transform: translateY(-1px);
   }
   .dark .btn-sec:hover, html.dark .btn-sec:hover { background: #253347; }
   .btn-sec:active {
-    background: #E0E7FF;
-    box-shadow: 0 1px 0 0 #C7D2FD;
+    background: #BBDEFB;
+    box-shadow: 0 1px 0 0 #BBDEFB;
     transform: translateY(3px);
   }
 

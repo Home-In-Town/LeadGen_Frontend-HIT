@@ -17,7 +17,7 @@ const DashboardLayout = () => {
     return (
       <div className={`min-h-screen flex items-center justify-center ${isDark ? 'bg-[#0D1117]' : 'bg-[#F5F7FA]'}`}>
         <div className="flex flex-col items-center gap-3">
-          <span className="material-symbols-outlined text-4xl animate-spin" style={{ color: '#6366F1' }}>
+          <span className="material-symbols-outlined text-4xl animate-spin" style={{ color: '#1877F2' }}>
             progress_activity
           </span>
           <p className="text-sm font-medium" style={{ color: isDark ? '#94A3B8' : '#64748B' }}>Loading…</p>

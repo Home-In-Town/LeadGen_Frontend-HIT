@@ -334,7 +334,7 @@ const UsersPage = () => {
                 placeholder="Search users..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full rounded-[14px] border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#1A2030] pl-10 pr-4 py-3 text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 outline-none transition-all focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"
+                className="w-full rounded-[14px] border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#1A2030] pl-10 pr-4 py-3 text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 outline-none transition-all focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
               />
             </div>
 
@@ -467,7 +467,7 @@ const UsersPage = () => {
                 key={u.id}
                 className={`grid grid-cols-[40px_1fr_140px] sm:grid-cols-[40px_1fr_180px_160px] items-center gap-4 px-4 py-4 transition-all ${
                   selectedUsers.has(u.id)
-                    ? 'bg-indigo-50 dark:bg-indigo-950/30'
+                    ? 'bg-blue-50 dark:bg-blue-950/30'
                     : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
                 }`}
               >

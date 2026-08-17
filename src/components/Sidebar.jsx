@@ -123,7 +123,7 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
               {IS_PHASE_1 ? (
                 <img src={LOGO_PATH} alt={APP_NAME} className="h-9 w-9 rounded-[10px]" />
               ) : (
-                <span className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-[#6D28D9] text-white shadow-lg shadow-[#6D28D9]/25">
+                <span className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-[#1877F2] text-white shadow-lg shadow-[#1877F2]/25">
                     <span className="material-symbols-outlined text-[20px]">hub</span>
                   </span>
               )}
@@ -337,7 +337,7 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
         {SHOW_POWERED_BY && !isCollapsed && (
           <div className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-white/5">
             <span className="text-[9px] font-medium text-slate-400 dark:text-slate-500">Powered by</span>
-            <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400">OneEmployee</span>
+            <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400">OneEmployee</span>
           </div>
         )}
 

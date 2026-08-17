@@ -73,13 +73,13 @@ const integrations = [
     name: 'WhatsApp Business',
     detail: 'Messaging & routing',
     icon: 'chat',
-    accent: 'from-emerald-500/20 to-emerald-600/5',
+    accent: 'from-blue-500/20 to-blue-600/5',
   },
   {
     name: 'Voice stack',
     detail: 'AI calling & transcripts',
     icon: 'call',
-    accent: 'from-violet-500/20 to-violet-600/5',
+    accent: 'from-blue-500/20 to-blue-600/5',
   },
   {
     name: 'Google Ads',
@@ -91,7 +91,7 @@ const integrations = [
     name: 'Meta Lead Ads',
     detail: 'Facebook lead capture',
     icon: 'public',
-    accent: 'from-blue-500/20 to-indigo-600/5',
+    accent: 'from-blue-500/20 to-blue-600/5',
   },
 ];
 
@@ -167,22 +167,22 @@ const LandingPage = () => {
 
           {/* CRM-themed floating icons (subtle, decorative) */}
           <div className="absolute top-[12%] right-[5%] opacity-[0.06] hidden sm:block" style={{ animation: 'floatOrb 20s ease-in-out infinite' }}>
-            <span className="material-symbols-outlined text-[80px] text-emerald-300" style={{ fontVariationSettings: "'FILL' 1" }}>groups</span>
+            <span className="material-symbols-outlined text-[80px] text-blue-300" style={{ fontVariationSettings: "'FILL' 1" }}>groups</span>
           </div>
           <div className="absolute top-[45%] left-[3%] opacity-[0.05] hidden sm:block" style={{ animation: 'floatOrb 16s ease-in-out infinite reverse' }}>
-            <span className="material-symbols-outlined text-[60px] text-violet-300" style={{ fontVariationSettings: "'FILL' 1" }}>analytics</span>
+            <span className="material-symbols-outlined text-[60px] text-blue-300" style={{ fontVariationSettings: "'FILL' 1" }}>analytics</span>
           </div>
           <div className="absolute bottom-[30%] right-[12%] opacity-[0.04] hidden sm:block" style={{ animation: 'floatOrb 22s ease-in-out infinite 4s' }}>
-            <span className="material-symbols-outlined text-[70px] text-emerald-200" style={{ fontVariationSettings: "'FILL' 1" }}>call</span>
+            <span className="material-symbols-outlined text-[70px] text-blue-200" style={{ fontVariationSettings: "'FILL' 1" }}>call</span>
           </div>
           <div className="absolute top-[65%] left-[20%] opacity-[0.04] hidden sm:block" style={{ animation: 'floatOrb 18s ease-in-out infinite 2s' }}>
             <span className="material-symbols-outlined text-[55px] text-white" style={{ fontVariationSettings: "'FILL' 1" }}>campaign</span>
           </div>
 
           {/* Gradient orbs */}
-          <div className="absolute top-[15%] left-[5%] w-40 sm:w-64 h-40 sm:h-64 rounded-full opacity-[0.08]" style={{ background: 'radial-gradient(circle, #7C3AED, transparent 70%)', animation: 'floatOrb 18s ease-in-out infinite' }} />
+          <div className="absolute top-[15%] left-[5%] w-40 sm:w-64 h-40 sm:h-64 rounded-full opacity-[0.08]" style={{ background: 'radial-gradient(circle, #1565C0, transparent 70%)', animation: 'floatOrb 18s ease-in-out infinite' }} />
           <div className="absolute top-[40%] right-[5%] w-32 sm:w-48 h-32 sm:h-48 rounded-full opacity-[0.06]" style={{ background: 'radial-gradient(circle, #10B981, transparent 70%)', animation: 'floatOrb 14s ease-in-out infinite reverse' }} />
-          <div className="absolute bottom-[20%] left-[25%] w-36 sm:w-56 h-36 sm:h-56 rounded-full opacity-[0.05]" style={{ background: 'radial-gradient(circle, #A78BFA, transparent 70%)', animation: 'floatOrb 20s ease-in-out infinite 3s' }} />
+          <div className="absolute bottom-[20%] left-[25%] w-36 sm:w-56 h-36 sm:h-56 rounded-full opacity-[0.05]" style={{ background: 'radial-gradient(circle, #64B5F6, transparent 70%)', animation: 'floatOrb 20s ease-in-out infinite 3s' }} />
         </div>
 
         <LandingNavbar
@@ -195,15 +195,15 @@ const LandingPage = () => {
             <div className="mx-auto max-w-6xl">
               <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[10px] sm:text-xs font-medium shadow-sm backdrop-blur-md ${isDark ? 'border-white/15 bg-white/10 text-white/80' : 'border-slate-300 bg-white/80 text-slate-600'}`}>
                 <span className="relative flex h-2 w-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-violet-400/60 opacity-75" />
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-violet-400" />
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-400/60 opacity-75" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-blue-400" />
                 </span>
                 AI Employees • Sales Automation • Customer Engagement
               </div>
 
               <div className="mt-6 sm:mt-8">
                 <h1 className={`normal-case text-[28px] sm:text-4xl md:text-5xl lg:text-6xl font-semibold leading-[1.12] tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                  <span className="font-extrabold" style={{ color: IS_PHASE_1 ? BRAND_COLOR : '#34D399' }}>
+                  <span className="font-extrabold" style={{ color: IS_PHASE_1 ? BRAND_COLOR : '#1877F2' }}>
                     {APP_NAME}:
                   </span>{' '}
                   {IS_PHASE_1 ? 'AI-Powered Lead Generation & Automation.' : 'The Revenue Workforce for Modern Businesses.'}
@@ -220,7 +220,7 @@ const LandingPage = () => {
                 <button
                   type="button"
                   onClick={() => navigate('/login')}
-                  className="inline-flex items-center justify-center rounded-[12px] bg-emerald-500 px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-emerald-500/30 transition-all hover:bg-emerald-400 hover:shadow-xl hover:shadow-emerald-400/35"
+                  className="inline-flex items-center justify-center rounded-[12px] bg-[#1877F2] px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-[#1877F2]/30 transition-all hover:bg-[#4293F5] hover:shadow-xl hover:shadow-[#1877F2]/35"
                 >
                   Get Clients
                   <span className="material-symbols-outlined ml-2 text-[20px]">arrow_forward</span>
@@ -237,24 +237,24 @@ const LandingPage = () => {
               {/* AI Capabilities Marquee */}
               <div className="relative mt-12 overflow-hidden rounded-3xl border border-white/10 bg-white/5 p-1">
 
-                <div className="relative overflow-hidden rounded-[22px] bg-[#1E1B4B]/80 py-5 backdrop-blur-xl border border-white/5">
+                <div className="relative overflow-hidden rounded-[22px] bg-[#0D47A1]/80 py-5 backdrop-blur-xl border border-white/5">
                   <div className="marquee-track flex items-center gap-5 whitespace-nowrap">
                     {[
-                      { label: 'AI Calling', icon: 'call', color: 'text-emerald-500' },
+                      { label: 'AI Calling', icon: 'call', color: 'text-blue-500' },
                       { label: 'AI WhatsApp', icon: 'forum', color: 'text-green-500' },
                       { label: 'Lead Scoring', icon: 'leaderboard', color: 'text-amber-500' },
                       { label: 'CRM', icon: 'groups', color: 'text-blue-500' },
-                      { label: 'Automation', icon: 'settings_suggest', color: 'text-purple-500' },
+                      { label: 'Automation', icon: 'settings_suggest', color: 'text-blue-500' },
                       { label: 'Analytics', icon: 'analytics', color: 'text-cyan-500' },
                       { label: 'Transcripts', icon: 'description', color: 'text-orange-500' },
                       { label: 'Appointment Booking', icon: 'event_available', color: 'text-pink-500' },
 
                       // Duplicate for seamless infinite scroll
-                      { label: 'AI Calling', icon: 'call', color: 'text-emerald-500' },
+                      { label: 'AI Calling', icon: 'call', color: 'text-blue-500' },
                       { label: 'AI WhatsApp', icon: 'forum', color: 'text-green-500' },
                       { label: 'Lead Scoring', icon: 'leaderboard', color: 'text-amber-500' },
                       { label: 'CRM', icon: 'groups', color: 'text-blue-500' },
-                      { label: 'Automation', icon: 'settings_suggest', color: 'text-purple-500' },
+                      { label: 'Automation', icon: 'settings_suggest', color: 'text-blue-500' },
                       { label: 'Analytics', icon: 'analytics', color: 'text-cyan-500' },
                       { label: 'Transcripts', icon: 'description', color: 'text-orange-500' },
                       { label: 'Appointment Booking', icon: 'event_available', color: 'text-pink-500' },
@@ -284,7 +284,7 @@ const LandingPage = () => {
                 ].map((stat) => (
                   <div
                     key={stat.label}
-                    className={`rounded-[14px] border p-5 backdrop-blur-sm transition-all duration-300 ${isDark ? 'border-white/10 bg-white/5 hover:border-emerald-400/25 hover:bg-white/10' : 'border-slate-200 bg-white shadow-sm hover:border-emerald-400/40 hover:shadow-md'}`}
+                    className={`rounded-[14px] border p-5 backdrop-blur-sm transition-all duration-300 ${isDark ? 'border-white/10 bg-white/5 hover:border-blue-400/25 hover:bg-white/10' : 'border-slate-200 bg-white shadow-sm hover:border-blue-400/40 hover:shadow-md'}`}
                   >
                     <p className={`text-xs font-medium uppercase tracking-wide ${isDark ? 'text-white/50' : 'text-slate-500'}`}>
                       {stat.label}
@@ -293,7 +293,7 @@ const LandingPage = () => {
                       <p className={`font-mono text-3xl font-bold tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
                         {stat.value}
                       </p>
-                      <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] font-semibold text-emerald-400">
+                      <span className="rounded-full bg-blue-500/15 px-2 py-0.5 text-[11px] font-semibold text-blue-400">
                         {stat.trend}
                       </span>
                     </div>
@@ -309,7 +309,7 @@ const LandingPage = () => {
           <section id="features" className="scroll-mt-24 px-4 py-20 sm:px-6 lg:px-8">
             <div className="mx-auto max-w-6xl">
               <div className="max-w-2xl">
-                <p className="text-sm font-semibold uppercase tracking-wider text-emerald-400">Platform</p>
+                <p className="text-sm font-semibold uppercase tracking-wider text-blue-400">Platform</p>
                 <h2 className="mt-2 normal-case text-3xl font-semibold tracking-tight text-white sm:text-4xl">
                   Everything Your Business Needs to Convert More Customers
                 </h2>
@@ -322,9 +322,9 @@ const LandingPage = () => {
                 {features.map((f) => (
                   <article
                     key={f.title}
-                    className="group rounded-[14px] border border-white/10 bg-white/5 p-6 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-emerald-400/30 hover:bg-white/10"
+                    className="group rounded-[14px] border border-white/10 bg-white/5 p-6 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-blue-400/30 hover:bg-white/10"
                   >
-                    <div className="flex h-11 w-11 items-center justify-center rounded-[12px] bg-emerald-500/15 text-emerald-400 ring-1 ring-emerald-400/20 transition-transform duration-300 group-hover:scale-105">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-[12px] bg-blue-500/15 text-blue-400 ring-1 ring-blue-400/20 transition-transform duration-300 group-hover:scale-105">
                       <span className="material-symbols-outlined text-[22px]">{f.icon}</span>
                     </div>
                     <h3 className="mt-5 normal-case text-lg font-semibold text-white">{f.title}</h3>
@@ -340,7 +340,7 @@ const LandingPage = () => {
             <div className="mx-auto max-w-6xl">
               <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
                 <div className="max-w-2xl">
-                  <p className="text-sm font-semibold uppercase tracking-wider text-emerald-400">Integrations</p>
+                  <p className="text-sm font-semibold uppercase tracking-wider text-blue-400">Integrations</p>
                   <h2 className="mt-2 normal-case text-3xl font-semibold tracking-tight text-white sm:text-4xl">
                     WhatsApp, voice, and paid media - wired in
                   </h2>
@@ -357,7 +357,7 @@ const LandingPage = () => {
               <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 {integrations.map((item) => (
                   <div key={item.name}
-                    className="rounded-[14px] border border-white/10 bg-white/5 p-6 backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-emerald-400/25 hover:bg-white/10">
+                    className="rounded-[14px] border border-white/10 bg-white/5 p-6 backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-blue-400/25 hover:bg-white/10">
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <p className="text-sm font-semibold text-white">{item.name}</p>
@@ -377,7 +377,7 @@ const LandingPage = () => {
           <section id="workflow" className="scroll-mt-24 px-4 py-20 sm:px-6 lg:px-8">
             <div className="mx-auto max-w-6xl">
               <div className="max-w-2xl">
-                <p className="text-sm font-semibold uppercase tracking-wider text-emerald-400">Automation</p>
+                <p className="text-sm font-semibold uppercase tracking-wider text-blue-400">Automation</p>
                 <h2 className="mt-2 normal-case text-3xl font-semibold tracking-tight text-white sm:text-4xl">
                   From Lead to Customer in Three Simple Steps
                 </h2>
@@ -390,10 +390,10 @@ const LandingPage = () => {
                 {workflowSteps.map((w, i) => (
                   <div
                     key={w.step}
-                    className="relative rounded-[16px] border border-white/10 bg-white/5 p-8 backdrop-blur-sm transition-all duration-300 hover:border-emerald-400/25 hover:bg-white/10"
+                    className="relative rounded-[16px] border border-white/10 bg-white/5 p-8 backdrop-blur-sm transition-all duration-300 hover:border-blue-400/25 hover:bg-white/10"
                   >
                     <div className="flex items-center justify-between">
-                      <span className="font-mono text-xs font-bold text-emerald-400">{w.step}</span>
+                      <span className="font-mono text-xs font-bold text-blue-400">{w.step}</span>
                       {i < workflowSteps.length - 1 ? (
                         <span
                           className="material-symbols-outlined hidden text-slate-300 lg:block dark:text-slate-600"
@@ -403,7 +403,7 @@ const LandingPage = () => {
                         </span>
                       ) : null}
                     </div>
-                    <div className="mt-6 flex h-12 w-12 items-center justify-center rounded-[14px] bg-slate-900 text-white shadow-lg dark:bg-gradient-to-br dark:from-primary dark:to-emerald-600">
+                    <div className="mt-6 flex h-12 w-12 items-center justify-center rounded-[14px] bg-slate-900 text-white shadow-lg dark:bg-gradient-to-br dark:from-primary dark:to-blue-600">
                       <span className="material-symbols-outlined text-[26px]">{w.icon}</span>
                     </div>
                     <h3 className="mt-6 normal-case text-xl font-semibold text-white">{w.title}</h3>
@@ -419,7 +419,7 @@ const LandingPage = () => {
             <div className="mx-auto max-w-6xl">
               <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
                 <div>
-                  <p className="text-sm font-semibold uppercase tracking-wider text-emerald-400">Analytics</p>
+                  <p className="text-sm font-semibold uppercase tracking-wider text-blue-400">Analytics</p>
                   <h2 className="mt-2 normal-case text-3xl font-semibold tracking-tight text-white sm:text-4xl">
                     See What Drives Your Growth
                   </h2>
@@ -443,11 +443,11 @@ const LandingPage = () => {
                 </div>
 
                 <div className="relative">
-                  <div className="pointer-events-none absolute -inset-4 rounded-[24px] bg-gradient-to-tr from-primary/20 via-transparent to-violet-500/20 blur-2xl dark:from-primary/30 dark:to-violet-500/25" />
+                  <div className="pointer-events-none absolute -inset-4 rounded-[24px] bg-gradient-to-tr from-primary/20 via-transparent to-blue-500/20 blur-2xl dark:from-primary/30 dark:to-blue-500/25" />
                   <div className="relative overflow-hidden rounded-[20px] border border-slate-200/80 bg-white/90 shadow-2xl backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.06] dark:shadow-[0_0_0_1px_rgba(255,255,255,0.06),0_24px_80px_-20px_rgba(0,0,0,0.65)]">
                     <div className="flex items-center justify-between border-b border-slate-200/70 px-5 py-4 dark:border-white/10">
                       <div className="flex items-center gap-2">
-                        <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.8)]" />
+                        <span className="h-2.5 w-2.5 rounded-full bg-blue-400 shadow-[0_0_12px_rgba(24,119,242,0.8)]" />
                         <span className="text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300">
                           Revenue pulse
                         </span>
@@ -493,7 +493,7 @@ const LandingPage = () => {
           <section id="testimonials" className="scroll-mt-24 px-4 py-20 sm:px-6 lg:px-8">
             <div className="mx-auto max-w-6xl">
               <div className="max-w-2xl">
-                <p className="text-sm font-semibold uppercase tracking-wider text-emerald-400">Customers</p>
+                <p className="text-sm font-semibold uppercase tracking-wider text-blue-400">Customers</p>
                 <h2 className="mt-2 normal-case text-3xl font-semibold tracking-tight text-white sm:text-4xl">
                   Trusted by Businesses Focused on Growth
                 </h2>
@@ -502,9 +502,9 @@ const LandingPage = () => {
                 {testimonials.map((t) => (
                   <blockquote
                     key={t.name}
-                    className="flex flex-col rounded-[16px] border border-white/10 bg-white/5 p-8 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-emerald-400/25 hover:bg-white/10"
+                    className="flex flex-col rounded-[16px] border border-white/10 bg-white/5 p-8 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-blue-400/25 hover:bg-white/10"
                   >
-                    <span className="text-emerald-400">
+                    <span className="text-blue-400">
                       <span className="material-symbols-outlined text-[28px]">format_quote</span>
                     </span>
                     <p className="mt-4 flex-1 text-sm leading-relaxed text-white/70">{t.quote}</p>
@@ -523,10 +523,10 @@ const LandingPage = () => {
           {/* Final CTA */}
           <section className="px-4 pb-24 pt-4 sm:px-6 lg:px-8">
             <div className="mx-auto max-w-6xl">
-              <div className="relative overflow-hidden rounded-[24px] border border-slate-200/80 bg-gradient-to-br from-slate-900 via-slate-900 to-emerald-950 px-8 py-14 text-center shadow-2xl dark:border-white/10 dark:from-[#0b0d12] dark:via-[#0b0d12] dark:to-emerald-950/80">
+              <div className="relative overflow-hidden rounded-[24px] border border-slate-200/80 bg-gradient-to-br from-slate-900 via-slate-900 to-blue-950 px-8 py-14 text-center shadow-2xl dark:border-white/10 dark:from-[#0b0d12] dark:via-[#0b0d12] dark:to-blue-950/80">
                 <div className="pointer-events-none absolute inset-0 opacity-40">
                   <div className="absolute -left-10 top-0 h-64 w-64 rounded-full bg-primary/40 blur-3xl animate-shimmer" />
-                  <div className="absolute -right-16 bottom-0 h-72 w-72 rounded-full bg-violet-500/30 blur-3xl animate-shimmer" style={{ animationDelay: '0.8s' }} />
+                  <div className="absolute -right-16 bottom-0 h-72 w-72 rounded-full bg-blue-500/30 blur-3xl animate-shimmer" style={{ animationDelay: '0.8s' }} />
                 </div>
                 <div className="relative mx-auto max-w-2xl">
                   <h2 className="normal-case text-3xl font-semibold tracking-tight text-white sm:text-4xl">
@@ -557,18 +557,18 @@ const LandingPage = () => {
           </div>{/* end dark sections wrapper */}
 
           {/* Footer */}
-          <footer className="border-t border-white/10 bg-[#13112B] px-4 py-14">
+          <footer className="border-t border-white/10 bg-[#0A1929] px-4 py-14">
             <div className="mx-auto flex max-w-6xl flex-col gap-10 lg:flex-row lg:justify-between">
               <div>
                 <div className="flex items-center gap-2 font-semibold text-white">
                   {IS_PHASE_1 ? (
                     <img src="/webmagnetmedia-logo.png" alt={APP_NAME} className="h-9 w-9 rounded-[10px]" />
                   ) : (
-                    <span className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-emerald-500 text-white shadow-lg shadow-emerald-500/25">
+                    <span className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-[#1877F2] text-white shadow-lg shadow-[#1877F2]/25">
                       <span className="material-symbols-outlined text-[20px]">hub</span>
                     </span>
                   )}
-                  {APP_NAME}{!IS_PHASE_1 && <span className="text-emerald-400">®</span>}
+                  {APP_NAME}{!IS_PHASE_1 && <span className="text-blue-400">®</span>}
                 </div>
                 <p className="mt-4 max-w-sm text-sm text-white/60">
                   {IS_PHASE_1
