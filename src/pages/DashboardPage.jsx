@@ -1,31 +1,31 @@
-﻿import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as api from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { syncIntegrationStatus } from '../api';
 
-/* ── stat card definitions ── */
+/* -- stat card definitions -- */
 const STATS = [
-  { icon: 'group',     label: 'People',      path: '/users',           iconColor: '#1877F2', iconBg: '#E3F2FD', darkBg: '#0D1B2A', barColor: '#1877F2' },
+  { icon: 'group',     label: 'People',      path: '/users',           iconColor: '#0866FF', iconBg: '#EBF5FF', darkBg: '#1A1D21', barColor: '#0866FF' },
   { icon: 'person',    label: 'Leads',        path: '/crm',             iconColor: '#0EA5E9', iconBg: '#E0F2FE', darkBg: '#0C2234', barColor: '#0EA5E9' },
   { icon: 'campaign',  label: 'Campaigns',    path: '/campaigns',       iconColor: '#F59E0B', iconBg: '#FEF3C7', darkBg: '#2A1E06', barColor: '#F59E0B' },
   { icon: 'chat',      label: 'Unread Chats', path: '/chat/whatsapp',   iconColor: '#10B981', iconBg: '#D1FAE5', darkBg: '#062A1C', barColor: '#10B981' },
-  { icon: 'call',      label: 'Calls',        path: '/call-logs',       iconColor: '#42A5F5', iconBg: '#E3F2FD', darkBg: '#0D1B2A', barColor: '#42A5F5' },
+  { icon: 'call',      label: 'Calls',        path: '/call-logs',       iconColor: '#58A6FF', iconBg: '#EBF5FF', darkBg: '#1A1D21', barColor: '#58A6FF' },
   { icon: 'smart_toy', label: 'Pending Auto', path: '/lead-automation', iconColor: '#EC4899', iconBg: '#FCE7F3', darkBg: '#2A0A1C', barColor: '#EC4899' },
 ];
 
 const QUICK_ACTIONS = [
-  { icon: 'person_add', label: 'Add People',  iconColor: '#1877F2', iconBg: '#E3F2FD', darkBg: '#0D1B2A' },
+  { icon: 'person_add', label: 'Add People',  iconColor: '#0866FF', iconBg: '#EBF5FF', darkBg: '#1A1D21' },
   { icon: 'download',   label: 'Import File', iconColor: '#0EA5E9', iconBg: '#E0F2FE', darkBg: '#0C2234' },
-  { icon: 'call',       label: 'Voice Calls', iconColor: '#42A5F5', iconBg: '#E3F2FD', darkBg: '#0D1B2A' },
+  { icon: 'call',       label: 'Voice Calls', iconColor: '#58A6FF', iconBg: '#EBF5FF', darkBg: '#1A1D21' },
   { icon: 'pie_chart',  label: 'Reports',     iconColor: '#F59E0B', iconBg: '#FEF3C7', darkBg: '#2A1E06' },
 ];
 
 const INTEGRATIONS = [
   { k: 'wa', label: 'WhatsApp', icon: 'chat',             color: '#10B981', bg: '#D1FAE5', darkBg: '#062A1C', path: '/whatsapp-setup',        ok: (d) => d?.whatsapp?.connected && d?.whatsapp?.tokenValid },
   { k: 'fb', label: 'Facebook', icon: 'data_exploration', color: '#3B82F6', bg: '#DBEAFE', darkBg: '#0C1D38', path: '/integrations/facebook', ok: (d) => d?.facebook?.connected && d?.facebook?.tokenValid },
-  { k: 'em', label: 'Email',    icon: 'mail',             color: '#42A5F5', bg: '#E3F2FD', darkBg: '#0D1B2A', path: '/integrations',          ok: (d) => d?.email?.connected    && d?.email?.healthy       },
+  { k: 'em', label: 'Email',    icon: 'mail',             color: '#58A6FF', bg: '#EBF5FF', darkBg: '#1A1D21', path: '/integrations',          ok: (d) => d?.email?.connected    && d?.email?.healthy       },
   { k: 'vo', label: 'AI Voice', icon: 'record_voice_over',color: '#F59E0B', bg: '#FEF3C7', darkBg: '#2A1E06', path: '/call-logs',             ok: (d) => d?.voice?.configured },
 ];
 
@@ -36,7 +36,7 @@ const greet = () => {
   return 'Good evening';
 };
 
-/* ──────────────────────────────────────────────── */
+/* ------------------------------------------------ */
 const DashboardPage = () => {
   const navigate       = useNavigate();
   const { user }       = useAuth();
@@ -141,17 +141,17 @@ const DashboardPage = () => {
     return `${Math.floor(h / 24)}d ago`;
   };
 
-  /* ── design tokens ── */
+  /* -- design tokens -- */
   const T = {
-    cardBg:    dark ? '#161B27' : '#FFFFFF',
-    cardBorder:dark ? '#2D3748' : '#E2E8F0',
-    text:      dark ? '#E2E8F0' : '#1E1B3A',
-    text2:     dark ? '#94A3B8' : '#64748B',
-    text3:     dark ? '#4B5563' : '#94A3B8',
-    inputBg:   dark ? '#1E2A3A' : '#F5F7FA',
-    rowHover:  dark ? '#1A2235' : '#F8FAFF',
-    divider:   dark ? '#1F2937' : '#F1F5F9',
-    pillBg:    dark ? '#252F40' : '#F0F2F8',
+    cardBg:    dark ? '#242526' : '#FFFFFF',
+    cardBorder:dark ? '#3A3B3C' : '#E4E6EB',
+    text:      dark ? '#E4E6EB' : '#1C1E21',
+    text2:     dark ? '#B0B3B8' : '#65676B',
+    text3:     dark ? '#8A8D91' : '#8A8D91',
+    inputBg:   dark ? '#3A3B3C' : '#F0F2F5',
+    rowHover:  dark ? '#2D2E2F' : '#F7F8FA',
+    divider:   dark ? '#3A3B3C' : '#E4E6EB',
+    pillBg:    dark ? '#3A3B3C' : '#F0F2F5',
   };
 
   /* shared modal wrapper */
@@ -166,7 +166,7 @@ const DashboardPage = () => {
           <button onClick={onClose}
             className="w-8 h-8 rounded-full flex items-center justify-center border-none cursor-pointer transition-colors"
             style={{ background: T.pillBg, color: T.text2 }}
-            onMouseEnter={e => e.currentTarget.style.background = dark ? '#2D3A55' : '#E3F2FD'}
+            onMouseEnter={e => e.currentTarget.style.background = dark ? '#2D3A55' : '#EBF5FF'}
             onMouseLeave={e => e.currentTarget.style.background = T.pillBg}>
             <span className="material-symbols-outlined text-[16px]">close</span>
           </button>
@@ -179,9 +179,9 @@ const DashboardPage = () => {
   return (
     <div className="animate-fade-in pb-28 sm:pb-8" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
 
-      {/* ══ WELCOME BANNER ════════════════════════════════ */}
+      {/* -- WELCOME BANNER -------------------------------- */}
       <div className="rounded-[20px] p-6 mb-6 relative overflow-hidden"
-        style={{ background: dark ? '#0D1B2A' : '#0D47A1' }}>
+        style={{ background: dark ? '#1A1D21' : '#0654D4' }}>
         {/* decorative blobs */}
         <div className="pointer-events-none absolute -top-8 -right-8 w-40 h-40 rounded-full"
           style={{ background: 'radial-gradient(circle, rgba(24,119,242,0.35) 0%, transparent 70%)' }} />
@@ -203,22 +203,22 @@ const DashboardPage = () => {
           <div className="flex-shrink-0 w-12 h-12 rounded-[16px] flex items-center justify-center"
             style={{ background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.12)' }}>
             <span className="material-symbols-outlined text-[24px]"
-              style={{ color: '#90CAF9', fontVariationSettings: "'FILL' 1" }}>trending_up</span>
+              style={{ color: '#A8D4FF', fontVariationSettings: "'FILL' 1" }}>trending_up</span>
           </div>
         </div>
       </div>
 
-      {/* ══ OVERVIEW ══════════════════════════════════════ */}
+      {/* -- OVERVIEW -------------------------------------- */}
       <div className="flex items-center justify-between mb-4">
         <p className="sec-lbl">Overview</p>
         <button onClick={() => navigate('/crm')}
           className="flex items-center gap-0.5 text-[12px] font-semibold bg-transparent border-none cursor-pointer"
-          style={{ color: '#1877F2' }}>
+          style={{ color: '#0866FF' }}>
           View All <span className="material-symbols-outlined text-[14px]">chevron_right</span>
         </button>
       </div>
 
-      {/* ── Stats 3×2 ── */}
+      {/* -- Stats 3�2 -- */}
       <div className="grid grid-cols-3 gap-3 mb-5">
         {STATS.map((s, i) => (
           <button key={s.label} onClick={() => navigate(s.path)}
@@ -238,13 +238,13 @@ const DashboardPage = () => {
         ))}
       </div>
 
-      {/* ══ INTEGRATION STATUS ════════════════════════════ */}
+      {/* -- INTEGRATION STATUS ---------------------------- */}
       <div className="c p-5 mb-5" style={{ background: T.cardBg, borderColor: T.cardBorder }}>
         <div className="flex items-center gap-4">
           <div className="ipill flex-shrink-0 w-[52px] h-[52px]"
-            style={{ background: dark ? '#0D1B2A' : '#E3F2FD' }}>
+            style={{ background: dark ? '#1A1D21' : '#EBF5FF' }}>
             <span className={`material-symbols-outlined text-[24px] ${syncing ? 'animate-spin' : ''}`}
-              style={{ color: '#1877F2', fontVariationSettings: "'FILL' 1" }}>sync</span>
+              style={{ color: '#0866FF', fontVariationSettings: "'FILL' 1" }}>sync</span>
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-[15px] font-semibold mb-0.5" style={{ color: T.text }}>Integration Status</p>
@@ -255,7 +255,7 @@ const DashboardPage = () => {
           <button onClick={handleSync} disabled={syncing} className="btn-pri flex-shrink-0">
             <span className={`material-symbols-outlined text-[15px] ${syncing ? 'animate-spin' : ''}`}
               style={{ fontVariationSettings: "'FILL' 1" }}>sync</span>
-            {syncing ? 'Syncing…' : 'Sync All'}
+            {syncing ? 'Syncing�' : 'Sync All'}
           </button>
         </div>
         {syncData && (
@@ -286,7 +286,7 @@ const DashboardPage = () => {
         )}
       </div>
 
-      {/* ══ QUICK ACTIONS ═════════════════════════════════ */}
+      {/* -- QUICK ACTIONS --------------------------------- */}
       <p className="sec-lbl mb-4">Quick Actions</p>
       <div className="grid grid-cols-4 gap-3 mb-6">
         {QUICK_ACTIONS.map((item, i) => {
@@ -312,13 +312,13 @@ const DashboardPage = () => {
         })}
       </div>
 
-      {/* ══ RECENT LEADS ══════════════════════════════════ */}
+      {/* -- RECENT LEADS ---------------------------------- */}
       <div className="hidden sm:block">
         <div className="flex items-center justify-between mb-4">
           <p className="sec-lbl">Recent Leads</p>
           <button onClick={() => navigate('/crm')}
             className="text-[12px] font-semibold bg-transparent border-none cursor-pointer"
-            style={{ color: '#1877F2' }}>View All →</button>
+            style={{ color: '#0866FF' }}>View All ?</button>
         </div>
         <div className="c overflow-hidden" style={{ background: T.cardBg, borderColor: T.cardBorder }}>
           {loading ? (
@@ -336,7 +336,7 @@ const DashboardPage = () => {
           ) : recentLeads.length === 0 ? (
             <div className="py-12 text-center">
               <span className="material-symbols-outlined text-4xl mb-3 block" style={{ color: T.text3 }}>person_search</span>
-              <p className="text-[13px]" style={{ color: T.text2 }}>No leads yet — add people or run a campaign.</p>
+              <p className="text-[13px]" style={{ color: T.text2 }}>No leads yet � add people or run a campaign.</p>
             </div>
           ) : recentLeads.map((lead, idx) => (
             <div key={lead.id || lead._id} onClick={() => navigate('/crm')}
@@ -345,7 +345,7 @@ const DashboardPage = () => {
               onMouseEnter={e => e.currentTarget.style.background = T.rowHover}
               onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
               <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 font-bold text-[13px]"
-                style={{ background: dark ? '#0D1B2A' : '#E3F2FD', color: '#1877F2' }}>
+                style={{ background: dark ? '#1A1D21' : '#EBF5FF', color: '#0866FF' }}>
                 {(lead.first_name || lead.name || '?')[0]?.toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">
@@ -359,7 +359,7 @@ const DashboardPage = () => {
               <div className="text-right flex-shrink-0">
                 {lead.source && (
                   <span className="text-[9px] font-semibold uppercase px-2 py-0.5 rounded-full block mb-0.5"
-                    style={{ background: dark ? '#0D1B2A' : '#E3F2FD', color: '#1877F2' }}>
+                    style={{ background: dark ? '#1A1D21' : '#EBF5FF', color: '#0866FF' }}>
                     {lead.source}
                   </span>
                 )}
@@ -370,7 +370,7 @@ const DashboardPage = () => {
         </div>
       </div>
 
-      {/* ══ ADD PERSON MODAL ══════════════════════════════ */}
+      {/* -- ADD PERSON MODAL ------------------------------ */}
       <Modal show={showAdd} onClose={() => { setShowAdd(false); setError(''); }} title="Add Person">
         <form onSubmit={handleManualSubmit} className="space-y-3">
           {[['Full name', 'text', 'name'], ['Phone number', 'tel', 'phone']].map(([ph, type, key]) => (
@@ -379,37 +379,37 @@ const DashboardPage = () => {
               onChange={e => setManualForm({ ...manualForm, [key]: e.target.value })}
               className="w-full px-4 py-3 rounded-[12px] text-[14px] outline-none transition-all"
               style={{ background: T.inputBg, border: `1.5px solid ${T.cardBorder}`, color: T.text }}
-              onFocus={e => e.target.style.borderColor = '#1877F2'}
+              onFocus={e => e.target.style.borderColor = '#0866FF'}
               onBlur={e  => e.target.style.borderColor = T.cardBorder} />
           ))}
           {error && <p className="text-[12px] px-3 py-2 rounded-[10px]"
             style={{ color: '#EF4444', background: 'rgba(239,68,68,0.08)' }}>{error}</p>}
           <button type="submit" disabled={manualLoading} className="btn-pri w-full">
-            {manualLoading ? 'Adding…' : 'Add Person'}
+            {manualLoading ? 'Adding�' : 'Add Person'}
           </button>
         </form>
       </Modal>
 
-      {/* ══ IMPORT FILE MODAL ═════════════════════════════ */}
+      {/* -- IMPORT FILE MODAL ----------------------------- */}
       <Modal show={showImport} onClose={() => { setShowImport(false); setFile(null); setError(''); }} title="Import File">
         <form onSubmit={handleFileUpload} className="space-y-3">
           <label className="relative block rounded-[14px] p-6 text-center cursor-pointer transition-all"
-            style={{ border: `2px dashed ${file ? '#1877F2' : T.cardBorder}`,
-                     background: file ? (dark ? '#0D1B2A' : '#E3F2FD') : T.inputBg }}>
+            style={{ border: `2px dashed ${file ? '#0866FF' : T.cardBorder}`,
+                     background: file ? (dark ? '#1A1D21' : '#EBF5FF') : T.inputBg }}>
             <input type="file" accept=".docx,.xlsx,.csv" onChange={e => setFile(e.target.files[0])}
               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
             <span className="material-symbols-outlined text-[32px] mb-2 block"
-              style={{ color: file ? '#1877F2' : T.text3 }}>
+              style={{ color: file ? '#0866FF' : T.text3 }}>
               {file ? 'task_alt' : 'cloud_upload'}
             </span>
-            <p className="text-[12px] font-medium" style={{ color: file ? '#1877F2' : T.text2 }}>
-              {file ? file.name : 'Click to select  DOCX · XLSX · CSV'}
+            <p className="text-[12px] font-medium" style={{ color: file ? '#0866FF' : T.text2 }}>
+              {file ? file.name : 'Click to select  DOCX � XLSX � CSV'}
             </p>
           </label>
           {error && <p className="text-[12px] px-3 py-2 rounded-[10px]"
             style={{ color: '#EF4444', background: 'rgba(239,68,68,0.08)' }}>{error}</p>}
           <button type="submit" disabled={!file || fileLoading} className="btn-pri w-full">
-            {fileLoading ? 'Processing…' : 'Upload & Process'}
+            {fileLoading ? 'Processing�' : 'Upload & Process'}
           </button>
         </form>
       </Modal>
