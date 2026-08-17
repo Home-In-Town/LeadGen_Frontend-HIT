@@ -15,9 +15,9 @@ const DashboardLayout = () => {
 
   if (status === 'loading') {
     return (
-      <div className={`min-h-screen flex items-center justify-center ${isDark ? 'bg-[#0D1117]' : 'bg-[#F5F7FA]'}`}>
+      <div className={`min-h-screen flex items-center justify-center ${isDark ? 'bg-[#18191A]' : 'bg-white'}`}>
         <div className="flex flex-col items-center gap-3">
-          <span className="material-symbols-outlined text-4xl animate-spin" style={{ color: '#1877F2' }}>
+          <span className="material-symbols-outlined text-4xl animate-spin" style={{ color: '#0866FF' }}>
             progress_activity
           </span>
           <p className="text-sm font-medium" style={{ color: isDark ? '#94A3B8' : '#64748B' }}>Loading…</p>
@@ -37,7 +37,7 @@ const DashboardLayout = () => {
     <div className={isDark ? 'dark' : ''}>
       <div
         className="relative min-h-screen flex font-display overflow-hidden transition-colors duration-300"
-        style={{ background: isDark ? '#0D1117' : '#F0F2F8', color: isDark ? '#E2E8F0' : '#1E1B3A' }}
+        style={{ background: isDark ? '#18191A' : '#F0F2F5', color: isDark ? '#E4E6EB' : '#1C1E21' }}
       >
         {/* sidebar backdrop */}
         {isSidebarOpen && (

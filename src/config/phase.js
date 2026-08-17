@@ -28,10 +28,10 @@ export const POWERED_BY_TEXT = 'Powered by OneEmployee';
 export const LOGO_PATH = IS_PHASE_1 ? '/webmagnetmedia-logo.png' : '/One Employee.svg';
 
 // Brand colors
-export const BRAND_COLOR = IS_PHASE_1 ? '#F47B20' : '#1877F2'; // Orange for WMM, Facebook Blue for OE
+export const BRAND_COLOR = IS_PHASE_1 ? '#F47B20' : '#0866FF'; // Orange for WMM, Meta Blue for OE
 export const BRAND_GRADIENT = IS_PHASE_1
     ? 'linear-gradient(135deg, #F47B20, #FF9A44)'
-    : 'linear-gradient(135deg, #1877F2, #42A5F5)';
+    : 'linear-gradient(135deg, #0866FF, #58A6FF)';
 
 // Feature flags
 export const FEATURES = {

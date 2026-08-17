@@ -123,7 +123,7 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
               {IS_PHASE_1 ? (
                 <img src={LOGO_PATH} alt={APP_NAME} className="h-9 w-9 rounded-[10px]" />
               ) : (
-                <span className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-[#1877F2] text-white shadow-lg shadow-[#1877F2]/25">
+                <span className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-[#0866FF] text-white shadow-lg shadow-[#0866FF]/25">
                     <span className="material-symbols-outlined text-[20px]">hub</span>
                   </span>
               )}

@@ -180,9 +180,9 @@ const LandingPage = () => {
           </div>
 
           {/* Gradient orbs */}
-          <div className="absolute top-[15%] left-[5%] w-40 sm:w-64 h-40 sm:h-64 rounded-full opacity-[0.08]" style={{ background: 'radial-gradient(circle, #1565C0, transparent 70%)', animation: 'floatOrb 18s ease-in-out infinite' }} />
+          <div className="absolute top-[15%] left-[5%] w-40 sm:w-64 h-40 sm:h-64 rounded-full opacity-[0.08]" style={{ background: 'radial-gradient(circle, #0654D4, transparent 70%)', animation: 'floatOrb 18s ease-in-out infinite' }} />
           <div className="absolute top-[40%] right-[5%] w-32 sm:w-48 h-32 sm:h-48 rounded-full opacity-[0.06]" style={{ background: 'radial-gradient(circle, #10B981, transparent 70%)', animation: 'floatOrb 14s ease-in-out infinite reverse' }} />
-          <div className="absolute bottom-[20%] left-[25%] w-36 sm:w-56 h-36 sm:h-56 rounded-full opacity-[0.05]" style={{ background: 'radial-gradient(circle, #64B5F6, transparent 70%)', animation: 'floatOrb 20s ease-in-out infinite 3s' }} />
+          <div className="absolute bottom-[20%] left-[25%] w-36 sm:w-56 h-36 sm:h-56 rounded-full opacity-[0.05]" style={{ background: 'radial-gradient(circle, #58A6FF, transparent 70%)', animation: 'floatOrb 20s ease-in-out infinite 3s' }} />
         </div>
 
         <LandingNavbar
@@ -203,7 +203,7 @@ const LandingPage = () => {
 
               <div className="mt-6 sm:mt-8">
                 <h1 className={`normal-case text-[28px] sm:text-4xl md:text-5xl lg:text-6xl font-semibold leading-[1.12] tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                  <span className="font-extrabold" style={{ color: IS_PHASE_1 ? BRAND_COLOR : '#1877F2' }}>
+                  <span className="font-extrabold" style={{ color: IS_PHASE_1 ? BRAND_COLOR : '#0866FF' }}>
                     {APP_NAME}:
                   </span>{' '}
                   {IS_PHASE_1 ? 'AI-Powered Lead Generation & Automation.' : 'The Revenue Workforce for Modern Businesses.'}
@@ -220,7 +220,7 @@ const LandingPage = () => {
                 <button
                   type="button"
                   onClick={() => navigate('/login')}
-                  className="inline-flex items-center justify-center rounded-[12px] bg-[#1877F2] px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-[#1877F2]/30 transition-all hover:bg-[#4293F5] hover:shadow-xl hover:shadow-[#1877F2]/35"
+                  className="inline-flex items-center justify-center rounded-[12px] bg-[#0866FF] px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-[#0866FF]/30 transition-all hover:bg-[#4293F5] hover:shadow-xl hover:shadow-[#0866FF]/35"
                 >
                   Get Clients
                   <span className="material-symbols-outlined ml-2 text-[20px]">arrow_forward</span>
@@ -237,7 +237,7 @@ const LandingPage = () => {
               {/* AI Capabilities Marquee */}
               <div className="relative mt-12 overflow-hidden rounded-3xl border border-white/10 bg-white/5 p-1">
 
-                <div className="relative overflow-hidden rounded-[22px] bg-[#0D47A1]/80 py-5 backdrop-blur-xl border border-white/5">
+                <div className="relative overflow-hidden rounded-[22px] bg-[#0654D4]/80 py-5 backdrop-blur-xl border border-white/5">
                   <div className="marquee-track flex items-center gap-5 whitespace-nowrap">
                     {[
                       { label: 'AI Calling', icon: 'call', color: 'text-blue-500' },
@@ -447,7 +447,7 @@ const LandingPage = () => {
                   <div className="relative overflow-hidden rounded-[20px] border border-slate-200/80 bg-white/90 shadow-2xl backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.06] dark:shadow-[0_0_0_1px_rgba(255,255,255,0.06),0_24px_80px_-20px_rgba(0,0,0,0.65)]">
                     <div className="flex items-center justify-between border-b border-slate-200/70 px-5 py-4 dark:border-white/10">
                       <div className="flex items-center gap-2">
-                        <span className="h-2.5 w-2.5 rounded-full bg-blue-400 shadow-[0_0_12px_rgba(24,119,242,0.8)]" />
+                        <span className="h-2.5 w-2.5 rounded-full bg-blue-400 shadow-[0_0_12px_rgba(8,102,255,0.8)]" />
                         <span className="text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300">
                           Revenue pulse
                         </span>
@@ -564,7 +564,7 @@ const LandingPage = () => {
                   {IS_PHASE_1 ? (
                     <img src="/webmagnetmedia-logo.png" alt={APP_NAME} className="h-9 w-9 rounded-[10px]" />
                   ) : (
-                    <span className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-[#1877F2] text-white shadow-lg shadow-[#1877F2]/25">
+                    <span className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-[#0866FF] text-white shadow-lg shadow-[#0866FF]/25">
                       <span className="material-symbols-outlined text-[20px]">hub</span>
                     </span>
                   )}

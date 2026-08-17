@@ -4,27 +4,27 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --color-primary: #1877F2;
-  --color-primary-hover: #166FE5;
+  --color-primary: #0866FF;
+  --color-primary-hover: #0654D4;
   --color-charcoal: #0F172A;
 
   --font-display: "Inter", system-ui, sans-serif;
   --font-mono:    "JetBrains Mono", monospace;
 
-  --animate-fade-in:  fadeIn  0.3s ease-out  forwards;
-  --animate-slide-up: slideUp 0.36s cubic-bezier(0.16,1,0.3,1) forwards;
-  --animate-toast-in: toastIn 0.3s  cubic-bezier(0.16,1,0.3,1) forwards;
+  --animate-fade-in:  fadeIn  0.25s ease-out  forwards;
+  --animate-slide-up: slideUp 0.3s cubic-bezier(0.16,1,0.3,1) forwards;
+  --animate-toast-in: toastIn 0.25s cubic-bezier(0.16,1,0.3,1) forwards;
 
   @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(8px); }
+    from { opacity: 0; transform: translateY(6px); }
     to   { opacity: 1; transform: translateY(0);   }
   }
   @keyframes slideUp {
-    from { opacity: 0; transform: translateY(20px) scale(0.97); }
+    from { opacity: 0; transform: translateY(16px) scale(0.98); }
     to   { opacity: 1; transform: translateY(0)    scale(1);    }
   }
   @keyframes toastIn {
-    from { opacity: 0; transform: translateX(20px); }
+    from { opacity: 0; transform: translateX(16px); }
     to   { opacity: 1; transform: translateX(0);    }
   }
   @keyframes shimmer {
@@ -41,23 +41,23 @@
   html { scroll-behavior: smooth; }
 
   body {
-    background: #F0F2F8;
-    color: #1E1B3A;
+    background: #FFFFFF;
+    color: #1C1E21;
     font-family: var(--font-display);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     min-height: 100vh;
     overflow-x: hidden;
     font-size: 15px;
-    transition: background 0.3s, color 0.3s;
+    transition: background 0.2s ease, color 0.2s ease;
   }
 
   /* Dark mode body */
-  html.dark body { background: #0D1117; color: #E2E8F0; }
-  html.dark { background: #0D1117; }
+  html.dark body { background: #18191A; color: #E4E6EB; }
+  html.dark { background: #18191A; }
 
-  h1,h2,h3,h4,h5,h6 { font-weight: 700; letter-spacing: -0.025em; }
-  ::selection { background: #1877F2; color: #fff; }
+  h1,h2,h3,h4,h5,h6 { font-weight: 700; letter-spacing: -0.02em; }
+  ::selection { background: #0866FF; color: #fff; }
 }
 
 /* ════════════════ UTILITIES ════════════════ */
@@ -66,190 +66,163 @@
   /* ─── Scrollbar ─── */
   .custom-scrollbar::-webkit-scrollbar { width: 4px; }
   .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-  .custom-scrollbar::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 99px; }
-  .dark .custom-scrollbar::-webkit-scrollbar-thumb, html.dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #374151; }
+  .custom-scrollbar::-webkit-scrollbar-thumb { background: #CCD0D5; border-radius: 99px; }
+  .dark .custom-scrollbar::-webkit-scrollbar-thumb, html.dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #3A3B3C; }
 
   /* ─── Skeleton ─── */
   .skeleton {
-    background: linear-gradient(90deg, #E2E8F0 25%, #CBD5E1 50%, #E2E8F0 75%);
+    background: linear-gradient(90deg, #F0F2F5 25%, #E4E6EB 50%, #F0F2F5 75%);
     background-size: 500px 100%;
     animation: shimmer 1.5s ease-in-out infinite;
-    border-radius: 6px;
+    border-radius: 8px;
   }
   html.dark .skeleton, .dark .skeleton {
-    background: linear-gradient(90deg, #1E2A3A 25%, #253347 50%, #1E2A3A 75%);
+    background: linear-gradient(90deg, #242526 25%, #3A3B3C 50%, #242526 75%);
     background-size: 500px 100%;
   }
 
-  /* ─── Base card — light ─── */
+  /* ─── Base card — clean flat ─── */
   .c {
     background: #FFFFFF;
-    border: 1px solid #E2E8F0;
-    border-radius: 18px;
-    box-shadow: 0 1px 3px rgba(30,27,58,0.05), 0 4px 14px rgba(30,27,58,0.05);
-    transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
+    border: 1px solid #E4E6EB;
+    border-radius: 12px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    transition: box-shadow 0.2s ease, border-color 0.2s ease;
   }
   .dark .c, html.dark .c {
-    background: #161B27;
-    border-color: #2D3748;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.3), 0 4px 16px rgba(0,0,0,0.2);
+    background: #242526;
+    border-color: #3A3B3C;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
   }
 
-  /* ─── 3-D pressable card ─── */
+  /* ─── Card with hover — flat, subtle lift ─── */
   .c3 {
     background: #FFFFFF;
-    border: 1px solid #E2E8F0;
-    border-radius: 18px;
-    box-shadow:
-      0 5px 0 0   #C7D2E8,
-      0 8px 20px  rgba(30,27,58,0.07);
+    border: 1px solid #E4E6EB;
+    border-radius: 12px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
     transform: translateY(0);
-    transition: transform 120ms ease, box-shadow 120ms ease, border-color 150ms ease;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
     cursor: pointer;
   }
   .dark .c3, html.dark .c3 {
-    background: #161B27;
-    border-color: #2D3748;
-    box-shadow:
-      0 5px 0 0  #0D1117,
-      0 8px 20px rgba(0,0,0,0.35);
+    background: #242526;
+    border-color: #3A3B3C;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
   }
   .c3:hover {
-    border-color: #1877F2;
-    box-shadow:
-      0 6px 0 0   #90CAF9,
-      0 12px 28px rgba(24,119,242,0.18);
+    border-color: #0866FF;
+    box-shadow: 0 2px 8px rgba(8,102,255,0.12), 0 4px 16px rgba(8,102,255,0.08);
     transform: translateY(-2px);
   }
   .dark .c3:hover, html.dark .c3:hover {
-    box-shadow:
-      0 6px 0 0  #0D47A1,
-      0 12px 28px rgba(24,119,242,0.25);
+    border-color: #0866FF;
+    box-shadow: 0 2px 8px rgba(8,102,255,0.2), 0 4px 16px rgba(8,102,255,0.12);
   }
   .c3:active {
-    box-shadow:
-      0 1px 0 0  #C7D2E8,
-      0 2px 6px  rgba(30,27,58,0.08);
-    transform: translateY(4px);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+    transform: translateY(0);
   }
   .dark .c3:active, html.dark .c3:active {
-    box-shadow:
-      0 1px 0 0  #0D1117,
-      0 2px 6px  rgba(0,0,0,0.3);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
   }
 
   /* ─── Section label ─── */
   .sec-lbl {
     font-size: 11px;
     font-weight: 700;
-    letter-spacing: 0.14em;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: #94A3B8;
+    color: #65676B;
   }
-  .dark .sec-lbl, html.dark .sec-lbl { color: #4B5563; }
+  .dark .sec-lbl, html.dark .sec-lbl { color: #B0B3B8; }
 
   /* ─── Icon pill ─── */
   .ipill {
-    border-radius: 12px;
+    border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
   }
 
-  /* ─── PRIMARY button — indigo 3D ─── */
+  /* ─── PRIMARY button — flat Meta style ─── */
   .btn-pri {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 6px;
-    padding: 0 18px;
-    height: 40px;
-    background: #1877F2;
+    padding: 0 20px;
+    height: 36px;
+    background: #0866FF;
     color: #fff;
     border: none;
-    border-radius: 12px;
+    border-radius: 8px;
     font-weight: 600;
-    font-size: 13px;
-    letter-spacing: 0.01em;
+    font-size: 14px;
+    letter-spacing: 0;
     cursor: pointer;
-    box-shadow:
-      0 4px 0 0  #0D47A1,
-      0 6px 16px rgba(24,119,242,0.35);
-    transform: translateY(0);
-    transition: background 150ms, box-shadow 100ms, transform 100ms;
+    box-shadow: none;
+    transform: none;
+    transition: background 0.15s ease, opacity 0.15s ease;
     white-space: nowrap;
   }
   .btn-pri:hover {
-    background: #4293F5;
-    box-shadow:
-      0 5px 0 0  #0D47A1,
-      0 8px 20px rgba(24,119,242,0.42);
-    transform: translateY(-1px);
+    background: #0654D4;
   }
   .btn-pri:active {
-    background: #166FE5;
-    box-shadow:
-      0 1px 0 0  #0D47A1,
-      0 2px 6px  rgba(24,119,242,0.25);
-    transform: translateY(3px);
+    background: #0546B0;
+    transform: scale(0.98);
   }
   .btn-pri:disabled {
-    opacity: 0.45;
+    opacity: 0.4;
     cursor: not-allowed;
     pointer-events: none;
-    box-shadow: none;
   }
 
-  /* ─── SECONDARY button — outline 3D ─── */
+  /* ─── SECONDARY button — outline flat ─── */
   .btn-sec {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 6px;
     padding: 0 16px;
-    height: 38px;
+    height: 36px;
     background: #FFFFFF;
-    color: #1877F2;
-    border: 1.5px solid #1877F2;
-    border-radius: 12px;
+    color: #0866FF;
+    border: 1px solid #0866FF;
+    border-radius: 8px;
     font-weight: 600;
-    font-size: 13px;
+    font-size: 14px;
     cursor: pointer;
-    box-shadow: 0 4px 0 0 #BBDEFB, 0 4px 12px rgba(24,119,242,0.12);
-    transform: translateY(0);
-    transition: background 150ms, box-shadow 100ms, transform 100ms;
+    box-shadow: none;
+    transform: none;
+    transition: background 0.15s ease;
   }
   .dark .btn-sec, html.dark .btn-sec {
-    background: #1E2A3A;
-    border-color: #1877F2;
-    box-shadow: 0 4px 0 0 #0D47A1, 0 4px 12px rgba(24,119,242,0.20);
-    color: #90CAF9;
+    background: #242526;
+    border-color: #0866FF;
+    color: #75B6FF;
   }
   .btn-sec:hover {
-    background: #E3F2FD;
-    box-shadow: 0 5px 0 0 #BBDEFB, 0 6px 16px rgba(24,119,242,0.18);
-    transform: translateY(-1px);
+    background: #EBF5FF;
   }
-  .dark .btn-sec:hover, html.dark .btn-sec:hover { background: #253347; }
+  .dark .btn-sec:hover, html.dark .btn-sec:hover { background: #263C5A; }
   .btn-sec:active {
-    background: #BBDEFB;
-    box-shadow: 0 1px 0 0 #BBDEFB;
-    transform: translateY(3px);
+    background: #D4E9FF;
   }
 
   /* ─── DANGER button ─── */
   .btn-danger {
     display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-    padding: 0 16px; height: 38px;
-    background: #EF4444; color: #fff; border: none; border-radius: 12px;
-    font-weight: 600; font-size: 13px; cursor: pointer;
-    box-shadow: 0 4px 0 0 #991B1B, 0 6px 14px rgba(239,68,68,0.30);
-    transform: translateY(0);
-    transition: background 150ms, box-shadow 100ms, transform 100ms;
+    padding: 0 16px; height: 36px;
+    background: #FA383E; color: #fff; border: none; border-radius: 8px;
+    font-weight: 600; font-size: 14px; cursor: pointer;
+    box-shadow: none;
+    transition: background 0.15s ease;
   }
-  .btn-danger:hover  { background: #F87171; transform: translateY(-1px); }
-  .btn-danger:active { background: #DC2626; box-shadow: 0 1px 0 0 #991B1B; transform: translateY(3px); }
+  .btn-danger:hover  { background: #E5363B; }
+  .btn-danger:active { background: #CC3338; }
 
   /* ─── Marquee ─── */
   .landing-gradient-mesh { display: none; }
@@ -278,9 +251,9 @@
 .p-card    { }
 .p-card-hover { }
 .p-card-3d { }
-.icon-pill { border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.section-label { font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #94A3B8; }
+.icon-pill { border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.section-label { font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #65676B; }
 .nav-chip-active { }
 .animate-count-up { }
-.lux-card { background: #fff; border: 1px solid #E2E8F0; border-radius: 18px; }
+.lux-card { background: #fff; border: 1px solid #E4E6EB; border-radius: 12px; }
 .icon-beige { border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }

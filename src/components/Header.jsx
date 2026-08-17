@@ -45,7 +45,7 @@ const Header = ({ onMenuClick }) => {
               <img src={LOGO_PATH} alt={APP_NAME} className="w-8 h-8 rounded-[10px]" />
             ) : (
               <div className="w-8 h-8 rounded-[10px] flex items-center justify-center"
-                style={{ background: 'linear-gradient(135deg,#1877F2,#42A5F5)' }}>
+                style={{ background: 'linear-gradient(135deg,#0866FF,#58A6FF)' }}>
                 <span className="material-symbols-outlined text-white text-[17px]"
                   style={{ fontVariationSettings: "'FILL' 1" }}>hub</span>
               </div>
@@ -55,7 +55,7 @@ const Header = ({ onMenuClick }) => {
                 {IS_PHASE_1 ? (
                   <><span style={{ color: '#F47B20' }}>Web Magnet</span> Media</>
                 ) : (
-                  <>One<span style={{ color: '#1877F2' }}>Employee</span></>
+                  <>One<span style={{ color: '#0866FF' }}>Employee</span></>
                 )}
               </span>
               <span className="text-[10px] font-medium" style={{ color: C.icon }}>{APP_TAGLINE}</span>
@@ -70,7 +70,7 @@ const Header = ({ onMenuClick }) => {
           <button onClick={toggleTheme}
             className="flex items-center justify-center w-9 h-9 rounded-[10px] cursor-pointer border-none transition-all"
             style={{ background: C.btnBg, color: C.icon }}
-            onMouseEnter={e => { e.currentTarget.style.color = '#1877F2'; e.currentTarget.style.background = isDark ? '#2D3A55' : '#E3F2FD'; }}
+            onMouseEnter={e => { e.currentTarget.style.color = '#0866FF'; e.currentTarget.style.background = isDark ? '#2D3A55' : '#EBF5FF'; }}
             onMouseLeave={e => { e.currentTarget.style.color = C.icon;   e.currentTarget.style.background = C.btnBg; }}
             aria-label="Toggle theme"
             title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}>
