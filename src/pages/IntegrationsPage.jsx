@@ -1,0 +1,634 @@
+import React, { useState, useEffect, useMemo } from 'react';
+import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
+import { useNotifications } from '../context/NotificationContext';
+import { listWAPhoneNumbers, removeWAPhoneNumber } from '../api';
+
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  'https://lead-filteration-backend-vvsvqafcoa-el.a.run.app';
+
+const ownersApi = axios.create({
+  baseURL: `${API_BASE_URL}/api/owners`,
+  withCredentials: true,
+});
+
+const IntegrationsPage = () => {
+  const { addToast } = useNotifications();
+  const navigate = useNavigate();
+
+  const [activeTab, setActiveTab] = useState('whatsapp');
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
+
+  // WhatsApp — status only (no legacy credentials form)
+  const [waPhoneNumbers, setWaPhoneNumbers] = useState([]);
+  const [disconnectingWa, setDisconnectingWa] = useState(null); // phoneNumberId being removed
+
+  const [visibility, setVisibility] = useState({ externalSecret: false });
+
+  const [externalSource, setExternalSource] = useState({
+    sourceUrl: '',
+    webhookSecret: '',
+    isActive: false,
+  });
+
+  const [projectSettings, setProjectSettings] = useState({
+    salesWebsiteUrl: '',
+  });
+
+  /* ---------------------------------- */
+  /* UI */
+  /* ---------------------------------- */
+
+  const cardClass =
+    'bg-white/75 dark:bg-white/[0.04] backdrop-blur-xl border border-slate-200/80 dark:border-white/10 rounded-[24px] shadow-sm';
+
+  const inputClass =
+    'w-full rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#1e293b] px-4 py-4 text-sm font-semibold text-slate-900 dark:text-slate-300 outline-none transition-all focus:border-primary focus:bg-white dark:focus:bg-[#1e293b]';
+
+  const labelClass =
+    'mb-2 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.3em] text-slate-500';
+
+  const primaryButton =
+    'rounded-2xl bg-black px-6 py-4 text-[10px] font-black uppercase tracking-[0.25em] text-white transition-all hover:-translate-y-[1px] hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed';
+
+  const secondaryButton =
+    'rounded-2xl border border-indigo-300 bg-white dark:bg-[#1e293b] px-6 py-4 text-[10px] font-black uppercase tracking-[0.25em] text-indigo-600 transition-all hover:bg-indigo-50 disabled:opacity-50 disabled:cursor-not-allowed';
+
+  /* ---------------------------------- */
+  /* FETCH */
+  /* ---------------------------------- */
+
+  useEffect(() => {
+    fetchIntegrations();
+  }, []);
+
+  const reloadWANumbers = async () => {
+    try {
+      const res = await listWAPhoneNumbers();
+      if (res.data.success) setWaPhoneNumbers(res.data.data || []);
+      else setWaPhoneNumbers([]);
+    } catch {
+      setWaPhoneNumbers([]);
+    }
+  };
+
+  const handleWADisconnect = async (phoneNumberId) => {
+    if (!window.confirm('Remove this WhatsApp number? This will clear its credentials from your account and stop outreach from this number.')) return;
+    setDisconnectingWa(phoneNumberId);
+    try {
+      await removeWAPhoneNumber(phoneNumberId);
+      addToast('WhatsApp number disconnected and credentials cleared', 'success');
+      await reloadWANumbers();
+    } catch (err) {
+      const msg = err.response?.data?.error || 'Failed to disconnect';
+      if (err.response?.status === 400 || msg.toLowerCase().includes('default')) {
+        addToast('Cannot remove the default number while others exist. Go to WhatsApp Setup to set a new default first.', 'warning');
+      } else {
+        addToast(msg, 'error');
+      }
+    } finally {
+      setDisconnectingWa(null);
+    }
+  };
+
+  const fetchIntegrations = async () => {    try {
+      setLoading(true);
+
+      // Load external source + project settings only (WA credentials come from phone-numbers endpoint)
+      const response = await ownersApi.get('/integrations');
+      if (response.data.externalSource) setExternalSource(response.data.externalSource);
+      if (response.data.projectSettings) setProjectSettings(response.data.projectSettings);
+
+      // Load connected WA phone numbers via shared api.js (correct URL)
+      listWAPhoneNumbers()
+        .then(res => { if (res.data.success) setWaPhoneNumbers(res.data.data || []); })
+        .catch(() => {});
+    } catch (error) {
+      console.error(error);
+      addToast('Failed to load integration settings', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveExternal = async (e) => {
+    e.preventDefault();
+
+    try {
+      setSaving(true);
+
+      await Promise.all([
+        ownersApi.put(
+          '/integrations/external-source',
+          externalSource
+        ),
+
+        ownersApi.put(
+          '/integrations/project-settings',
+          projectSettings
+        ),
+      ]);
+
+      addToast(
+        'Project source settings saved successfully',
+        'success'
+      );
+    } catch (error) {
+      console.error(error);
+
+      addToast(
+        'Failed to save settings',
+        'error'
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  /* ---------------------------------- */
+  /* TEST CONNECTION */
+  /* ---------------------------------- */
+
+  const handleTestConnection = async () => {
+    if (!externalSource.sourceUrl) {
+      addToast(
+        'Please provide a source URL first',
+        'warning'
+      );
+
+      return;
+    }
+
+    try {
+      setTesting(true);
+
+      const response = await axios.post(
+        `${API_BASE_URL}/api/projects/test-connection`,
+        {
+          sourceUrl: externalSource.sourceUrl,
+
+          webhookSecret:
+            externalSource.webhookSecret ===
+            '********'
+              ? null
+              : externalSource.webhookSecret,
+        },
+        {
+          withCredentials: true,
+        }
+      );
+
+      if (response.data.success) {
+        addToast(
+          response.data.message ||
+            `Successfully connected! Found ${response.data.data.length} projects.`,
+          'success'
+        );
+      } else {
+        addToast(
+          'Connected, but verification failed.',
+          'warning'
+        );
+      }
+    } catch (error) {
+      console.error(error);
+
+      const errorMsg =
+        error.response?.data?.error ||
+        error.response?.data?.message ||
+        'Connection failed';
+
+      addToast(errorMsg, 'error');
+    } finally {
+      setTesting(false);
+    }
+  };
+
+  /* ---------------------------------- */
+  /* HELPERS */
+  /* ---------------------------------- */
+
+  const toggleVisibility = (field) => {
+    setVisibility((prev) => ({
+      ...prev,
+      [field]: !prev[field],
+    }));
+  };
+
+  const tabs = useMemo(
+    () => [
+      {
+        id: 'whatsapp',
+        title: 'WhatsApp',
+        icon: 'chat',
+        activeClass: 'bg-[#25D366] text-white',
+      },
+
+      {
+        id: 'external',
+        title: 'Project Source',
+        icon: 'webhook',
+        activeClass: 'bg-indigo-600 text-white',
+      },
+    ],
+    []
+  );
+
+  const renderPasswordField = ({
+    label,
+    value,
+    onChange,
+    placeholder,
+    visible,
+    onToggle,
+  }) => (
+    <div>
+      <label className={labelClass}>
+        {label}
+      </label>
+
+      <div className="relative">
+        <input
+          type={visible ? 'text' : 'password'}
+          value={value || ''}
+          onChange={onChange}
+          placeholder={placeholder}
+          className={`${inputClass} pr-14`}
+        />
+
+        <button
+          type="button"
+          onClick={onToggle}
+          className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-white transition-colors hover:text-slate-700 dark:hover:text-slate-300"
+        >
+          <span className="material-symbols-outlined text-lg">
+            {visible
+              ? 'visibility_off'
+              : 'visibility'}
+          </span>
+        </button>
+      </div>
+    </div>
+  );
+
+  /* ---------------------------------- */
+  /* LOADING */
+  /* ---------------------------------- */
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">
+            Loading Integrations
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  /* ---------------------------------- */
+  /* RENDER */
+  /* ---------------------------------- */
+
+  return (
+    <div className="animate-fade-in pb-10">
+      <div className="mx-auto max-w-7xl px-4">
+
+        {/* HEADER */}
+
+        <div className={`${cardClass} mb-8 p-6 md:p-8`}>
+
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+
+            <div>
+
+              <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-2">
+
+                <span className="h-2 w-2 animate-pulse rounded-full bg-primary" />
+
+                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">
+                  System Integrations
+                </span>
+
+              </div>
+
+              <h1 className="text-3xl font-black tracking-tight text-slate-900 dark:text-white md:text-4xl">
+                Integrations
+              </h1>
+
+              <p className="mt-2 text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400">
+                Manage all external services & automation providers
+              </p>
+
+            </div>
+
+          </div>
+
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-[260px_1fr]">
+
+          {/* SIDEBAR */}
+
+          <div className={`${cardClass} h-fit p-4`}>
+
+            <div className="space-y-3">
+
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() =>
+                    setActiveTab(tab.id)
+                  }
+                  className={`flex w-full items-center gap-3 rounded-2xl border px-5 py-4 text-left transition-all ${
+                    activeTab === tab.id
+                      ? `${tab.activeClass} border-transparent shadow-lg`
+                      : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
+                  }`}
+                >
+
+                  <span className="material-symbols-outlined text-xl">
+                    {tab.icon}
+                  </span>
+
+                  <div>
+
+                    <div className="text-[10px] font-black uppercase tracking-[0.25em]">
+                      {tab.title}
+                    </div>
+
+                  </div>
+
+                </button>
+              ))}
+
+            </div>
+
+          </div>
+
+          {/* CONTENT */}
+
+          <div className={`${cardClass} p-6 md:p-8`}>
+
+            {/* WHATSAPP */}
+
+            {activeTab === 'whatsapp' && (
+                <div className="animate-fade-in">
+                    {/* Header */}
+                    <div className="mb-8 flex items-center gap-4">
+                        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#25D366] text-white shadow-lg">
+                            <span className="material-symbols-outlined text-2xl">chat</span>
+                        </div>
+                        <div>
+                            <h2 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white">WhatsApp Integration</h2>
+                            <p className="mt-1 text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400">
+                                Direct Meta WhatsApp Cloud API
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Phone number status */}
+                    {waPhoneNumbers.length > 0 ? (
+                        <div className="space-y-3 mb-6">
+                            {waPhoneNumbers.map(num => (
+                                <div key={num.id || num.phoneNumberId} className="flex items-center gap-3 p-4 rounded-2xl border border-emerald-200 dark:border-emerald-900/30 bg-emerald-50 dark:bg-emerald-900/10">
+                                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse flex-shrink-0" />
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-bold text-slate-900 dark:text-white">{num.display_phone_number || num.displayPhoneNumber || num.phoneNumberId}</p>
+                                        <p className="text-xs text-slate-500">{num.verified_name || num.verifiedName || 'Connected'}</p>
+                                    </div>
+                                    {num.isDefault && (
+                                        <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#25D366]/10 text-[#25D366]">Default</span>
+                                    )}
+                                    <button
+                                        onClick={() => handleWADisconnect(num.id || num.phoneNumberId)}
+                                        disabled={disconnectingWa === (num.id || num.phoneNumberId)}
+                                        className="text-[9px] font-black uppercase tracking-wider px-3 py-1.5 rounded-xl border border-red-200 dark:border-red-900/30 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex-shrink-0"
+                                    >
+                                        {disconnectingWa === (num.id || num.phoneNumberId) ? 'Removing…' : 'Disconnect'}
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="mb-6 p-5 rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.02] text-center">
+                            <span className="material-symbols-outlined text-slate-300 text-4xl mb-2 block">chat_bubble_outline</span>
+                            <p className="text-sm text-slate-500">No WhatsApp numbers connected yet</p>
+                            <p className="text-xs text-slate-400 mt-1">Connect your WhatsApp Business Account to start sending messages</p>
+                            <button
+                                onClick={() => navigate('/whatsapp-setup')}
+                                className="mt-4 inline-flex items-center gap-2 rounded-2xl bg-[#25D366] px-5 py-2.5 text-[10px] font-black uppercase tracking-[0.25em] text-white hover:bg-[#20b858] transition-all"
+                            >
+                                <span className="material-symbols-outlined text-base">add_circle</span>
+                                Connect WhatsApp
+                            </button>
+                        </div>
+                    )}
+
+                    {/* Action buttons */}
+                    <div className="flex flex-wrap gap-3">
+                        <button
+                            onClick={() => navigate('/whatsapp-setup')}
+                            className={`${primaryButton} flex items-center justify-center`}
+                        >
+                            <span className="material-symbols-outlined text-base mr-2">
+                                settings
+                            </span>
+                            <span>
+                                {waPhoneNumbers.length > 0 ? 'Manage Setup' : 'Connect WhatsApp'}
+                            </span>
+                        </button>
+                        <button
+                            onClick={() => navigate('/whatsapp-templates')}
+                            className="rounded-2xl border border-[#25D366]/40 bg-[#25D366]/5 px-6 py-4 text-[10px] font-black uppercase tracking-[0.25em] text-[#25D366] transition-all hover:bg-[#25D366]/10 flex items-center gap-2"
+                        >
+                            <span className="material-symbols-outlined text-base">description</span>
+                            Manage Templates
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* EXTERNAL */}
+
+            {activeTab === 'external' && (
+              <div className="animate-fade-in">
+
+                <div className="mb-8 flex items-center gap-4">
+
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-lg">
+                    <span className="material-symbols-outlined text-2xl">
+                      webhook
+                    </span>
+                  </div>
+
+                  <div>
+
+                    <h2 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white">
+                      Project Source Webhook
+                    </h2>
+
+                    <p className="mt-1 text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400">
+                      External lead & project bridge
+                    </p>
+
+                  </div>
+
+                </div>
+
+                <form
+                  onSubmit={handleSaveExternal}
+                  className="space-y-6"
+                >
+
+                  <div className="flex items-center gap-3 rounded-2xl border border-indigo-200 bg-indigo-50 px-4 py-4">
+
+                    <input
+                      type="checkbox"
+                      checked={
+                        externalSource.isActive
+                      }
+                      onChange={(e) =>
+                        setExternalSource({
+                          ...externalSource,
+                          isActive:
+                            e.target.checked,
+                        })
+                      }
+                      className="h-4 w-4 accent-indigo-600"
+                    />
+
+                    <span className="text-[10px] font-black uppercase tracking-[0.25em] text-indigo-700">
+                      Enable External Project Source
+                    </span>
+
+                  </div>
+
+                  <div>
+
+                    <label className={labelClass}>
+                      Sales Website URL
+                    </label>
+
+                    <input
+                      type="url"
+                      value={
+                        projectSettings.salesWebsiteUrl ||
+                        ''
+                      }
+                      onChange={(e) =>
+                        setProjectSettings({
+                          ...projectSettings,
+                          salesWebsiteUrl:
+                            e.target.value,
+                        })
+                      }
+                      placeholder="https://www.yoursite.com"
+                      className={inputClass}
+                    />
+
+                  </div>
+
+                  <div>
+
+                    <label className={labelClass}>
+                      Source URL
+                    </label>
+
+                    <input
+                      type="url"
+                      value={
+                        externalSource.sourceUrl ||
+                        ''
+                      }
+                      onChange={(e) =>
+                        setExternalSource({
+                          ...externalSource,
+                          sourceUrl:
+                            e.target.value,
+                        })
+                      }
+                      placeholder="https://site.com/webhook"
+                      className={inputClass}
+                    />
+
+                  </div>
+
+                  {renderPasswordField({
+                    label:
+                      'Webhook Secret / API Key',
+
+                    value:
+                      externalSource.webhookSecret,
+
+                    placeholder:
+                      'Enter secret key',
+
+                    visible:
+                      visibility.externalSecret,
+
+                    onToggle: () =>
+                      toggleVisibility(
+                        'externalSecret'
+                      ),
+
+                    onChange: (e) =>
+                      setExternalSource({
+                        ...externalSource,
+                        webhookSecret:
+                          e.target.value,
+                      }),
+                  })}
+
+                  <div className="flex flex-wrap gap-4">
+
+                    <button
+                      type="submit"
+                      disabled={saving}
+                      className={primaryButton}
+                    >
+                      {saving
+                        ? 'Saving...'
+                        : 'Save Settings'}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={
+                        handleTestConnection
+                      }
+                      disabled={
+                        testing ||
+                        !externalSource.sourceUrl
+                      }
+                      className={secondaryButton}
+                    >
+                      {testing
+                        ? 'Testing...'
+                        : 'Test Connection'}
+                    </button>
+
+                  </div>
+
+                </form>
+
+              </div>
+            )}
+
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+  );
+};
+
+export default IntegrationsPage;
+

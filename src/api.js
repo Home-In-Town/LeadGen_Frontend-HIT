@@ -1,0 +1,362 @@
+import axios from 'axios';
+
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://lead-filteration-backend-vvsvqafcoa-el.a.run.app';
+
+// Helper to create an axios instance with shared interceptors
+const createApiInstance = (path) => {
+    const instance = axios.create({
+        baseURL: `${BASE_URL}/api${path}`,
+        withCredentials: true  // Send cookie on every request
+    });
+
+    // Response interceptor: Handle 401 — redirect to /login
+    instance.interceptors.response.use(
+        (response) => response,
+        (error) => {
+            if (error.response && error.response.status === 401) {
+                // Avoid redirect loop if already on login page
+                if (!window.location.pathname.startsWith('/login')) {
+                    window.location.href = '/login';
+                }
+            }
+            return Promise.reject(error);
+        }
+    );
+
+    return instance;
+};
+
+// Create instances for different modules
+const leadsApi = createApiInstance('/leads');
+const voiceApi = createApiInstance('/voice');
+const automationApi = createApiInstance('/lead-automation');
+const googleApi = createApiInstance('/google');
+
+// Default export (leadsApi)
+export default leadsApi;
+
+export const API_URL = `${BASE_URL}/api/leads`;
+
+// ====== USER ENDPOINTS ======
+export const createUser = (data) => leadsApi.post(`/users`, data);
+export const getAllUsers = (params) => leadsApi.get(`/users`, { params });
+export const uploadUser = (file, creatorData) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (creatorData) {
+        formData.append('createdBy', JSON.stringify(creatorData));
+    }
+    return leadsApi.post(`/users/upload`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+    });
+};
+export const deleteUser = (id) => leadsApi.delete(`/users/${id}`);
+
+// ====== LEAD ENDPOINTS ======
+export const getAllLeads = (params) => leadsApi.get('', { params });
+export const createLeadFromUser = (userId, creatorData) => leadsApi.post(`/from-user/${userId}`, creatorData);
+export const updateWhatsapp = (id, reply) => leadsApi.post(`/${id}/whatsapp-result`, { reply });
+export const updateAiCall = (id, data) => leadsApi.post(`/${id}/ai-call-result`, data);
+export const updateLinkActivity = (id, data) => leadsApi.post(`/${id}/link-activity`, data);
+export const getSummary = (id) => leadsApi.get(`/${id}/summary`);
+export const deleteLead = (id) => leadsApi.delete(`/${id}`);
+
+// ====== VOICE CALL ENDPOINTS ======
+export const getCallStatus = (leadId) => voiceApi.get(`/status/${leadId}`);
+export const getCallLogs = (params) => voiceApi.get('/call-logs', { params });
+export const getLeadCallHistory = (leadId) => voiceApi.get(`/leads/${leadId}/calls`);
+
+// ====== VOICE SETTINGS ENDPOINTS ======
+export const getVoiceSettings = () => voiceApi.get('/settings');
+export const updateVoiceSettings = (data) => voiceApi.put('/settings', data);
+export const resetVoiceSettings = () => voiceApi.delete('/settings');
+
+// ====== VOICE DOCUMENTS ENDPOINTS ======
+export const uploadVoiceDocument = (file) => {
+    const formData = new FormData();
+    formData.append('document', file);
+    return voiceApi.post('/documents', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+    });
+};
+export const listVoiceDocuments = () => voiceApi.get('/documents');
+export const deleteVoiceDocument = (docId) => voiceApi.delete(`/documents/${docId}`);
+
+// ====== LEAD AUTOMATION ENDPOINTS ======
+export const getWhatsappTemplates = () => automationApi.get(`/templates`);
+export const getLeadAutomations = (leadId) => automationApi.get(`/lead/${leadId}`);
+export const getCreatorAutomations = (userId) => automationApi.get(`/creator/${userId}`);
+export const createLeadAutomation = (data) => automationApi.post('', data);
+export const deleteLeadAutomation = (id) => automationApi.delete(`/${id}`);
+
+// ====== GOOGLE INTEGRATION ======
+export const getGoogleMappings = () => googleApi.get('/mapping');
+export const createGoogleMapping = (data) => googleApi.post('/mapping', data);
+export const deleteGoogleMapping = (id) => googleApi.delete(`/mapping/${id}`);
+
+// ====== NOTIFICATION ENDPOINTS ======
+const notificationApi = createApiInstance('/notifications');
+export const getNotifications = (userId) => notificationApi.get('', { params: { userId } });
+export const markNotificationRead = (id) => notificationApi.patch(`/${id}/read`);
+export const markAllNotificationsRead = (userId) => notificationApi.patch(`/read-all`, { userId });
+
+// ====== SHARED: PROJECT LIST (used by Google & Facebook integration pages) ======
+const projectsApi = createApiInstance('/projects');
+export const getBuilderProjects = () => projectsApi.get('/list');
+
+// ====== CHAT ENDPOINTS ======
+const chatApi = createApiInstance('/chat');
+export const getChatConversations = (cursor) => chatApi.get('/conversations', { params: { ...(cursor ? { cursor } : {}) } });
+export const getChatMessages = (leadId, cursor) => chatApi.get(`/${leadId}/messages`, { params: { ...(cursor ? { cursor } : {}) } });
+export const sendChatMessage = (leadId, data) => chatApi.post(`/${leadId}/send`, data);
+export const sendChatTemplate = (leadId, data) => chatApi.post(`/${leadId}/send-template`, data);
+export const newChatConversation = (data) => chatApi.post('/new-conversation', data);
+export const markChatAsRead = (leadId) => chatApi.post(`/${leadId}/read`);
+
+// ====== EMAIL DASHBOARD ENDPOINTS ======
+const emailApi = createApiInstance('/email');
+export const getEmailFolder = (folder, params) => emailApi.get(`/folder/${folder}`, { params });
+export const getEmailById = (id) => emailApi.get(`/${id}`);
+export const sendEmail = (data) => emailApi.post('/send', data);
+export const testEmailConnection = () => emailApi.get('/test-connection');
+export const disconnectEmail = () => emailApi.delete('/disconnect');
+export const getEmailConnectionStatus = () => emailApi.get('/connection-status');
+
+// ====== OAUTH ENDPOINTS (email integration) ======
+export const getGoogleAuthUrl = (ownerId) => `${BASE_URL}/api/auth/google/login?ownerId=${ownerId}`;
+export const getMicrosoftAuthUrl = (ownerId) => `${BASE_URL}/api/auth/microsoft/login?ownerId=${ownerId}`;
+
+// ====== CAMPAIGN ENDPOINTS ======
+const campaignApi = createApiInstance('/campaigns');
+export const uploadCampaign = (file, name, linkedFbCampaignId) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (name) formData.append('name', name);
+    if (linkedFbCampaignId) formData.append('linkedFbCampaignId', linkedFbCampaignId);
+    return campaignApi.post('/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+    });
+};
+export const listCampaigns = (params) => campaignApi.get('', { params });
+export const getCampaignProgress = (id) => campaignApi.get(`/${id}/progress`);
+export const getCampaignDeadLetters = (id) => campaignApi.get(`/${id}/dead-letters`);
+export const retryCampaign = (id) => campaignApi.post(`/${id}/retry`);
+export const pauseCampaign = (id) => campaignApi.post(`/${id}/pause`);
+export const resumeCampaign = (id) => campaignApi.post(`/${id}/resume`);
+export const deleteCampaign = (id) => campaignApi.delete(`/${id}`);
+export const listFbCampaignsForUpload = () => campaignApi.get('/fb-campaigns');
+export const getCampaignLeads = (id, params) => campaignApi.get(`/${id}/leads`, { params });
+export const deleteAllCampaigns = (confirm) => campaignApi.delete('/delete-all', { data: { confirm } });
+
+// ====== AUTH API (cookie-based, no 401 redirect) ======
+// Uses a plain axios instance — 401 here means wrong credentials, not expired session
+const _authAxios = axios.create({ baseURL: `${BASE_URL}/api/auth`, withCredentials: true });
+
+export const authApi = {
+    register: (data) => _authAxios.post('/register', data),
+    verifyOtp: (phone, code) => _authAxios.post('/verify-otp', { phone, code }),
+    login: (phone, mpin) => _authAxios.post('/login', { phone, mpin }),
+    forgotMpin: (phone) => _authAxios.post('/forgot-mpin', { phone }),
+    resetMpin: (phone, code, newMpin) => _authAxios.post('/reset-mpin', { phone, code, newMpin }),
+    checkEmail: (email, mobile) => _authAxios.post('/check-email', { email, ...(mobile ? { mobile } : {}) }),
+    verifyEmailOtp: (accessToken, name, mobile, email) => _authAxios.post('/verify-email-otp', { accessToken, name, mobile, email }),
+    sendEmailOtp: (email) => _authAxios.post('/send-email-otp', { email }),
+    verifyEmailOtpCode: (email, otp, reqId, name) => _authAxios.post('/verify-email-otp-code', { email, otp, reqId, name }),
+    getSession: () => _authAxios.get('/session'),
+    logout: () => _authAxios.post('/logout'),
+    // New PIN-based auth flow
+    setupPin: (tempToken, pin, name, mobile) => _authAxios.post('/setup-pin', { tempToken, pin, name, mobile }),
+    loginWithPin: (email, pin) => _authAxios.post('/login-pin', { email, pin }),
+    forgotPin: (email) => _authAxios.post('/forgot-pin', { email }),
+    verifyResetOtp: (accessToken, email) => _authAxios.post('/verify-reset-otp', { accessToken, email }),
+    resetPin: (tempToken, newPin) => _authAxios.post('/reset-pin', { tempToken, newPin }),
+};
+
+// ====== FACEBOOK INTEGRATION ENDPOINTS ======
+const facebookApi = createApiInstance('/facebook');
+
+// OAuth flow
+export const initiateFBConnect  = () => {
+    // Redirect browser to backend /connect which initiates OAuth
+    window.location.href = `${BASE_URL}/api/facebook/connect`;
+};
+
+// Status: connection info + pages + forms + mappings
+export const getFBStatus        = ()     => facebookApi.get('/status');
+// Disconnect
+export const disconnectFacebook = ()     => facebookApi.post('/disconnect');
+// Fetch real-time leads from a specific form
+export const getFBFormLeads     = (formId, limit = 25) =>
+    facebookApi.get('/leads', { params: { formId, limit } });
+
+// Form mapping CRUD
+export const getFBMappings      = ()     => facebookApi.get('/mapping');
+export const createFBMapping    = (data) => facebookApi.post('/mapping', data);
+export const deleteFBMapping    = (id)   => facebookApi.delete(`/mapping/${id}`);
+export const toggleFBMapping    = (id)   => facebookApi.patch(`/mapping/${id}/toggle`);
+// Historical lead import
+export const importFBHistorical = (days = 30, runAutomation = true) =>
+    facebookApi.post(`/import-historical?days=${days}&runAutomation=${runAutomation}`);
+export const subscribeFBWebhook = () => facebookApi.post('/subscribe-webhook');
+export const getFBWebhookStatus = () => facebookApi.get('/webhook-status');
+// Campaign management
+export const syncFBCampaigns        = ()                  => facebookApi.post('/campaigns/sync');
+export const getFBCampaigns         = (params)            => facebookApi.get('/campaigns', { params });
+export const updateFBCampaignConfig = (campaignId, data)  => facebookApi.put(`/campaigns/${campaignId}/config`, data);
+
+// ====== EMAIL TEMPLATE ENDPOINTS ======
+const emailTemplateApi = createApiInstance('/email-templates');
+export const listEmailTemplates      = ()          => emailTemplateApi.get('');
+export const createEmailTemplate     = (data)      => emailTemplateApi.post('', data);
+export const updateEmailTemplate     = (id, data)  => emailTemplateApi.put(`/${id}`, data);
+export const deleteEmailTemplate     = (id)        => emailTemplateApi.delete(`/${id}`);
+export const testEmailTemplate       = (id)        => emailTemplateApi.post(`/${id}/test`);
+export const deleteAllEmailTemplates = ()          => emailTemplateApi.delete('/delete-all');
+
+// ====== AUTOMATION HISTORY ======
+export const getLeadAutomationHistory = (leadId) => leadsApi.get(`/${leadId}/automation-history`);
+
+// ====== OWNER / INTEGRATIONS ======
+const ownersApi = createApiInstance('/owners');
+export const getIntegrations      = ()     => ownersApi.get('/integrations');
+export const syncIntegrationStatus = ()    => ownersApi.get('/integrations/sync-status');
+export const getChannelStatus      = ()    => ownersApi.get('/integrations/channel-status');
+
+const whatsappApi = createApiInstance('/whatsapp');
+
+// Phone number management
+export const listWAPhoneNumbers   = ()     => whatsappApi.get('/phone-numbers');
+export const addWAPhoneNumber     = (data) => whatsappApi.post('/phone-numbers', data);
+export const removeWAPhoneNumber  = (id)   => whatsappApi.delete(`/phone-numbers/${id}`);
+export const disconnectAllWA      = ()     => whatsappApi.delete('/phone-numbers/disconnect-all');
+export const setDefaultWAPhone    = (id)   => whatsappApi.patch(`/phone-numbers/${id}/default`);
+export const connectMetaOAuth     = (code) => whatsappApi.post('/connect/meta-oauth', { code });
+
+// Template management
+export const listWATemplates      = ()          => whatsappApi.get('/templates');
+export const createWATemplate     = (data)      => whatsappApi.post('/templates', data);
+export const deleteWATemplate     = (name)      => whatsappApi.delete(`/templates/${name}`);
+
+
+// ====== PROFILE ENDPOINTS ======
+export const getProfile              = ()     => ownersApi.get('/profile');
+export const updateProfile           = (data) => ownersApi.put('/profile', data);
+export const changePin               = (data) => ownersApi.put('/change-pin', data);
+export const getUsageStats           = ()     => ownersApi.get('/usage-stats');
+
+// ====== HOMEINTOWN LINKING ENDPOINTS ======
+export const getHomeinTownStatus     = ()     => ownersApi.get('/homeintown-status');
+export const verifyHitAccount        = (data) => ownersApi.post('/link-homeintown', data);
+export const confirmLinkHomeintown   = (data) => ownersApi.post('/confirm-link-homeintown', data);
+export const unlinkHomeintown        = ()     => ownersApi.post('/unlink-homeintown');
+
+// ====== HIT PROJECTS ENDPOINTS ======
+export const getHitProjects          = ()     => ownersApi.get('/projects');
+
+
+// ====== PROJECT ENDPOINTS (HIT-connected users) ======
+const projectApi = createApiInstance('/projects');
+export const listProjects            = ()                   => projectApi.get('');
+export const getProjectDetails       = (hitProjectId)       => projectApi.get(`/${hitProjectId}`);
+export const getProjectSettings      = (hitProjectId)       => projectApi.get(`/${hitProjectId}/settings`);
+export const updateProjectSettings   = (hitProjectId, data) => projectApi.put(`/${hitProjectId}/settings`, data);
+export const getProjectCampaigns     = (hitProjectId)       => projectApi.get(`/${hitProjectId}/campaigns`);
+export const getProjectLeads         = (hitProjectId, params) => projectApi.get(`/${hitProjectId}/leads`, { params });
+export const uploadProjectCampaign   = (hitProjectId, file, name) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (name) formData.append('name', name);
+    return projectApi.post(`/${hitProjectId}/campaigns/upload`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+    });
+};
+
+export const syncProjects             = ()     => projectApi.post('/sync');
+
+// ====== HIT PROJECT CRUD (create, update, delete) ======
+export const createHitProject         = (data) => projectApi.post('/create', data);
+export const updateHitProject         = (hitProjectId, data) => projectApi.put(`/${hitProjectId}/update`, data);
+export const deleteHitProject         = (hitProjectId) => projectApi.delete(`/${hitProjectId}/delete`);
+export const listHitProjects          = ()     => ownersApi.get('/projects');
+
+// ====== META SOCIAL ENDPOINTS ======
+const metaSocialApi = createApiInstance('/meta-social');
+
+// OAuth & Connection
+export const initiateMetaSocialConnect = () => {
+    window.location.href = `${BASE_URL}/api/meta-social/connect`;
+};
+export const getMetaSocialStatus       = ()     => metaSocialApi.get('/status');
+export const disconnectMetaSocial      = ()     => metaSocialApi.post('/disconnect');
+export const getMetaSocialPages        = ()     => metaSocialApi.get('/pages');
+export const subscribeFeedWebhook      = ()     => metaSocialApi.post('/subscribe-feed');
+
+// Create & Manage Posts (from OneEmployee)
+const socialPostsApi = createApiInstance('/meta-social/posts');
+export const createSocialPost          = (data) => socialPostsApi.post('', data);
+export const listSocialPosts           = (params) => socialPostsApi.get('', { params });
+export const getSocialPost             = (postId) => socialPostsApi.get(`/${postId}`);
+export const updateSocialPost          = (postId, data) => socialPostsApi.put(`/${postId}`, data);
+export const deleteSocialPost          = (postId) => socialPostsApi.delete(`/${postId}`);
+export const publishSocialPostNow      = (postId) => socialPostsApi.post(`/${postId}/publish-now`);
+export const getSocialPostsCalendar    = (from, to) => socialPostsApi.get('/calendar', { params: { from, to } });
+
+// Manage Existing Platform Posts (FB + IG)
+const managePostsApi = createApiInstance('/meta-social/manage-posts');
+export const getAllPlatformPosts       = (params) => managePostsApi.get('/all', { params });
+export const getFacebookPosts          = (params) => managePostsApi.get('/facebook', { params });
+export const getFacebookScheduledPosts = (params) => managePostsApi.get('/facebook/scheduled', { params });
+export const getFacebookPostDetail     = (postId, params) => managePostsApi.get(`/facebook/${postId}`, { params });
+export const editFacebookPost          = (postId, data, params) => managePostsApi.put(`/facebook/${postId}`, data, { params });
+export const deleteFacebookPost        = (postId, params) => managePostsApi.delete(`/facebook/${postId}`, { params });
+export const getFacebookPostComments   = (postId, params) => managePostsApi.get(`/facebook/${postId}/comments`, { params });
+export const replyToFacebookComment    = (commentId, data, params) => managePostsApi.post(`/facebook/${commentId}/reply`, data, { params });
+export const getInstagramPosts         = (params) => managePostsApi.get('/instagram', { params });
+export const getInstagramPostDetail    = (mediaId, params) => managePostsApi.get(`/instagram/${mediaId}`, { params });
+export const editInstagramPost         = (mediaId, data, params) => managePostsApi.put(`/instagram/${mediaId}`, data, { params });
+export const deleteInstagramPost       = (mediaId, params) => managePostsApi.delete(`/instagram/${mediaId}`, { params });
+export const getInstagramPostComments  = (mediaId, params) => managePostsApi.get(`/instagram/${mediaId}/comments`, { params });
+export const replyToInstagramComment   = (commentId, data, params) => managePostsApi.post(`/instagram/${commentId}/reply`, data, { params });
+
+// Analytics
+const analyticsApi = createApiInstance('/meta-social/analytics');
+export const getSocialOverview         = (params) => analyticsApi.get('/overview', { params });
+export const getSocialTopPosts         = (params) => analyticsApi.get('/top-posts', { params });
+export const getFBPageInsights         = (params) => analyticsApi.get('/facebook/page', { params });
+export const getFBFollowers            = (params) => analyticsApi.get('/facebook/followers', { params });
+export const getFBPostInsights         = (postId, params) => analyticsApi.get(`/facebook/post/${postId}`, { params });
+export const getIGAccountInsights      = (params) => analyticsApi.get('/instagram/account', { params });
+export const getIGAccountInfo          = (params) => analyticsApi.get('/instagram/info', { params });
+export const getIGPostInsights         = (mediaId, params) => analyticsApi.get(`/instagram/post/${mediaId}`, { params });
+
+// Comment Auto-Reply Config
+const commentReplyApi = createApiInstance('/meta-social/comment-reply');
+export const getCommentReplyConfig     = ()     => commentReplyApi.get('/config');
+export const updateCommentReplyConfig  = (data) => commentReplyApi.put('/config', data);
+export const getCommentReplyLogs       = (params) => commentReplyApi.get('/logs', { params });
+export const getCommentReplyStats      = ()     => commentReplyApi.get('/stats');
+export const testCommentReplyPrompt    = (data) => commentReplyApi.post('/test', data);
+export const clearCommentReplyLogs     = ()     => commentReplyApi.delete('/logs', { data: { confirm: 'CLEAR_ALL' } });
+
+// Ad Campaign Launcher
+const adLauncherApi = createApiInstance('/meta-social/ad-launcher');
+export const createAdDraft             = (data) => adLauncherApi.post('/draft', data);
+export const listAdDrafts              = (params) => adLauncherApi.get('/drafts', { params });
+export const getAdDraft                = (draftId) => adLauncherApi.get(`/draft/${draftId}`);
+export const updateAdDraft             = (draftId, data) => adLauncherApi.put(`/draft/${draftId}`, data);
+export const deleteAdDraft             = (draftId) => adLauncherApi.delete(`/draft/${draftId}`);
+export const launchAdDraft             = (draftId) => adLauncherApi.post(`/draft/${draftId}/launch`);
+export const scheduleAdDraft           = (draftId, data) => adLauncherApi.post(`/draft/${draftId}/schedule`, data);
+export const previewAdDraft            = (draftId) => adLauncherApi.post(`/draft/${draftId}/preview`);
+export const searchAdInterests         = (q) => adLauncherApi.get('/targeting/interests', { params: { q } });
+export const searchAdLocations         = (q) => adLauncherApi.get('/targeting/locations', { params: { q } });
+export const getAdAccounts             = () => adLauncherApi.get('/ad-accounts');
+export const getAdLeadForms            = (pageId) => adLauncherApi.get('/lead-forms', { params: { pageId } });
+
+// ====== META SOCIAL MESSAGING (FB Messenger + IG DMs) ======
+const messagingApi = createApiInstance('/meta-social/messages');
+export const getMetaConversations       = (params) => messagingApi.get('/conversations', { params });
+export const getFBConversationMessages  = (conversationId, params) => messagingApi.get(`/facebook/${conversationId}`, { params });
+export const sendFBMessageReply         = (data) => messagingApi.post('/facebook/send', data);
+export const getIGConversationMessages  = (conversationId, params) => messagingApi.get(`/instagram/${conversationId}`, { params });
+export const sendIGMessageReply         = (data) => messagingApi.post('/instagram/send', data);
