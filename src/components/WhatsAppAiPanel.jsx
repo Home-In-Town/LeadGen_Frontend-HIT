@@ -13,6 +13,7 @@ import { useNavigate } from 'react-router-dom';
 
 // ── Delay options ─────────────────────────────────────────────────────────────
 const DELAY_OPTIONS = [
+  { value: 5000,    label: 'Instant (5s)' },
   { value: 60000,   label: '1 minute' },
   { value: 180000,  label: '3 minutes' },
   { value: 300000,  label: '5 minutes (recommended)' },
