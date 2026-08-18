@@ -1,13 +1,12 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
-import { APP_NAME, LOGO_PATH, BRAND_COLOR, IS_PHASE_1 } from '../../config/phase';
+import { APP_NAME, LOGO_PATH, IS_PHASE_1 } from '../../config/phase';
 
 const navLinks = [
-  { href: '#features', label: 'Platform' },
+  { href: '#features', label: 'Features' },
+  { href: '#how-it-works', label: 'How it works' },
   { href: '#integrations', label: 'Integrations' },
-  { href: '#workflow', label: 'Automation' },
-  { href: '#analytics', label: 'Analytics' },
   { href: '#testimonials', label: 'Customers' },
 ];
 
@@ -17,105 +16,98 @@ const LandingNavbar = ({ onLogin }) => {
   const isDark = theme === 'dark';
 
   return (
-    <header className={`sticky top-0 z-50 border-b backdrop-blur-xl transition-colors duration-300 ${isDark ? 'border-white/10 bg-[#0F172A]/90' : 'border-slate-200 bg-white/90'}`}>
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
-        <Link
-          to="/"
-          className={`flex items-center gap-2 sm:gap-3 font-semibold tracking-tight transition-colors min-w-0 ${isDark ? 'text-white' : 'text-slate-900'}`}
-        >
-          {IS_PHASE_1 ? (
-            <img src={LOGO_PATH} alt={APP_NAME} className="h-9 w-9 rounded-[10px]" />
-          ) : (
-            <span className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-[#0866FF] text-white shadow-lg shadow-[#0866FF]/25">
-                    <span className="material-symbols-outlined text-[20px]">hub</span>
-                  </span>
-          )}
+    <header className={`sticky top-0 z-50 transition-all duration-200 ${isDark ? 'bg-[#1C1E21]/95 border-b border-[#3A3B3C]' : 'bg-white/95 border-b border-[#E4E6EB]'} backdrop-blur-lg`}>
+      <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-3 sm:px-8 lg:px-12">
 
-          <span className={`text-base font-bold tracking-tight sm:text-xl ${isDark ? 'text-white' : 'text-slate-900'} truncate max-w-[140px] sm:max-w-none`}>
+        {/* Logo */}
+        <Link to="/" className="flex items-center gap-2.5 no-underline">
+          {IS_PHASE_1 ? (
+            <img src={LOGO_PATH} alt={APP_NAME} className="h-8 w-8 rounded-lg" />
+          ) : (
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#0866FF]">
+              <span className="material-symbols-outlined text-white text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>hub</span>
+            </div>
+          )}
+          <span className={`text-lg font-semibold tracking-tight ${isDark ? 'text-white' : 'text-[#1C1E21]'}`}>
             {APP_NAME}
           </span>
-      </Link>
+        </Link>
 
+        {/* Desktop Nav */}
         <nav className="hidden items-center gap-1 md:flex" aria-label="Primary">
           {navLinks.map((item) => (
             <a
               key={item.href}
               href={item.href}
-              className={`rounded-[10px] px-3 py-2 text-sm font-medium transition-colors ${isDark ? 'text-white/70 hover:bg-white/10 hover:text-white' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}`}
+              className={`px-3.5 py-2 text-[14px] font-medium rounded-lg transition-colors ${isDark ? 'text-[#B0B3B8] hover:text-white hover:bg-white/8' : 'text-[#65676B] hover:text-[#1C1E21] hover:bg-[#F0F2F5]'}`}
             >
               {item.label}
             </a>
           ))}
         </nav>
 
-        <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
-          {/* Theme toggle button */}
+        {/* Right actions */}
+        <div className="flex items-center gap-2 sm:gap-3">
           <button
             type="button"
             onClick={toggleTheme}
-            className={`inline-flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-[10px] transition-colors ${isDark ? 'bg-white/10 text-white/70 hover:bg-white/20 hover:text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'}`}
+            className={`hidden sm:inline-flex items-center justify-center w-9 h-9 rounded-lg transition-colors ${isDark ? 'text-[#B0B3B8] hover:bg-white/10 hover:text-white' : 'text-[#65676B] hover:bg-[#F0F2F5] hover:text-[#1C1E21]'}`}
             aria-label="Toggle theme"
           >
-            <span className="material-symbols-outlined text-[18px]">
-              {isDark ? 'light_mode' : 'dark_mode'}
-            </span>
+            <span className="material-symbols-outlined text-[18px]">{isDark ? 'light_mode' : 'dark_mode'}</span>
           </button>
+
           <button
             type="button"
             onClick={onLogin}
-            className={`inline-flex rounded-[10px] border px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-semibold transition-all ${isDark ? 'border-white/20 bg-white/10 text-white hover:bg-white/20' : 'border-slate-200 bg-white text-slate-800 shadow-sm hover:bg-slate-50'}`}
+            className={`text-[14px] font-semibold px-4 py-2 rounded-lg transition-colors ${isDark ? 'text-[#B0B3B8] hover:text-white' : 'text-[#1C1E21] hover:bg-[#F0F2F5]'}`}
           >
-            Sign in
+            Log in
           </button>
+
           <button
             type="button"
             onClick={onLogin}
-            className="hidden sm:inline-flex rounded-[10px] bg-[#0866FF] px-4 py-2 text-sm font-semibold text-white shadow-md shadow-[#0866FF]/25 transition-all hover:bg-[#3B93FF]"
+            className="text-[14px] font-semibold px-5 py-2 rounded-lg bg-[#0866FF] text-white transition-all hover:bg-[#0654D4] active:scale-[0.98]"
           >
-            Get started
+            Get started free
           </button>
+
+          {/* Mobile menu */}
           <button
             type="button"
-            className={`inline-flex rounded-[10px] p-1.5 sm:p-2 md:hidden ${isDark ? 'text-white/70' : 'text-slate-600'}`}
+            className={`inline-flex p-2 rounded-lg md:hidden ${isDark ? 'text-[#B0B3B8]' : 'text-[#65676B]'}`}
             aria-expanded={mobileOpen}
-            aria-controls="landing-mobile-nav"
             onClick={() => setMobileOpen((o) => !o)}
           >
-            <span className="material-symbols-outlined">{mobileOpen ? 'close' : 'menu'}</span>
+            <span className="material-symbols-outlined text-[22px]">{mobileOpen ? 'close' : 'menu'}</span>
           </button>
         </div>
-        
       </div>
 
-      {mobileOpen ? (
-        <div
-          id="landing-mobile-nav"
-          className={`border-t px-4 py-4 backdrop-blur-xl md:hidden ${isDark ? 'border-white/10 bg-[#0F172A]/95' : 'border-slate-200 bg-white/95'}`}
-        >
-          <nav className="flex flex-col gap-1" aria-label="Mobile primary">
+      {/* Mobile Nav */}
+      {mobileOpen && (
+        <div className={`border-t px-5 py-4 md:hidden ${isDark ? 'border-[#3A3B3C] bg-[#1C1E21]' : 'border-[#E4E6EB] bg-white'}`}>
+          <nav className="flex flex-col gap-1">
             {navLinks.map((item) => (
               <a
                 key={item.href}
                 href={item.href}
-                className={`rounded-[10px] px-3 py-3 text-sm font-medium ${isDark ? 'text-white/80 hover:bg-white/10 hover:text-white' : 'text-slate-700 hover:bg-slate-100'}`}
+                className={`px-4 py-3 rounded-lg text-[14px] font-medium ${isDark ? 'text-[#E4E6EB] hover:bg-white/5' : 'text-[#1C1E21] hover:bg-[#F0F2F5]'}`}
                 onClick={() => setMobileOpen(false)}
               >
                 {item.label}
               </a>
             ))}
-            <button
-              type="button"
-              onClick={() => {
-                setMobileOpen(false);
-                onLogin();
-              }}
-              className={`mt-2 rounded-[10px] border px-3 py-3 text-left text-sm font-semibold ${isDark ? 'border-white/20 text-white' : 'border-slate-200 text-slate-800'}`}
-            >
-              Sign in
-            </button>
+            <div className="mt-3 pt-3 border-t border-[#E4E6EB] dark:border-[#3A3B3C] flex flex-col gap-2">
+              <button onClick={() => { setMobileOpen(false); onLogin(); }}
+                className="w-full py-3 rounded-lg text-[14px] font-semibold bg-[#0866FF] text-white">
+                Get started free
+              </button>
+            </div>
           </nav>
         </div>
-      ) : null}
+      )}
     </header>
   );
 };

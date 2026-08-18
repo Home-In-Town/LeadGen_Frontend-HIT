@@ -1,661 +1,364 @@
-import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import LandingNavbar from '../components/landing/LandingNavbar';
 import { useTheme } from '../context/ThemeContext';
-import { APP_NAME, APP_TAGLINE, IS_PHASE_1, BRAND_COLOR } from '../config/phase';
+import { APP_NAME, IS_PHASE_1, BRAND_COLOR } from '../config/phase';
 
-const THEME_STORAGE_KEY = 'hit-landing-theme';
-
-function getInitialTheme() {
-  if (typeof window === 'undefined') return 'light';
-  try {
-    const stored = localStorage.getItem(THEME_STORAGE_KEY);
-    if (stored === 'dark' || stored === 'light') return stored;
-  } catch {
-    /* ignore */
-  }
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-}
-
-const features = [
-  {
-    icon: 'database_search',
-    title: 'Lead management',
-    description:
-      'Unified pipeline with scoring, assignment rules, and instant visibility across every channel.',
-  },
-  {
-    icon: 'mic',
-    title: 'AI voice calls',
-    description:
-      'Human-grade outreach at scale-natural conversations, disposition capture, and CRM sync.',
-  },
-  {
-    icon: 'chat',
-    title: 'WhatsApp automation',
-    description:
-      'Sequences, templates, and routing that feel personal while staying compliant and fast.',
-  },
-  {
-    icon: 'ads_click',
-    title: 'Google Ads integration',
-    description:
-      'Attribute spend to pipeline outcomes and automate follow-up the moment a lead arrives.',
-  },
-  {
-    icon: 'share',
-    title: 'Facebook lead sync',
-    description:
-      'Instant ingestion from Meta forms into your CRM with dedupe and enrichment.',
-  },
-  {
-    icon: 'bolt',
-    title: 'Real-time CRM',
-    description:
-      'Live timelines, presence, and conflict-free updates so your team stays aligned.',
-  },
-  {
-    icon: 'notifications_active',
-    title: 'Notifications',
-    description:
-      'Smart alerts across WhatsApp, voice, and in-app-only when it matters.',
-  },
-  {
-    icon: 'smart_toy',
-    title: 'Smart automation',
-    description:
-      'Visual workflows that connect ads, chat, voice, and ops without brittle scripts.',
-  },
+/* ── Data ── */
+const FEATURES = [
+  { icon: 'groups', title: 'Unified CRM', desc: 'Every lead, contact, and deal in one place. Real-time pipeline with assignment rules and instant team visibility.' },
+  { icon: 'forum', title: 'WhatsApp Automation', desc: 'Sequences, templates, and smart routing that feel personal while staying compliant and blazing fast.' },
+  { icon: 'call', title: 'AI Voice Calls', desc: 'Human-grade outreach at scale. Natural conversations with disposition capture and automatic CRM sync.' },
+  { icon: 'campaign', title: 'Ad Integration', desc: 'Instant lead capture from Facebook and Google Ads. Attribute spend to pipeline outcomes automatically.' },
+  { icon: 'smart_toy', title: 'Smart Automation', desc: 'Visual workflows connecting ads, chat, voice, and ops. No brittle scripts, just intelligent triggers.' },
+  { icon: 'analytics', title: 'Live Analytics', desc: 'Track engagement, team performance, and revenue in real time. Attribution across every touchpoint.' },
 ];
 
-const integrations = [
-  {
-    name: 'WhatsApp Business',
-    detail: 'Messaging & routing',
-    icon: 'chat',
-    accent: 'from-blue-500/20 to-blue-600/5',
-  },
-  {
-    name: 'Voice stack',
-    detail: 'AI calling & transcripts',
-    icon: 'call',
-    accent: 'from-blue-500/20 to-blue-600/5',
-  },
-  {
-    name: 'Google Ads',
-    detail: 'Lead forms & offline sync',
-    icon: 'campaign',
-    accent: 'from-sky-500/20 to-sky-600/5',
-  },
-  {
-    name: 'Meta Lead Ads',
-    detail: 'Facebook lead capture',
-    icon: 'public',
-    accent: 'from-blue-500/20 to-blue-600/5',
-  },
+const STEPS = [
+  { num: '01', title: 'Capture', desc: 'Leads from ads, forms, WhatsApp, and calls flow into one deduplicated record automatically.', icon: 'filter_alt' },
+  { num: '02', title: 'Engage', desc: 'AI voice and chat qualify intent while rules route leads by territory, score, or SLA.', icon: 'psychology' },
+  { num: '03', title: 'Convert', desc: 'Triggers notify your team, update deal stages, and launch the next best action instantly.', icon: 'rocket_launch' },
 ];
 
-const workflowSteps = [
-  {
-    step: '01',
-    title: 'Capture Leads',
-    body: 'Ads, forms, and inbound WhatsApp flow into one deduplicated record.',
-    icon: 'filter_alt',
-  },
-  {
-    step: '02',
-    title: 'Engage Customers',
-    body: 'AI voice and chat qualify intent while rules route by territory or SLA.',
-    icon: 'psychology',
-  },
-  {
-    step: '03',
-    title: 'Grow Revenue',
-    body: 'Triggers notify owners, update stages, and launch the next best action.',
-    icon: 'rocket_launch',
-  },
+const INTEGRATIONS = [
+  { name: 'WhatsApp Business', icon: 'chat', desc: 'Messaging & routing' },
+  { name: 'Google Ads', icon: 'ads_click', desc: 'Lead forms & sync' },
+  { name: 'Facebook Ads', icon: 'public', desc: 'Lead capture' },
+  { name: 'AI Voice', icon: 'record_voice_over', desc: 'Calls & transcripts' },
+  { name: 'Email', icon: 'mail', desc: 'OAuth & templates' },
+  { name: 'Webhooks', icon: 'webhook', desc: 'Custom flows' },
 ];
 
-const testimonials = [
-  {
-    quote:
-      `We replaced three tools with ${IS_PHASE_1 ? 'Web Magnet Media' : 'OneEmployee'}. Voice plus WhatsApp in one CRM finally matches how our reps actually work.`,
-    name: 'Priya Menon',
-    role: 'VP Revenue Operations',
-    org: 'Northwind Labs',
-  },
-  {
-    quote:
-      'Lead sync from Meta and Google is instant-our SLAs dropped from hours to minutes without extra headcount.',
-    name: 'Nithin Reddy',
-    role: 'Head of Growth',
-    org: 'Atlas Realty Group',
-  },
-  {
-    quote:
-      'The automation canvas is enterprise-grade but approachable. We shipped new sequences in days, not quarters.',
-    name: 'Sam Rivera',
-    role: 'Director of Sales',
-    org: 'Copperline Health',
-  },
+const TESTIMONIALS = [
+  { quote: 'We replaced three tools with OneEmployee. Voice plus WhatsApp in one CRM finally matches how our reps actually work.', name: 'Priya Menon', role: 'VP Revenue Ops', company: 'Northwind Labs' },
+  { quote: 'Lead sync from Meta and Google is instant. Our SLAs dropped from hours to minutes without extra headcount.', name: 'Nithin Reddy', role: 'Head of Growth', company: 'Atlas Realty Group' },
+  { quote: 'The automation builder is enterprise-grade but approachable. We shipped new sequences in days, not quarters.', name: 'Sam Rivera', role: 'Director of Sales', company: 'Copperline Health' },
 ];
 
+const STATS = [
+  { value: '12k+', label: 'Leads processed daily' },
+  { value: '42s', label: 'Avg response time' },
+  { value: '99.2%', label: 'Uptime SLA' },
+  { value: '3.8x', label: 'ROI improvement' },
+];
 
-
+/* ── Component ── */
 const LandingPage = () => {
   const navigate = useNavigate();
-  const { theme, toggleTheme } = useTheme();
+  const { theme } = useTheme();
   const isDark = theme === 'dark';
 
+  const bg = isDark ? 'bg-[#18191A]' : 'bg-white';
+  const bgAlt = isDark ? 'bg-[#242526]' : 'bg-[#F7F8FA]';
+  const text = isDark ? 'text-[#E4E6EB]' : 'text-[#1C1E21]';
+  const textMuted = isDark ? 'text-[#B0B3B8]' : 'text-[#65676B]';
+  const border = isDark ? 'border-[#3A3B3C]' : 'border-[#E4E6EB]';
+  const cardBg = isDark ? 'bg-[#242526]' : 'bg-white';
+
   return (
-    <div className="animate-fade-in min-h-screen font-display transition-colors duration-300">
-      
-      <div className={`relative min-h-screen transition-colors duration-300 overflow-x-hidden ${isDark ? 'bg-[#0F172A] text-white' : 'bg-slate-50 text-slate-900'}`}>
-        {/* Animated wave background + CRM design elements */}
-        <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
-          {/* Waves */}
-          <svg className="absolute bottom-0 left-0 w-[200%] sm:w-full h-[40%] opacity-[0.06]" viewBox="0 0 1440 320" preserveAspectRatio="none">
-            <path fill={isDark ? 'white' : '#0F172A'} d="M0,160L48,170.7C96,181,192,203,288,197.3C384,192,480,160,576,154.7C672,149,768,171,864,186.7C960,203,1056,213,1152,197.3C1248,181,1344,139,1392,117.3L1440,96L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z">
-              <animateTransform attributeName="transform" type="translate" values="0,0;30,8;0,0" dur="12s" repeatCount="indefinite"/>
-            </path>
-          </svg>
-          <svg className="absolute bottom-0 left-0 w-[200%] sm:w-full h-[30%] opacity-[0.04]" viewBox="0 0 1440 320" preserveAspectRatio="none">
-            <path fill={isDark ? 'white' : '#0F172A'} d="M0,224L48,213.3C96,203,192,181,288,181.3C384,181,480,203,576,213.3C672,224,768,224,864,208C960,192,1056,160,1152,165.3C1248,171,1344,213,1392,234.7L1440,256L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z">
-              <animateTransform attributeName="transform" type="translate" values="0,0;-30,6;0,0" dur="16s" repeatCount="indefinite"/>
-            </path>
-          </svg>
+    <div className={`min-h-screen font-display transition-colors duration-200 ${bg}`}>
+      <LandingNavbar onLogin={() => navigate('/login')} />
 
-          {/* CRM-themed floating icons (subtle, decorative) */}
-          <div className="absolute top-[12%] right-[5%] opacity-[0.06] hidden sm:block" style={{ animation: 'floatOrb 20s ease-in-out infinite' }}>
-            <span className="material-symbols-outlined text-[80px] text-blue-300" style={{ fontVariationSettings: "'FILL' 1" }}>groups</span>
-          </div>
-          <div className="absolute top-[45%] left-[3%] opacity-[0.05] hidden sm:block" style={{ animation: 'floatOrb 16s ease-in-out infinite reverse' }}>
-            <span className="material-symbols-outlined text-[60px] text-blue-300" style={{ fontVariationSettings: "'FILL' 1" }}>analytics</span>
-          </div>
-          <div className="absolute bottom-[30%] right-[12%] opacity-[0.04] hidden sm:block" style={{ animation: 'floatOrb 22s ease-in-out infinite 4s' }}>
-            <span className="material-symbols-outlined text-[70px] text-blue-200" style={{ fontVariationSettings: "'FILL' 1" }}>call</span>
-          </div>
-          <div className="absolute top-[65%] left-[20%] opacity-[0.04] hidden sm:block" style={{ animation: 'floatOrb 18s ease-in-out infinite 2s' }}>
-            <span className="material-symbols-outlined text-[55px] text-white" style={{ fontVariationSettings: "'FILL' 1" }}>campaign</span>
-          </div>
-
-          {/* Gradient orbs */}
-          <div className="absolute top-[15%] left-[5%] w-40 sm:w-64 h-40 sm:h-64 rounded-full opacity-[0.08]" style={{ background: 'radial-gradient(circle, #0654D4, transparent 70%)', animation: 'floatOrb 18s ease-in-out infinite' }} />
-          <div className="absolute top-[40%] right-[5%] w-32 sm:w-48 h-32 sm:h-48 rounded-full opacity-[0.06]" style={{ background: 'radial-gradient(circle, #10B981, transparent 70%)', animation: 'floatOrb 14s ease-in-out infinite reverse' }} />
-          <div className="absolute bottom-[20%] left-[25%] w-36 sm:w-56 h-36 sm:h-56 rounded-full opacity-[0.05]" style={{ background: 'radial-gradient(circle, #58A6FF, transparent 70%)', animation: 'floatOrb 20s ease-in-out infinite 3s' }} />
+      {/* ═══════ HERO ═══════ */}
+      <section className="relative overflow-hidden">
+        {/* Subtle gradient background */}
+        <div className="absolute inset-0 pointer-events-none" aria-hidden>
+          <div className={`absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] rounded-full blur-[120px] ${isDark ? 'bg-[#0866FF]/8' : 'bg-[#0866FF]/5'}`} />
         </div>
 
-        <LandingNavbar
-          onLogin={() => navigate('/login')}
-        />
+        <div className="relative max-w-7xl mx-auto px-5 sm:px-8 lg:px-12 pt-16 sm:pt-24 pb-20 sm:pb-32">
+          <div className="max-w-3xl">
+            {/* Badge */}
+            <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[12px] font-medium border mb-6 ${isDark ? 'border-[#3A3B3C] bg-[#242526] text-[#B0B3B8]' : 'border-[#E4E6EB] bg-[#F7F8FA] text-[#65676B]'}`}>
+              <span className="w-2 h-2 rounded-full bg-[#31A24C]" />
+              Now with AI Voice & WhatsApp Automation
+            </div>
 
-        <main className="relative">
-          {/* Hero */}
-          <section className="relative overflow-hidden px-4 pb-16 pt-10 sm:px-6 sm:pb-28 sm:pt-20 lg:px-8">
-            <div className="mx-auto max-w-6xl">
-              <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[10px] sm:text-xs font-medium shadow-sm backdrop-blur-md ${isDark ? 'border-white/15 bg-white/10 text-white/80' : 'border-slate-300 bg-white/80 text-slate-600'}`}>
-                <span className="relative flex h-2 w-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-400/60 opacity-75" />
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-blue-400" />
-                </span>
-                AI Employees • Sales Automation • Customer Engagement
-              </div>
+            {/* Heading */}
+            <h1 className={`text-[32px] sm:text-[44px] lg:text-[56px] font-bold leading-[1.1] tracking-tight ${text}`}>
+              The CRM that
+              <span className="text-[#0866FF]"> closes deals</span> while you sleep.
+            </h1>
 
-              <div className="mt-6 sm:mt-8">
-                <h1 className={`normal-case text-[28px] sm:text-4xl md:text-5xl lg:text-6xl font-semibold leading-[1.12] tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                  <span className="font-extrabold" style={{ color: IS_PHASE_1 ? BRAND_COLOR : '#0866FF' }}>
-                    {APP_NAME}:
-                  </span>{' '}
-                  {IS_PHASE_1 ? 'AI-Powered Lead Generation & Automation.' : 'The Revenue Workforce for Modern Businesses.'}
-                </h1>
-                <p className={`mt-4 sm:mt-6 max-w-2xl text-sm sm:text-base leading-relaxed ${isDark ? 'text-white/70' : 'text-slate-600'}`}>
-                  {IS_PHASE_1
-                    ? 'Web Magnet Media helps businesses capture leads, automate follow-ups, and grow revenue with AI-powered automation that works 24/7.'
-                    : 'OneEmployee helps businesses capture leads, engage customers, automate follow-ups, and grow revenue with AI-powered employees that work 24/7.'
-                  }
-                </p>
-              </div>
+            <p className={`mt-5 text-[16px] sm:text-[18px] leading-relaxed max-w-2xl ${textMuted}`}>
+              {APP_NAME} unifies leads, voice calls, WhatsApp, and ad campaigns into one intelligent workspace.
+              Automate follow-ups, engage customers faster, and grow revenue with AI-powered workflows.
+            </p>
 
-              <div className="mt-8 sm:mt-10 flex flex-col gap-3 sm:flex-row sm:items-center">
-                <button
-                  type="button"
-                  onClick={() => navigate('/login')}
-                  className="inline-flex items-center justify-center rounded-[12px] bg-[#0866FF] px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-[#0866FF]/30 transition-all hover:bg-[#4293F5] hover:shadow-xl hover:shadow-[#0866FF]/35"
-                >
-                  Get Clients
-                  <span className="material-symbols-outlined ml-2 text-[20px]">arrow_forward</span>
-                </button>
-                <a
-                  href="#features"
-                  className={`inline-flex items-center justify-center rounded-[12px] border px-6 py-3.5 text-sm font-semibold backdrop-blur-md transition-all ${isDark ? 'border-white/20 bg-white/10 text-white hover:bg-white/20' : 'border-slate-300 bg-white text-slate-800 shadow-sm hover:bg-slate-100'}`}
-                >
-                  See How It Works
-                </a>
-              </div>
+            {/* CTA */}
+            <div className="mt-8 flex flex-col sm:flex-row items-start sm:items-center gap-3">
+              <button
+                onClick={() => navigate('/login')}
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-[#0866FF] text-white text-[15px] font-semibold transition-all hover:bg-[#0654D4] active:scale-[0.98] shadow-sm"
+              >
+                Start for free
+                <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+              </button>
+              <a
+                href="#features"
+                className={`inline-flex items-center gap-2 px-6 py-3 rounded-lg text-[15px] font-semibold border transition-colors ${isDark ? 'border-[#3A3B3C] text-[#E4E6EB] hover:bg-[#242526]' : 'border-[#E4E6EB] text-[#1C1E21] hover:bg-[#F7F8FA]'}`}
+              >
+                See how it works
+              </a>
+            </div>
 
-
-              {/* AI Capabilities Marquee */}
-              <div className="relative mt-12 overflow-hidden rounded-3xl border border-white/10 bg-white/5 p-1">
-
-                <div className="relative overflow-hidden rounded-[22px] bg-[#0654D4]/80 py-5 backdrop-blur-xl border border-white/5">
-                  <div className="marquee-track flex items-center gap-5 whitespace-nowrap">
-                    {[
-                      { label: 'AI Calling', icon: 'call', color: 'text-blue-500' },
-                      { label: 'AI WhatsApp', icon: 'forum', color: 'text-green-500' },
-                      { label: 'Lead Scoring', icon: 'leaderboard', color: 'text-amber-500' },
-                      { label: 'CRM', icon: 'groups', color: 'text-blue-500' },
-                      { label: 'Automation', icon: 'settings_suggest', color: 'text-blue-500' },
-                      { label: 'Analytics', icon: 'analytics', color: 'text-cyan-500' },
-                      { label: 'Transcripts', icon: 'description', color: 'text-orange-500' },
-                      { label: 'Appointment Booking', icon: 'event_available', color: 'text-pink-500' },
-
-                      // Duplicate for seamless infinite scroll
-                      { label: 'AI Calling', icon: 'call', color: 'text-blue-500' },
-                      { label: 'AI WhatsApp', icon: 'forum', color: 'text-green-500' },
-                      { label: 'Lead Scoring', icon: 'leaderboard', color: 'text-amber-500' },
-                      { label: 'CRM', icon: 'groups', color: 'text-blue-500' },
-                      { label: 'Automation', icon: 'settings_suggest', color: 'text-blue-500' },
-                      { label: 'Analytics', icon: 'analytics', color: 'text-cyan-500' },
-                      { label: 'Transcripts', icon: 'description', color: 'text-orange-500' },
-                      { label: 'Appointment Booking', icon: 'event_available', color: 'text-pink-500' },
-                    ].map((item, index) => (
-                      <div
-                        key={`${item.label}-${index}`}
-                        className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-semibold text-white transition-all duration-300 hover:scale-105 hover:border-white/20 hover:bg-white/10"
-                      >
-                        <span
-                          className={`material-symbols-outlined text-[18px] ${item.color}`}
-                        >
-                          {item.icon}
-                        </span>
-
-                        {item.label}
-                      </div>
-                    ))}
+            {/* Social proof */}
+            <div className={`mt-12 flex items-center gap-6 text-[13px] ${textMuted}`}>
+              <div className="flex -space-x-2">
+                {['P', 'A', 'S', 'N'].map((l, i) => (
+                  <div key={i} className="w-8 h-8 rounded-full bg-[#0866FF] text-white flex items-center justify-center text-[11px] font-bold border-2 border-white dark:border-[#18191A]">
+                    {l}
                   </div>
-                </div>
+                ))}
               </div>
+              <span>Trusted by <strong className={text}>500+</strong> businesses</span>
+            </div>
+          </div>
 
-              <div className="mt-16 grid gap-4 sm:grid-cols-3">
-                {[
-                  { label: 'Leads qualified', value: '12.8k', hint: 'rolling 24h', trend: '+12.4%' },
-                  { label: 'Avg. response', value: '42s', hint: 'voice + WhatsApp', trend: 'SLA safe' },
-                  { label: 'Pipeline accuracy', value: '99.2%', hint: 'CRM sync health', trend: 'live' },
-                ].map((stat) => (
-                  <div
-                    key={stat.label}
-                    className={`rounded-[14px] border p-5 backdrop-blur-sm transition-all duration-300 ${isDark ? 'border-white/10 bg-white/5 hover:border-blue-400/25 hover:bg-white/10' : 'border-slate-200 bg-white shadow-sm hover:border-blue-400/40 hover:shadow-md'}`}
-                  >
-                    <p className={`text-xs font-medium uppercase tracking-wide ${isDark ? 'text-white/50' : 'text-slate-500'}`}>
-                      {stat.label}
-                    </p>
-                    <div className="mt-2 flex items-end justify-between gap-2">
-                      <p className={`font-mono text-3xl font-bold tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                        {stat.value}
-                      </p>
-                      <span className="rounded-full bg-blue-500/15 px-2 py-0.5 text-[11px] font-semibold text-blue-400">
-                        {stat.trend}
-                      </span>
-                    </div>
-                    <p className={`mt-1 text-xs ${isDark ? 'text-white/40' : 'text-slate-400'}`}>{stat.hint}</p>
+          {/* Hero visual — dashboard preview */}
+          <div className={`mt-16 sm:mt-20 rounded-xl border overflow-hidden shadow-xl ${border} ${cardBg}`}>
+            <div className={`flex items-center gap-2 px-4 py-3 border-b ${border}`}>
+              <div className="flex gap-1.5">
+                <div className="w-3 h-3 rounded-full bg-[#FA383E]" />
+                <div className="w-3 h-3 rounded-full bg-[#F5A623]" />
+                <div className="w-3 h-3 rounded-full bg-[#31A24C]" />
+              </div>
+              <span className={`text-[11px] font-medium ml-2 ${textMuted}`}>app.oneemployee.in/dashboard</span>
+            </div>
+            <div className="p-6 sm:p-8">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                {STATS.map((s) => (
+                  <div key={s.label} className={`p-4 rounded-lg border ${border} ${isDark ? 'bg-[#18191A]' : 'bg-[#F7F8FA]'}`}>
+                    <p className={`text-[24px] sm:text-[28px] font-bold ${text}`}>{s.value}</p>
+                    <p className={`text-[12px] mt-1 ${textMuted}`}>{s.label}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-6 flex items-end gap-2 h-20">
+                {[35, 52, 45, 68, 42, 75, 60, 82, 55, 90, 72, 85].map((h, i) => (
+                  <div key={i} className="flex-1 rounded-t bg-[#0866FF]/20 relative overflow-hidden" style={{ height: `${h}%` }}>
+                    <div className="absolute bottom-0 inset-x-0 bg-[#0866FF] rounded-t" style={{ height: `${h * 0.6}%` }} />
                   </div>
                 ))}
               </div>
             </div>
-          </section>
+          </div>
+        </div>
+      </section>
 
-          {/* CRM features */}
-          <div className="bg-[#0F172A]">
-          <section id="features" className="scroll-mt-24 px-4 py-20 sm:px-6 lg:px-8">
-            <div className="mx-auto max-w-6xl">
-              <div className="max-w-2xl">
-                <p className="text-sm font-semibold uppercase tracking-wider text-blue-400">Platform</p>
-                <h2 className="mt-2 normal-case text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-                  Everything Your Business Needs to Convert More Customers
-                </h2>
-                <p className="mt-4 text-white/60">
-                  Manage leads, automate customer communication, track opportunities, and improve team productivity from one platform.
-                </p>
-              </div>
-
-              <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                {features.map((f) => (
-                  <article
-                    key={f.title}
-                    className="group rounded-[14px] border border-white/10 bg-white/5 p-6 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-blue-400/30 hover:bg-white/10"
-                  >
-                    <div className="flex h-11 w-11 items-center justify-center rounded-[12px] bg-blue-500/15 text-blue-400 ring-1 ring-blue-400/20 transition-transform duration-300 group-hover:scale-105">
-                      <span className="material-symbols-outlined text-[22px]">{f.icon}</span>
-                    </div>
-                    <h3 className="mt-5 normal-case text-lg font-semibold text-white">{f.title}</h3>
-                    <p className="mt-2 text-sm leading-relaxed text-white/60">{f.description}</p>
-                  </article>
-                ))}
-              </div>
+      {/* ═══════ STATS BAR ═══════ */}
+      <section className={`py-12 border-y ${border} ${bgAlt}`}>
+        <div className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-12 grid grid-cols-2 sm:grid-cols-4 gap-8">
+          {STATS.map((s) => (
+            <div key={s.label} className="text-center">
+              <p className={`text-[28px] sm:text-[36px] font-bold tracking-tight ${text}`}>{s.value}</p>
+              <p className={`text-[13px] mt-1 ${textMuted}`}>{s.label}</p>
             </div>
-          </section>
+          ))}
+        </div>
+      </section>
 
-          {/* Integrations */}
-          <section id="integrations" className="scroll-mt-24 px-4 py-20 sm:px-6 lg:px-8">
-            <div className="mx-auto max-w-6xl">
-              <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-                <div className="max-w-2xl">
-                  <p className="text-sm font-semibold uppercase tracking-wider text-blue-400">Integrations</p>
-                  <h2 className="mt-2 normal-case text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-                    WhatsApp, voice, and paid media - wired in
-                  </h2>
-                  <p className="mt-4 text-white/60">
-                    Bring your calls, WhatsApp, marketing campaigns, and customer data together in one connected system.
-                  </p>
+      {/* ═══════ FEATURES ═══════ */}
+      <section id="features" className="scroll-mt-20 py-20 sm:py-28">
+        <div className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-12">
+          <div className="max-w-2xl">
+            <p className="text-[13px] font-semibold uppercase tracking-wider text-[#0866FF]">Platform</p>
+            <h2 className={`mt-2 text-[28px] sm:text-[36px] font-bold leading-tight tracking-tight ${text}`}>
+              Everything you need to convert more customers
+            </h2>
+            <p className={`mt-4 text-[16px] leading-relaxed ${textMuted}`}>
+              Manage leads, automate communication, track opportunities, and improve team productivity — all from one platform.
+            </p>
+          </div>
+
+          <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {FEATURES.map((f) => (
+              <div
+                key={f.title}
+                className={`group p-6 rounded-xl border transition-all duration-200 hover:border-[#0866FF]/30 hover:shadow-md ${border} ${cardBg}`}
+              >
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isDark ? 'bg-[#0866FF]/15' : 'bg-[#EBF5FF]'}`}>
+                  <span className="material-symbols-outlined text-[20px] text-[#0866FF]" style={{ fontVariationSettings: "'FILL' 1" }}>{f.icon}</span>
                 </div>
-                <button type="button" onClick={() => navigate('/login')}
-                  className="inline-flex w-fit items-center gap-2 rounded-[12px] border border-white/15 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-white/20">
-                  View integration hub
-                  <span className="material-symbols-outlined text-[18px]">north_east</span>
-                </button>
+                <h3 className={`mt-4 text-[16px] font-semibold ${text}`}>{f.title}</h3>
+                <p className={`mt-2 text-[14px] leading-relaxed ${textMuted}`}>{f.desc}</p>
               </div>
-              <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                {integrations.map((item) => (
-                  <div key={item.name}
-                    className="rounded-[14px] border border-white/10 bg-white/5 p-6 backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-blue-400/25 hover:bg-white/10">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-semibold text-white">{item.name}</p>
-                        <p className="mt-1 text-xs text-white/60">{item.detail}</p>
-                      </div>
-                      <span className="flex h-10 w-10 items-center justify-center rounded-[12px] bg-white/10 text-white ring-1 ring-white/10">
-                        <span className="material-symbols-outlined text-[22px]">{item.icon}</span>
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
+            ))}
+          </div>
+        </div>
+      </section>
 
-          {/* Workflow */}
-          <section id="workflow" className="scroll-mt-24 px-4 py-20 sm:px-6 lg:px-8">
-            <div className="mx-auto max-w-6xl">
-              <div className="max-w-2xl">
-                <p className="text-sm font-semibold uppercase tracking-wider text-blue-400">Automation</p>
-                <h2 className="mt-2 normal-case text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-                  From Lead to Customer in Three Simple Steps
-                </h2>
-                <p className="mt-4 text-white/60">
-                  {APP_NAME} helps businesses capture opportunities, engage customers, and drive conversions automatically.
-                </p>
-              </div>
+      {/* ═══════ HOW IT WORKS ═══════ */}
+      <section id="how-it-works" className={`scroll-mt-20 py-20 sm:py-28 ${bgAlt}`}>
+        <div className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-12">
+          <div className="max-w-2xl">
+            <p className="text-[13px] font-semibold uppercase tracking-wider text-[#0866FF]">How it works</p>
+            <h2 className={`mt-2 text-[28px] sm:text-[36px] font-bold leading-tight tracking-tight ${text}`}>
+              From lead to customer in three steps
+            </h2>
+          </div>
 
-              <div className="mt-14 grid gap-6 lg:grid-cols-3">
-                {workflowSteps.map((w, i) => (
-                  <div
-                    key={w.step}
-                    className="relative rounded-[16px] border border-white/10 bg-white/5 p-8 backdrop-blur-sm transition-all duration-300 hover:border-blue-400/25 hover:bg-white/10"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-mono text-xs font-bold text-blue-400">{w.step}</span>
-                      {i < workflowSteps.length - 1 ? (
-                        <span
-                          className="material-symbols-outlined hidden text-slate-300 lg:block dark:text-slate-600"
-                          aria-hidden
-                        >
-                          trending_flat
-                        </span>
-                      ) : null}
-                    </div>
-                    <div className="mt-6 flex h-12 w-12 items-center justify-center rounded-[14px] bg-slate-900 text-white shadow-lg dark:bg-gradient-to-br dark:from-primary dark:to-blue-600">
-                      <span className="material-symbols-outlined text-[26px]">{w.icon}</span>
-                    </div>
-                    <h3 className="mt-6 normal-case text-xl font-semibold text-white">{w.title}</h3>
-                    <p className="mt-3 text-sm leading-relaxed text-white/60">{w.body}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-
-          {/* Analytics preview */}
-          <section id="analytics" className="scroll-mt-24 px-4 py-20 sm:px-6 lg:px-8">
-            <div className="mx-auto max-w-6xl">
-              <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
-                <div>
-                  <p className="text-sm font-semibold uppercase tracking-wider text-blue-400">Analytics</p>
-                  <h2 className="mt-2 normal-case text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-                    See What Drives Your Growth
-                  </h2>
-                  <p className="mt-4 text-white/60">
-                    Track customer engagement, sales performance, team productivity, and revenue opportunities in real time.
-                  </p>
-                  <ul className="mt-8 space-y-4 text-sm text-white/80">
-                    {[
-                      'Unified timeline across voice, WhatsApp, and web touchpoints',
-                      'Attribution that spans Google Ads and Meta Lead Ads',
-                      'Operational alerts when automation or integrations drift',
-                    ].map((line) => (
-                      <li key={line} className="flex gap-3">
-                        <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary dark:bg-primary/25">
-                          <span className="material-symbols-outlined text-[16px]">check</span>
-                        </span>
-                        <span>{line}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div className="relative">
-                  <div className="pointer-events-none absolute -inset-4 rounded-[24px] bg-gradient-to-tr from-primary/20 via-transparent to-blue-500/20 blur-2xl dark:from-primary/30 dark:to-blue-500/25" />
-                  <div className="relative overflow-hidden rounded-[20px] border border-slate-200/80 bg-white/90 shadow-2xl backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.06] dark:shadow-[0_0_0_1px_rgba(255,255,255,0.06),0_24px_80px_-20px_rgba(0,0,0,0.65)]">
-                    <div className="flex items-center justify-between border-b border-slate-200/70 px-5 py-4 dark:border-white/10">
-                      <div className="flex items-center gap-2">
-                        <span className="h-2.5 w-2.5 rounded-full bg-blue-400 shadow-[0_0_12px_rgba(8,102,255,0.8)]" />
-                        <span className="text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300">
-                          Revenue pulse
-                        </span>
-                      </div>
-                      <span className="rounded-full bg-slate-100 px-2 py-0.5 font-mono text-[10px] text-slate-600 dark:bg-white/10 dark:text-slate-400">
-                        LIVE_FEED_01
-                      </span>
-                    </div>
-                    <div className="grid gap-px bg-slate-200/80 sm:grid-cols-2 dark:bg-white/10">
-                      {[
-                        { label: 'Qualified today', value: '12,842', chip: '+12.4% vs avg', chipTone: 'text-primary' },
-                        { label: 'Voice connect rate', value: '38%', chip: 'cohort: NA', chipTone: 'text-slate-500 dark:text-slate-400' },
-                        { label: 'WhatsApp SLA', value: '1.2m', chip: 'median reply', chipTone: 'text-slate-500 dark:text-slate-400' },
-                        { label: 'Ads ROI snapshot', value: '6.1x', chip: 'blended', chipTone: 'text-primary' },
-                      ].map((cell) => (
-                        <div key={cell.label} className="bg-white/95 p-5 dark:bg-[#0c0e14]/90">
-                          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                            {cell.label}
-                          </p>
-                          <p className="mt-2 font-mono text-2xl font-bold text-slate-900 dark:text-white">{cell.value}</p>
-                          <p className={`mt-2 text-[11px] font-mono ${cell.chipTone}`}>{cell.chip}</p>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="border-t border-slate-200/70 px-5 py-4 dark:border-white/10">
-                      <div className="flex h-24 items-end gap-2">
-                        {[40, 65, 52, 78, 48, 88, 56].map((h, idx) => (
-                          <div key={idx} className="flex-1 rounded-t-[6px] bg-gradient-to-t from-primary/40 to-primary/90 dark:shadow-[0_0_24px_-6px_rgba(16,183,127,0.65)]" style={{ height: `${h}%` }} />
-                        ))}
-                      </div>
-                      <div className="mt-3 flex justify-between font-mono text-[10px] text-slate-400 dark:text-slate-500">
-                        <span>Mon</span>
-                        <span>Sun</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          {/* Testimonials */}
-          <section id="testimonials" className="scroll-mt-24 px-4 py-20 sm:px-6 lg:px-8">
-            <div className="mx-auto max-w-6xl">
-              <div className="max-w-2xl">
-                <p className="text-sm font-semibold uppercase tracking-wider text-blue-400">Customers</p>
-                <h2 className="mt-2 normal-case text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-                  Trusted by Businesses Focused on Growth
-                </h2>
-              </div>
-              <div className="mt-12 grid gap-6 lg:grid-cols-3">
-                {testimonials.map((t) => (
-                  <blockquote
-                    key={t.name}
-                    className="flex flex-col rounded-[16px] border border-white/10 bg-white/5 p-8 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-blue-400/25 hover:bg-white/10"
-                  >
-                    <span className="text-blue-400">
-                      <span className="material-symbols-outlined text-[28px]">format_quote</span>
-                    </span>
-                    <p className="mt-4 flex-1 text-sm leading-relaxed text-white/70">{t.quote}</p>
-                    <footer className="mt-8 border-t border-white/10 pt-6">
-                      <p className="font-semibold text-white">{t.name}</p>
-                      <p className="mt-1 text-xs text-white/50">
-                        {t.role}, {t.org}
-                      </p>
-                    </footer>
-                  </blockquote>
-                ))}
-              </div>
-            </div>
-          </section>
-
-          {/* Final CTA */}
-          <section className="px-4 pb-24 pt-4 sm:px-6 lg:px-8">
-            <div className="mx-auto max-w-6xl">
-              <div className="relative overflow-hidden rounded-[24px] border border-slate-200/80 bg-gradient-to-br from-slate-900 via-slate-900 to-blue-950 px-8 py-14 text-center shadow-2xl dark:border-white/10 dark:from-[#0b0d12] dark:via-[#0b0d12] dark:to-blue-950/80">
-                <div className="pointer-events-none absolute inset-0 opacity-40">
-                  <div className="absolute -left-10 top-0 h-64 w-64 rounded-full bg-primary/40 blur-3xl animate-shimmer" />
-                  <div className="absolute -right-16 bottom-0 h-72 w-72 rounded-full bg-blue-500/30 blur-3xl animate-shimmer" style={{ animationDelay: '0.8s' }} />
-                </div>
-                <div className="relative mx-auto max-w-2xl">
-                  <h2 className="normal-case text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-                    Ready to Build Your AI-Powered Revenue Workforce?
-                  </h2>
-                  <p className="mt-4 text-sm leading-relaxed text-slate-300 sm:text-base">
-                    Capture more leads, engage customers faster, and grow revenue with AI employees that work around the clock.
-                  </p>
-                  <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
-                    <button
-                      type="button"
-                      onClick={() => navigate('/login')}
-                      className="inline-flex w-full items-center justify-center rounded-[12px] bg-white px-8 py-3.5 text-sm font-semibold text-slate-900 shadow-lg transition-all hover:bg-slate-100 sm:w-auto"
-                    >
-                      Initialize workspace
-                    </button>
-                    <a
-                      href="#features"
-                      className="inline-flex w-full items-center justify-center rounded-[12px] border border-white/20 bg-white/5 px-8 py-3.5 text-sm font-semibold text-white backdrop-blur-md transition-all hover:bg-white/10 sm:w-auto"
-                    >
-                      Browse capabilities
-                    </a>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-          </div>{/* end dark sections wrapper */}
-
-          {/* Footer */}
-          <footer className="border-t border-white/10 bg-[#0A1929] px-4 py-14">
-            <div className="mx-auto flex max-w-6xl flex-col gap-10 lg:flex-row lg:justify-between">
-              <div>
-                <div className="flex items-center gap-2 font-semibold text-white">
-                  {IS_PHASE_1 ? (
-                    <img src="/webmagnetmedia-logo.png" alt={APP_NAME} className="h-9 w-9 rounded-[10px]" />
-                  ) : (
-                    <span className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-[#0866FF] text-white shadow-lg shadow-[#0866FF]/25">
-                      <span className="material-symbols-outlined text-[20px]">hub</span>
-                    </span>
+          <div className="mt-14 grid gap-6 lg:grid-cols-3">
+            {STEPS.map((s, i) => (
+              <div key={s.num} className={`relative p-6 sm:p-8 rounded-xl border ${border} ${cardBg}`}>
+                <div className="flex items-center justify-between mb-6">
+                  <span className="text-[12px] font-bold text-[#0866FF] tracking-wide">{s.num}</span>
+                  {i < STEPS.length - 1 && (
+                    <span className={`material-symbols-outlined text-[18px] hidden lg:block ${textMuted}`}>east</span>
                   )}
-                  {APP_NAME}{!IS_PHASE_1 && <span className="text-blue-400">®</span>}
                 </div>
-                <p className="mt-4 max-w-sm text-sm text-white/60">
-                  {IS_PHASE_1
-                    ? 'Web Magnet Media helps businesses automate lead generation, streamline follow-ups, and grow revenue with AI-powered automation solutions.'
-                    : 'OneEmployee helps businesses automate customer engagement, streamline sales processes, and unlock new revenue opportunities with AI-powered workforce solutions.'
-                  }
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-5 ${isDark ? 'bg-[#0866FF]/10' : 'bg-[#EBF5FF]'}`}>
+                  <span className="material-symbols-outlined text-[24px] text-[#0866FF]" style={{ fontVariationSettings: "'FILL' 1" }}>{s.icon}</span>
+                </div>
+                <h3 className={`text-[18px] font-semibold ${text}`}>{s.title}</h3>
+                <p className={`mt-2 text-[14px] leading-relaxed ${textMuted}`}>{s.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════ INTEGRATIONS ═══════ */}
+      <section id="integrations" className="scroll-mt-20 py-20 sm:py-28">
+        <div className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-12">
+          <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 mb-14">
+            <div className="max-w-2xl">
+              <p className="text-[13px] font-semibold uppercase tracking-wider text-[#0866FF]">Integrations</p>
+              <h2 className={`mt-2 text-[28px] sm:text-[36px] font-bold leading-tight tracking-tight ${text}`}>
+                Connected to the tools you already use
+              </h2>
+            </div>
+          </div>
+
+          <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
+            {INTEGRATIONS.map((item) => (
+              <div key={item.name} className={`p-5 rounded-xl border text-center transition-all duration-200 hover:border-[#0866FF]/30 hover:shadow-sm ${border} ${cardBg}`}>
+                <div className={`w-11 h-11 rounded-lg mx-auto flex items-center justify-center mb-3 ${isDark ? 'bg-[#0866FF]/10' : 'bg-[#EBF5FF]'}`}>
+                  <span className="material-symbols-outlined text-[22px] text-[#0866FF]" style={{ fontVariationSettings: "'FILL' 1" }}>{item.icon}</span>
+                </div>
+                <p className={`text-[13px] font-semibold ${text}`}>{item.name}</p>
+                <p className={`text-[11px] mt-0.5 ${textMuted}`}>{item.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════ TESTIMONIALS ═══════ */}
+      <section id="testimonials" className={`scroll-mt-20 py-20 sm:py-28 ${bgAlt}`}>
+        <div className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-12">
+          <div className="max-w-2xl mb-14">
+            <p className="text-[13px] font-semibold uppercase tracking-wider text-[#0866FF]">Customers</p>
+            <h2 className={`mt-2 text-[28px] sm:text-[36px] font-bold leading-tight tracking-tight ${text}`}>
+              Trusted by growing teams
+            </h2>
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-3">
+            {TESTIMONIALS.map((t) => (
+              <div key={t.name} className={`p-6 sm:p-8 rounded-xl border ${border} ${cardBg}`}>
+                <div className="flex gap-0.5 mb-4">
+                  {[1, 2, 3, 4, 5].map((s) => (
+                    <span key={s} className="material-symbols-outlined text-[16px] text-[#F5A623]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+                  ))}
+                </div>
+                <p className={`text-[14px] leading-relaxed ${isDark ? 'text-[#E4E6EB]' : 'text-[#1C1E21]'}`}>
+                  &ldquo;{t.quote}&rdquo;
                 </p>
-                {IS_PHASE_1 && (
-                  <div className="mt-4 space-y-1.5">
-                    <p className="text-sm text-white/50 flex items-center gap-2">
-                      <span className="material-symbols-outlined text-[16px] text-orange-400">mail</span>
-                      <a href="mailto:webmagnetmedia@gmail.com" className="hover:text-white/80 transition-colors">webmagnetmedia@gmail.com</a>
-                    </p>
-                    <p className="text-sm text-white/50 flex items-center gap-2">
-                      <span className="material-symbols-outlined text-[16px] text-orange-400">call</span>
-                      <a href="tel:+919325700804" className="hover:text-white/80 transition-colors">+91 93257 00804</a>
-                    </p>
-                  </div>
-                )}
-              </div>
-              <div className="grid grid-cols-2 gap-10 sm:grid-cols-3">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-500">
-                    Product
-                  </p>
-                  <ul className="mt-4 space-y-2 text-sm text-slate-700 dark:text-slate-300">
-                    <li>
-                      <a href="#features" className="transition-colors hover:text-primary">
-                        Platform
-                      </a>
-                    </li>
-                    <li>
-                      <a href="#integrations" className="transition-colors hover:text-primary">
-                        Integrations
-                      </a>
-                    </li>
-                    <li>
-                      <a href="#analytics" className="transition-colors hover:text-primary">
-                        Analytics
-                      </a>
-                    </li>
-                  </ul>
-                </div>
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-500">
-                    Company
-                  </p>
-                  <ul className="mt-4 space-y-2 text-sm text-slate-600 dark:text-slate-400">
-                    <li className="cursor-default">Documentation</li>
-                    <li className="cursor-default">API status</li>
-                    <li className="cursor-default">Security</li>
-                  </ul>
-                </div>
-                <div className="col-span-2 sm:col-span-1">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-500">
-                    Legal
-                  </p>
-                  <ul className="mt-4 space-y-2 text-sm">
-                    <li>
-                      <Link
-                        to="/privacy-policy"
-                        className="text-slate-700 transition-colors hover:text-primary dark:text-slate-300"
-                      >
-                        Privacy Policy
-                      </Link>
-                    </li>
-                    <li>
-                      <Link
-                        to="/terms-service"
-                        className="text-slate-700 transition-colors hover:text-primary dark:text-slate-300"
-                      >
-                        Terms of Service
-                      </Link>
-                    </li>
-                  </ul>
+                <div className={`mt-6 pt-5 border-t ${border}`}>
+                  <p className={`text-[14px] font-semibold ${text}`}>{t.name}</p>
+                  <p className={`text-[12px] mt-0.5 ${textMuted}`}>{t.role}, {t.company}</p>
                 </div>
               </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════ FINAL CTA ═══════ */}
+      <section className="py-20 sm:py-28">
+        <div className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-12">
+          <div className={`relative overflow-hidden rounded-2xl p-10 sm:p-16 text-center ${isDark ? 'bg-[#242526]' : 'bg-[#F7F8FA]'} border ${border}`}>
+            {/* Subtle glow */}
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[400px] h-[200px] rounded-full blur-[80px] bg-[#0866FF]/10 pointer-events-none" />
+            <div className="relative">
+              <h2 className={`text-[26px] sm:text-[36px] font-bold tracking-tight ${text}`}>
+                Ready to grow faster?
+              </h2>
+              <p className={`mt-3 text-[15px] max-w-lg mx-auto ${textMuted}`}>
+                Join 500+ businesses using {APP_NAME} to capture leads, automate engagement, and close more deals.
+              </p>
+              <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
+                <button
+                  onClick={() => navigate('/login')}
+                  className="inline-flex items-center gap-2 px-7 py-3 rounded-lg bg-[#0866FF] text-white text-[15px] font-semibold transition-all hover:bg-[#0654D4] active:scale-[0.98]"
+                >
+                  Get started free
+                  <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+                </button>
+                <button
+                  onClick={() => navigate('/login')}
+                  className={`px-7 py-3 rounded-lg text-[15px] font-semibold border transition-colors ${isDark ? 'border-[#3A3B3C] text-[#E4E6EB] hover:bg-[#3A3B3C]' : 'border-[#E4E6EB] text-[#1C1E21] hover:bg-white'}`}
+                >
+                  Talk to sales
+                </button>
+              </div>
             </div>
-            <div className="mx-auto mt-12 flex max-w-6xl flex-col gap-2 border-t border-white/10 pt-8 text-xs text-white/50 sm:flex-row sm:items-center sm:justify-between">
-              <span>© {new Date().getFullYear()} {APP_NAME}. All rights reserved.</span>
-              <span className="font-mono text-[11px] text-white/30">
-                BUILD V1.0.4 · EDGE LATENCY ~4.2ms
-              </span>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════ FOOTER ═══════ */}
+      <footer className={`py-12 border-t ${border}`}>
+        <div className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-12">
+          <div className="flex flex-col lg:flex-row lg:justify-between gap-10">
+            {/* Brand */}
+            <div className="max-w-sm">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#0866FF]">
+                  <span className="material-symbols-outlined text-white text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>hub</span>
+                </div>
+                <span className={`text-lg font-semibold ${text}`}>{APP_NAME}</span>
+              </div>
+              <p className={`mt-4 text-[13px] leading-relaxed ${textMuted}`}>
+                AI-powered CRM workspace that helps businesses capture leads, automate engagement, and grow revenue.
+              </p>
             </div>
-          </footer>
-        </main>
-      </div>
+
+            {/* Links */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-8">
+              <div>
+                <p className={`text-[11px] font-semibold uppercase tracking-wider mb-3 ${textMuted}`}>Product</p>
+                <ul className="space-y-2">
+                  {['Features', 'Integrations', 'Pricing', 'Changelog'].map((l) => (
+                    <li key={l}><a href="#" className={`text-[13px] transition-colors ${isDark ? 'text-[#B0B3B8] hover:text-white' : 'text-[#65676B] hover:text-[#1C1E21]'}`}>{l}</a></li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <p className={`text-[11px] font-semibold uppercase tracking-wider mb-3 ${textMuted}`}>Company</p>
+                <ul className="space-y-2">
+                  {['About', 'Blog', 'Careers', 'Contact'].map((l) => (
+                    <li key={l}><a href="#" className={`text-[13px] transition-colors ${isDark ? 'text-[#B0B3B8] hover:text-white' : 'text-[#65676B] hover:text-[#1C1E21]'}`}>{l}</a></li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <p className={`text-[11px] font-semibold uppercase tracking-wider mb-3 ${textMuted}`}>Legal</p>
+                <ul className="space-y-2">
+                  <li><Link to="/privacy-policy" className={`text-[13px] transition-colors ${isDark ? 'text-[#B0B3B8] hover:text-white' : 'text-[#65676B] hover:text-[#1C1E21]'}`}>Privacy</Link></li>
+                  <li><Link to="/terms" className={`text-[13px] transition-colors ${isDark ? 'text-[#B0B3B8] hover:text-white' : 'text-[#65676B] hover:text-[#1C1E21]'}`}>Terms</Link></li>
+                  <li><a href="#" className={`text-[13px] transition-colors ${isDark ? 'text-[#B0B3B8] hover:text-white' : 'text-[#65676B] hover:text-[#1C1E21]'}`}>Security</a></li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div className={`mt-10 pt-6 border-t flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 ${border}`}>
+            <p className={`text-[12px] ${textMuted}`}>&copy; {new Date().getFullYear()} {APP_NAME}. All rights reserved.</p>
+            <p className={`text-[12px] ${textMuted}`}>Made in India</p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };
