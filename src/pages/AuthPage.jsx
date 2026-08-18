@@ -208,11 +208,11 @@ export default function AuthPage() {
     });
 
     // ── Styles ────────────────────────────────────────────────────────────────
-    const inputBase = 'w-full rounded-xl bg-white/90 dark:bg-white/[0.06] border border-slate-200/90 dark:border-white/10 py-3.5 pl-11 pr-4 text-sm font-semibold text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 placeholder:font-medium shadow-[inset_0_1px_0_rgba(255,255,255,0.6)] dark:shadow-none focus:outline-none focus:ring-2 focus:ring-primary/35 focus:border-primary transition-all duration-200';
-    const inputNoIcon = 'w-full rounded-xl bg-white/90 dark:bg-white/[0.06] border border-slate-200/90 dark:border-white/10 py-3.5 px-4 text-sm font-semibold text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 placeholder:font-medium shadow-[inset_0_1px_0_rgba(255,255,255,0.6)] dark:shadow-none focus:outline-none focus:ring-2 focus:ring-primary/35 focus:border-primary transition-all duration-200';
-    const buttonBase = 'w-full rounded-xl bg-gradient-to-r from-primary to-emerald-600 text-white font-semibold tracking-wide py-3.5 px-4 shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 hover:brightness-[1.03] active:scale-[0.99] transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:pointer-events-none disabled:shadow-none cursor-pointer';
-    const buttonSecondary = 'w-full rounded-xl border border-slate-200/80 dark:border-white/10 bg-white/60 dark:bg-white/[0.04] text-slate-700 dark:text-slate-300 font-medium py-3 px-4 hover:bg-white/90 dark:hover:bg-white/[0.08] transition-all duration-200 text-sm cursor-pointer';
-    const backLink = 'text-xs font-semibold text-slate-500 hover:text-primary dark:text-slate-400 dark:hover:text-primary transition-colors cursor-pointer';
+    const inputBase = 'w-full rounded-lg bg-[#F0F2F5] dark:bg-[#3A3B3C] border border-[#E4E6EB] dark:border-[#3A3B3C] py-3 pl-11 pr-4 text-[14px] font-medium text-[#1C1E21] dark:text-[#E4E6EB] placeholder:text-[#8A8D91] focus:outline-none focus:ring-2 focus:ring-[#0866FF]/25 focus:border-[#0866FF] transition-all duration-150';
+    const inputNoIcon = 'w-full rounded-lg bg-[#F0F2F5] dark:bg-[#3A3B3C] border border-[#E4E6EB] dark:border-[#3A3B3C] py-3 px-4 text-[14px] font-medium text-[#1C1E21] dark:text-[#E4E6EB] placeholder:text-[#8A8D91] focus:outline-none focus:ring-2 focus:ring-[#0866FF]/25 focus:border-[#0866FF] transition-all duration-150';
+    const buttonBase = 'w-full rounded-lg bg-[#0866FF] text-white font-semibold py-3 px-4 hover:bg-[#0654D4] active:scale-[0.99] transition-all duration-150 flex items-center justify-center gap-2 disabled:opacity-40 disabled:pointer-events-none cursor-pointer text-[14px]';
+    const buttonSecondary = 'w-full rounded-lg border border-[#E4E6EB] dark:border-[#3A3B3C] bg-white dark:bg-[#242526] text-[#1C1E21] dark:text-[#E4E6EB] font-medium py-2.5 px-4 hover:bg-[#F0F2F5] dark:hover:bg-[#3A3B3C] transition-all duration-150 text-[13px] cursor-pointer';
+    const backLink = 'text-[13px] font-medium text-[#65676B] hover:text-[#0866FF] dark:text-[#B0B3B8] dark:hover:text-[#0866FF] transition-colors cursor-pointer';
 
     // ── Screen metadata ───────────────────────────────────────────────────────
     const SCREEN_META = {
@@ -404,71 +404,57 @@ export default function AuthPage() {
     // ── Render ────────────────────────────────────────────────────────────────
     return (
         <div className={`${isDark ? 'dark' : ''} min-h-screen`}>
-            <div className="relative min-h-screen bg-slate-50 text-slate-900 transition-colors duration-300 dark:bg-[#07080c] dark:text-slate-100">
-                <div className="pointer-events-none absolute inset-0 landing-gradient-mesh opacity-80 dark:opacity-100" aria-hidden />
-                <div className="pointer-events-none absolute inset-0 landing-grid-bg opacity-25 dark:opacity-35" aria-hidden />
+            <div className={`relative min-h-screen transition-colors duration-200 ${isDark ? 'bg-[#18191A] text-[#E4E6EB]' : 'bg-[#F0F2F5] text-[#1C1E21]'}`}>
 
                 {/* Theme toggle */}
                 <button type="button" onClick={toggleTheme} aria-label="Toggle theme"
-                    className="fixed right-4 top-4 z-50 inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200/80 bg-white/80 text-slate-700 shadow-sm backdrop-blur-md transition-all hover:border-primary/40 hover:text-primary dark:border-white/10 dark:bg-white/10 dark:text-slate-200">
-                    <span className="material-symbols-outlined text-[22px]">{isDark ? 'light_mode' : 'dark_mode'}</span>
+                    className={`fixed right-4 top-4 z-50 inline-flex h-9 w-9 items-center justify-center rounded-lg transition-colors ${isDark ? 'bg-[#3A3B3C] text-[#E4E6EB] hover:bg-[#4E4F50]' : 'bg-white text-[#65676B] border border-[#E4E6EB] hover:bg-[#F0F2F5]'}`}>
+                    <span className="material-symbols-outlined text-[20px]">{isDark ? 'light_mode' : 'dark_mode'}</span>
                 </button>
 
-                <div className="relative z-10 mx-auto flex min-h-screen max-w-6xl flex-col px-4 py-8 sm:px-6 lg:flex-row lg:items-stretch lg:gap-10 lg:px-10 lg:py-12">
+                <div className="relative z-10 mx-auto flex min-h-screen max-w-5xl flex-col px-4 py-8 sm:px-6 lg:flex-row lg:items-center lg:gap-16 lg:px-10 lg:py-12">
 
                     {/* ── Left branding ─────────────────────────────────────── */}
-                    <aside className="mb-8 flex flex-col justify-center lg:mb-0 lg:w-[42%] lg:max-w-xl lg:py-4">
-                        <div className="rounded-2xl border border-slate-200/70 bg-white/60 p-6 shadow-xl shadow-slate-900/5 backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.06] dark:shadow-black/40 sm:p-8">
-                            <div className="flex items-center gap-3">
-                               {IS_PHASE_1 ? (
-                                 <img src={LOGO_PATH} alt={APP_NAME} className="h-9 w-9 rounded-[10px]" />
-                               ) : (
-                                 <span className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-gradient-to-br from-primary to-emerald-600 text-white shadow-lg shadow-primary/25">
-                                    <span className="material-symbols-outlined text-[20px]">hub</span>
-                                </span>
-                               )}
-                                <div>
-                                    <p className="text-lg font-bold tracking-tight text-slate-900 dark:text-white">{APP_NAME}{!IS_PHASE_1 && <span className="text-primary">®</span>}</p>
-                                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{IS_PHASE_1 ? 'AI-Powered Lead Automation' : 'AI-powered CRM · Lead automation'}</p>
-                                </div>
+                    <aside className="mb-8 flex flex-col justify-center lg:mb-0 lg:w-[45%] lg:py-4">
+                        <div className="flex items-center gap-2.5 mb-6">
+                           {IS_PHASE_1 ? (
+                             <img src={LOGO_PATH} alt={APP_NAME} className="h-10 w-10 rounded-lg" />
+                           ) : (
+                             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0866FF]">
+                                <span className="material-symbols-outlined text-white text-[22px]" style={{ fontVariationSettings: "'FILL' 1" }}>hub</span>
                             </div>
-                            <p className="mt-6 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
-                                Run voice, WhatsApp, and ads-led workflows from one premium workspace—built for teams who live in real-time pipeline.
-                            </p>
-                            <ul className="mt-6 space-y-3">
-                                {highlights.map((h) => (
-                                    <li key={h.text} className="flex items-center gap-3 text-sm text-slate-700 dark:text-slate-200">
-                                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary ring-1 ring-primary/20">
-                                            <span className="material-symbols-outlined text-[18px]">{h.icon}</span>
-                                        </span>
-                                        <span>{h.text}</span>
-                                    </li>
-                                ))}
-                            </ul>
-                            <div className="mt-8 grid grid-cols-2 gap-3">
-                                <div className="rounded-xl border border-slate-200/60 bg-white/50 p-3 dark:border-white/10 dark:bg-white/[0.04]">
-                                    <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Pipeline</p>
-                                    <p className="mt-1 font-mono text-lg font-bold text-slate-900 dark:text-white">Live</p>
-                                </div>
-                                <div className="rounded-xl border border-slate-200/60 bg-white/50 p-3 dark:border-white/10 dark:bg-white/[0.04]">
-                                    <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Sync</p>
-                                    <p className="mt-1 font-mono text-lg font-bold text-primary">Real-time</p>
-                                </div>
-                            </div>
+                           )}
+                            <span className={`text-2xl font-bold tracking-tight ${isDark ? 'text-white' : 'text-[#1C1E21]'}`}>{APP_NAME}</span>
                         </div>
+                        <h2 className={`text-[28px] sm:text-[36px] font-bold leading-tight tracking-tight ${isDark ? 'text-white' : 'text-[#1C1E21]'}`}>
+                            {IS_PHASE_1 ? 'AI-Powered Lead Automation' : 'Your AI-powered CRM workspace'}
+                        </h2>
+                        <p className={`mt-4 text-[15px] leading-relaxed ${isDark ? 'text-[#B0B3B8]' : 'text-[#65676B]'}`}>
+                            Run voice, WhatsApp, and ads-led workflows from one premium workspace — built for teams who live in real-time pipeline.
+                        </p>
+                        <ul className="mt-8 space-y-4">
+                            {highlights.map((h) => (
+                                <li key={h.text} className={`flex items-center gap-3 text-[14px] ${isDark ? 'text-[#E4E6EB]' : 'text-[#1C1E21]'}`}>
+                                    <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${isDark ? 'bg-[#0866FF]/15' : 'bg-[#EBF5FF]'}`}>
+                                        <span className="material-symbols-outlined text-[18px] text-[#0866FF]">{h.icon}</span>
+                                    </div>
+                                    <span>{h.text}</span>
+                                </li>
+                            ))}
+                        </ul>
                     </aside>
 
                     {/* ── Right auth card ───────────────────────────────────── */}
                     <main className="flex flex-1 flex-col justify-center lg:min-w-0 lg:py-4">
-                        <div className="rounded-2xl border border-slate-200/80 bg-white/75 p-6 shadow-2xl shadow-slate-900/10 backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.06] dark:shadow-black/50 sm:p-8 lg:p-10">
+                        <div className={`rounded-xl p-6 sm:p-8 lg:p-10 ${isDark ? 'bg-[#242526] border border-[#3A3B3C]' : 'bg-white border border-[#E4E6EB] shadow-lg shadow-black/5'}`}>
 
                             {/* Login / Register tabs — only on login/register screens */}
                             {showTabs && (
-                                <div className="mb-8 flex rounded-xl border border-slate-200/80 bg-slate-100/80 p-1 dark:border-white/10 dark:bg-white/[0.06]">
+                                <div className={`mb-7 flex rounded-lg p-1 ${isDark ? 'bg-[#3A3B3C]' : 'bg-[#F0F2F5]'}`}>
                                     {['login', 'register'].map((s) => (
                                         <button key={s} type="button"
                                             onClick={() => { resetAll(); setScreen(s); setEmail(''); setName(''); setMobile(''); setPin(''); setConfirmPin(''); clearMsg(); }}
-                                            className={`relative flex-1 rounded-lg py-2.5 text-center text-xs font-semibold uppercase tracking-wide transition-all duration-300 ${screen === s ? 'bg-white text-slate-900 shadow-sm dark:bg-slate-800 dark:text-white' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'}`}>
+                                            className={`relative flex-1 rounded-md py-2.5 text-center text-[13px] font-semibold uppercase tracking-wide transition-all duration-150 ${screen === s ? `${isDark ? 'bg-[#242526] text-white' : 'bg-white text-[#1C1E21]'} shadow-sm` : `${isDark ? 'text-[#B0B3B8]' : 'text-[#65676B]'} hover:text-[#1C1E21] dark:hover:text-white`}`}>
                                             {s === 'login' ? 'Login' : 'Register'}
                                         </button>
                                     ))}
@@ -477,18 +463,18 @@ export default function AuthPage() {
 
                             {/* Title */}
                             <div className="mb-6">
-                                <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-3xl">{meta.title}</h2>
-                                <p className="mt-1.5 text-sm text-slate-600 dark:text-slate-400">{meta.subtitle}</p>
+                                <h2 className={`text-[22px] sm:text-[26px] font-bold tracking-tight ${isDark ? 'text-white' : 'text-[#1C1E21]'}`}>{meta.title}</h2>
+                                <p className={`mt-1 text-[14px] ${isDark ? 'text-[#B0B3B8]' : 'text-[#65676B]'}`}>{meta.subtitle}</p>
                             </div>
 
                             {/* Alerts */}
                             {error && (
-                                <div role="alert" className="mb-6 rounded-xl border border-red-200/80 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-sm dark:border-red-500/30 dark:bg-red-950/40 dark:text-red-200">
+                                <div role="alert" className="mb-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-700 dark:border-red-800 dark:bg-red-950/50 dark:text-red-200">
                                     {error}
                                 </div>
                             )}
                             {success && (
-                                <div role="status" className="mb-6 rounded-xl border border-primary/30 bg-primary/10 px-4 py-3 text-sm font-medium text-primary dark:bg-primary/15">
+                                <div role="status" className="mb-5 rounded-lg border border-[#0866FF]/20 bg-[#EBF5FF] px-4 py-3 text-[13px] font-medium text-[#0866FF] dark:bg-[#0866FF]/10 dark:border-[#0866FF]/30">
                                     {success}
                                 </div>
                             )}
