@@ -40,7 +40,7 @@ VITE_META_SIGNUP_CONFIG_ID= # Meta Embedded Signup config (production)
 - **AI Voice Calls** — trigger outbound AI calls per lead, view call history with transcripts
 - **WhatsApp** — send messages, manage templates, connect Meta number (`/whatsapp-setup`, `/whatsapp-templates`)
 - **Email** — compose and send emails via connected Gmail/Outlook account
-- **Chat Dashboard** — real-time messaging with delivery ticks (sent/delivered/read/failed)
+- **Chat Dashboard** — real-time messaging with delivery ticks (sent/delivered/read/failed), message deduplication, new conversation dialog
 - **Bulk Campaigns** — batch WhatsApp + email + voice campaigns with queue management
 - **Lead Automation** — scheduled follow-up sequences
 - **Facebook Lead Ads** — OAuth integration for auto-importing leads
@@ -86,3 +86,16 @@ src/
 ```
 
 All API calls go through `src/api.js` — add new functions there rather than inline axios calls.
+
+---
+
+## Chat Message Deduplication
+
+The chat dashboard uses optimistic rendering: messages appear instantly and are replaced with server-confirmed versions. Since the backend emits Socket.IO events **and** returns messages in HTTP responses, the frontend has multi-layer dedup:
+
+1. **By `_id`** — if the message already exists (from API response), socket event is ignored
+2. **By `wamid`** — same WhatsApp message ID won't duplicate
+3. **By optimistic match** — socket events matching a pending temp message replace it in-place
+4. **API response handler** — checks if socket already delivered the real message before replacing
+
+This prevents the "double message" issue where the same outbound message appears twice in the chat window.

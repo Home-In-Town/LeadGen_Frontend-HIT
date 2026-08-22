@@ -313,9 +313,16 @@ export default function ChatDashboard() {
                 const savedMsg = res.data?.data;
 
                 if (savedMsg) {
-                    setMessages((prev) =>
-                        prev.map((m) => (m._id === tempId ? savedMsg : m))
-                    );
+                    setMessages((prev) => {
+                        // If socket already replaced our temp msg, just deduplicate
+                        const hasReal = prev.some((m) => m._id === savedMsg._id);
+                        if (hasReal) {
+                            // Remove the temp message if it still exists
+                            return prev.filter((m) => m._id !== tempId);
+                        }
+                        // Normal case: replace temp with real
+                        return prev.map((m) => (m._id === tempId ? savedMsg : m));
+                    });
                 }
                 // Refresh sidebar to show latest message preview
                 fetchConversations();
@@ -355,9 +362,13 @@ export default function ChatDashboard() {
                 const savedMsg = res.data?.data;
 
                 if (savedMsg) {
-                    setMessages((prev) =>
-                        prev.map((m) => (m._id === tempId ? savedMsg : m))
-                    );
+                    setMessages((prev) => {
+                        const hasReal = prev.some((m) => m._id === savedMsg._id);
+                        if (hasReal) {
+                            return prev.filter((m) => m._id !== tempId);
+                        }
+                        return prev.map((m) => (m._id === tempId ? savedMsg : m));
+                    });
                 }
                 fetchConversations();
             } catch {
@@ -414,11 +425,31 @@ export default function ChatDashboard() {
         const handleNewMessage = (payload) => {
             if (!payload) return;
 
-            // Update messages if it's the active conversation (deduplicate by _id)
+            // Update messages if it's the active conversation (deduplicate)
             if (payload.leadId === activeLeadId) {
                 setMessages((prev) => {
+                    // Deduplicate by _id (already exists from API response)
                     if (payload._id && prev.some((m) => m._id === payload._id)) {
                         return prev;
+                    }
+                    // Deduplicate by wamid (same WhatsApp message ID)
+                    if (payload.wamid && prev.some((m) => m.wamid === payload.wamid)) {
+                        return prev;
+                    }
+                    // Check if this is a socket echo for an optimistic message we sent
+                    // _fromSendAPI flag means backend sent this from the send endpoint,
+                    // so the HTTP caller already has it — just replace the optimistic version
+                    const matchingOptimistic = prev.find(
+                        (m) =>
+                            m._id?.startsWith?.('temp_') &&
+                            m.content === payload.content &&
+                            (payload.sender === 'system' || payload.sender === 'agent' || payload._fromSendAPI)
+                    );
+                    if (matchingOptimistic) {
+                        // Replace the optimistic message with the real one
+                        return prev.map((m) =>
+                            m._id === matchingOptimistic._id ? { ...payload, _fromSendAPI: undefined } : m
+                        );
                     }
                     return [...prev, payload];
                 });
