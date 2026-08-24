@@ -1,1782 +1,642 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+/**
+ * CRMPage — Production SaaS CRM Leads Table
+ *
+ * Features:
+ * - Server-side pagination, search, filtering, sorting
+ * - Status tabs with counts
+ * - Source/status/date filters
+ * - Bulk selection with actions (delete, change status)
+ * - Delete confirmation modal
+ * - Skeleton loading states
+ * - Responsive design
+ * - Phase 1 (Web Magnet Media) branding
+ */
+
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as api from '../api';
 import { useAuth } from '../context/AuthContext';
-import { getStatusClasses, getStatusLabel } from '../utils/leadUtils';
+import { useNotifications } from '../context/NotificationContext';
+import { BRAND_COLOR } from '../config/phase';
 
-/* -------------------------------------------------------------------------- */
-/*                        ADS LEAD CARD — HELPER UTILS                        */
-/* -------------------------------------------------------------------------- */
+// ─── Constants ────────────────────────────────────────────────────────────────
+const PAGE_SIZES = [10, 25, 50, 100];
+const DEFAULT_PAGE_SIZE = 25;
 
-/** Build a compact automation summary string from a history array */
-const buildAutomationSummary = (history = []) => {
-  const calls    = history.filter((e) => e.type === 'call').length;
-  const wa       = history.filter((e) => e.type === 'whatsapp').length;
-  const emails   = history.filter((e) => e.type === 'email').length;
+const STATUS_TABS = [
+  { key: 'ALL', label: 'All Leads' },
+  { key: 'CREATED', label: 'New' },
+  { key: 'CONTACTED', label: 'Contacted' },
+  { key: 'INTERESTED', label: 'Interested' },
+  { key: 'HOT', label: 'Hot' },
+  { key: 'WARM', label: 'Warm' },
+  { key: 'COLD', label: 'Cold' },
+  { key: 'CONVERTED', label: 'Converted' },
+  { key: 'LOST', label: 'Lost' },
+];
 
-  const parts = [];
-  if (calls  > 0) parts.push(`📞 ${calls} call${calls > 1 ? 's' : ''}`);
-  if (wa     > 0) parts.push(`💬 WhatsApp sent`);
-  if (emails > 0) parts.push(`📧 Email sent`);
+const SOURCE_OPTIONS = [
+  { value: '', label: 'All Sources' },
+  { value: 'manual', label: 'Manual' },
+  { value: 'facebook', label: 'Facebook' },
+  { value: 'google', label: 'Google' },
+  { value: 'whatsapp_incoming', label: 'WhatsApp' },
+  { value: 'whatsapp_ad', label: 'WhatsApp Ad' },
+  { value: 'bulk_import', label: 'Import' },
+  { value: 'webhook', label: 'Webhook' },
+];
 
-  return parts.length > 0 ? parts.join(' · ') : null;
+const STATUS_COLORS = {
+  CREATED: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
+  CONTACTED: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300',
+  INTERESTED: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300',
+  HOT: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
+  WARM: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300',
+  COLD: 'bg-slate-100 text-slate-600 dark:bg-slate-700/50 dark:text-slate-300',
+  CONVERTED: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300',
+  LOST: 'bg-gray-100 text-gray-600 dark:bg-gray-800/50 dark:text-gray-400',
 };
 
-/** Icon + label for a single timeline event type */
-const eventMeta = (type) => {
-  switch (type) {
-    case 'call':      return { icon: 'call',          label: 'Call',      color: 'text-blue-500',    bg: 'bg-blue-500/10'    };
-    case 'whatsapp':  return { icon: 'chat',           label: 'WhatsApp',  color: 'text-green-500',   bg: 'bg-green-500/10'   };
-    case 'email':     return { icon: 'mail',           label: 'Email',     color: 'text-purple-500',  bg: 'bg-purple-500/10'  };
-    default:          return { icon: 'bolt',           label: type,        color: 'text-slate-500',   bg: 'bg-slate-500/10'   };
-  }
+const SOURCE_BADGES = {
+  facebook: { label: 'Facebook', color: 'bg-blue-50 text-blue-600 border-blue-200' },
+  google: { label: 'Google', color: 'bg-green-50 text-green-600 border-green-200' },
+  manual: { label: 'Manual', color: 'bg-slate-50 text-slate-600 border-slate-200' },
+  whatsapp_incoming: { label: 'WhatsApp', color: 'bg-emerald-50 text-emerald-600 border-emerald-200' },
+  whatsapp_ad: { label: 'WA Ad', color: 'bg-teal-50 text-teal-600 border-teal-200' },
+  whatsapp_chat: { label: 'WA Chat', color: 'bg-emerald-50 text-emerald-600 border-emerald-200' },
+  bulk_import: { label: 'Import', color: 'bg-purple-50 text-purple-600 border-purple-200' },
+  webhook: { label: 'Webhook', color: 'bg-cyan-50 text-cyan-600 border-cyan-200' },
 };
 
-/** Status chip colour */
-const statusChipClass = (status) => {
-  if (!status) return 'bg-slate-100 text-slate-500 dark:bg-white/[0.06] dark:text-slate-400';
-  const s = status.toLowerCase();
-  if (['completed', 'delivered', 'sent'].includes(s)) return 'bg-emerald-500/10 text-emerald-600';
-  if (['failed', 'error'].includes(s))                 return 'bg-red-500/10 text-red-500';
-  return 'bg-slate-100 text-slate-500 dark:bg-white/[0.06] dark:text-slate-400';
+// ─── Helper Components ────────────────────────────────────────────────────────
+
+const SkeletonRow = () => (
+  <tr className="animate-pulse">
+    <td className="px-4 py-3"><div className="h-4 w-4 bg-slate-200 dark:bg-slate-700 rounded" /></td>
+    <td className="px-4 py-3"><div className="h-4 w-32 bg-slate-200 dark:bg-slate-700 rounded" /></td>
+    <td className="px-4 py-3"><div className="h-4 w-24 bg-slate-200 dark:bg-slate-700 rounded" /></td>
+    <td className="px-4 py-3"><div className="h-4 w-16 bg-slate-200 dark:bg-slate-700 rounded" /></td>
+    <td className="px-4 py-3"><div className="h-4 w-14 bg-slate-200 dark:bg-slate-700 rounded" /></td>
+    <td className="px-4 py-3"><div className="h-4 w-10 bg-slate-200 dark:bg-slate-700 rounded" /></td>
+    <td className="px-4 py-3"><div className="h-4 w-20 bg-slate-200 dark:bg-slate-700 rounded" /></td>
+    <td className="px-4 py-3"><div className="h-4 w-20 bg-slate-200 dark:bg-slate-700 rounded" /></td>
+  </tr>
+);
+
+const ConfirmModal = ({ open, title, message, onConfirm, onCancel, confirmLabel = 'Delete', destructive = true }) => {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onCancel}>
+      <div className="w-full max-w-md bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6" onClick={e => e.stopPropagation()}>
+        <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">{title}</h3>
+        <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">{message}</p>
+        <div className="flex justify-end gap-3">
+          <button onClick={onCancel} className="px-4 py-2 text-sm font-medium rounded-lg border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700">
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            className={`px-4 py-2 text-sm font-bold rounded-lg text-white ${destructive ? 'bg-red-500 hover:bg-red-600' : 'bg-blue-500 hover:bg-blue-600'}`}
+          >
+            {confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 };
 
-const CRMPage = () => {
+// ─── Main Component ───────────────────────────────────────────────────────────
+
+export default function CRMPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { addToast } = useNotifications();
 
+  // Data state
   const [leads, setLeads] = useState([]);
-  const [automations, setAutomations] = useState([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  const [searchTerm, setSearchTerm] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
+  // Pagination
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
 
-  const [activeTab, setActiveTab] = useState('site');
-  const [currentPage, setCurrentPage] = useState(1);
+  // Filters
+  const [activeStatus, setActiveStatus] = useState('ALL');
+  const [sourceFilter, setSourceFilter] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const [search, setSearch] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [showMoreFilters, setShowMoreFilters] = useState(false);
 
-  const [selectedAutomationGroup, setSelectedAutomationGroup] = useState(null);
+  // Sorting
+  const [sortBy, setSortBy] = useState('updatedAt');
+  const [sortOrder, setSortOrder] = useState('desc');
 
-  const itemsPerPage = 10;
+  // Selection
+  const [selectedIds, setSelectedIds] = useState(new Set());
+
+  // Modal
+  const [deleteModal, setDeleteModal] = useState({ open: false, leadId: null, bulk: false });
+  const [statusModal, setStatusModal] = useState({ open: false, newStatus: '' });
+
   const debounceRef = useRef(null);
+  const totalPages = Math.ceil(total / pageSize) || 1;
 
-  const [leadTypeFilter, setLeadTypeFilter] = useState('ALL');
-
-  /* Ads-lead-specific: expandable automation history */
-  const [expandedLeadIds, setExpandedLeadIds] = useState(new Set());
-  const [leadHistories, setLeadHistories]     = useState({});   // leadId → event[]
-  const [historyLoading, setHistoryLoading]   = useState({});   // leadId → bool
-
-  /* -------------------------------------------------------------------------- */
-  /*                                   SEARCH                                   */
-  /* -------------------------------------------------------------------------- */
-
+  // ── Debounced Search ──────────────────────────────────────────────────────
   useEffect(() => {
     clearTimeout(debounceRef.current);
-
     debounceRef.current = setTimeout(() => {
-      setDebouncedSearch(searchTerm);
-    }, 250);
-
+      setSearch(searchInput);
+      setPage(1);
+    }, 400);
     return () => clearTimeout(debounceRef.current);
-  }, [searchTerm]);
+  }, [searchInput]);
 
-  /* -------------------------------------------------------------------------- */
-  /*                                   FETCH                                    */
-  /* -------------------------------------------------------------------------- */
-
+  // ── Fetch Leads ───────────────────────────────────────────────────────────
   const fetchLeads = useCallback(async () => {
-  try {
     if (!user) return;
+    setLoading(true);
+    try {
+      const params = {
+        userId: user.id,
+        role: user.role,
+        page,
+        limit: pageSize,
+        sortBy,
+        sortOrder,
+      };
+      if (activeStatus !== 'ALL') params.status = activeStatus;
+      if (sourceFilter) params.source = sourceFilter;
+      if (search) params.search = search;
+      if (dateFrom) params.dateFrom = dateFrom;
+      if (dateTo) params.dateTo = dateTo;
 
-    const params = {
-      userId: user.id,
-      role: user.role,
-      limit: 200
-    };
-
-    const [leadsRes, automationsRes] = await Promise.all([
-      api.getAllLeads(params),
-      api.getCreatorAutomations(user.id)
-    ]);
-
-      const leadsData = leadsRes.data;
-
-      setLeads(
-        Array.isArray(leadsData)
-          ? leadsData
-          : (leadsData?.leads || [])
-      );
-
-      if (automationsRes.data?.success) {
-        setAutomations(automationsRes.data.data);
-      }
+      const res = await api.getAllLeads(params);
+      const data = res.data;
+      setLeads(data.leads || (Array.isArray(data) ? data : []));
+      setTotal(data.total || 0);
     } catch (err) {
-    console.error('Failed to fetch CRM data:', err);
-  } finally {
-    setLoading(false);
-  }
-}, [user]);
+      console.error('Failed to fetch leads:', err);
+      setLeads([]);
+      setTotal(0);
+    } finally {
+      setLoading(false);
+    }
+  }, [user, page, pageSize, activeStatus, sourceFilter, search, dateFrom, dateTo, sortBy, sortOrder]);
 
-useEffect(() => {
-  if (user) {
-    fetchLeads();
-  }
-}, [user, fetchLeads]);
+  useEffect(() => { fetchLeads(); }, [fetchLeads]);
 
-useEffect(() => {
-  setCurrentPage(1);
-  setSelectedAutomationGroup(null);
-}, [debouncedSearch, activeTab, leadTypeFilter]);
+  // Reset page on filter change
+  useEffect(() => { setPage(1); }, [activeStatus, sourceFilter, dateFrom, dateTo]);
 
-/* -------------------------------------------------------------------------- */
-/*                       ADS LEAD — EXPAND / COLLAPSE                        */
-/* -------------------------------------------------------------------------- */
-
-  const toggleLeadHistory = useCallback(async (leadId) => {
-    setExpandedLeadIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(leadId)) {
-        next.delete(leadId);
+  // ── Actions ───────────────────────────────────────────────────────────────
+  const handleDeleteLead = async () => {
+    const { leadId, bulk } = deleteModal;
+    try {
+      if (bulk) {
+        await api.bulkDeleteLeads([...selectedIds]);
+        addToast?.('Leads deleted successfully', 'success');
+        setSelectedIds(new Set());
       } else {
-        next.add(leadId);
+        await api.deleteLead(leadId);
+        addToast?.('Lead deleted successfully', 'success');
       }
+      fetchLeads();
+    } catch {
+      addToast?.('Failed to delete lead(s)', 'error');
+    }
+    setDeleteModal({ open: false, leadId: null, bulk: false });
+  };
+
+  const handleBulkStatus = async () => {
+    if (!statusModal.newStatus) return;
+    try {
+      await api.bulkUpdateStatus([...selectedIds], statusModal.newStatus);
+      addToast?.(`${selectedIds.size} leads updated to ${statusModal.newStatus}`, 'success');
+      setSelectedIds(new Set());
+      fetchLeads();
+    } catch {
+      addToast?.('Failed to update leads', 'error');
+    }
+    setStatusModal({ open: false, newStatus: '' });
+  };
+
+  const handleSort = (field) => {
+    if (sortBy === field) {
+      setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(field);
+      setSortOrder('desc');
+    }
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === leads.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(leads.map(l => l.id)));
+    }
+  };
+
+  const toggleSelect = (id) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
       return next;
     });
+  };
 
-    // Fetch only once per lead
-    if (leadHistories[leadId] !== undefined) return;
+  const clearFilters = () => {
+    setSearchInput('');
+    setSearch('');
+    setActiveStatus('ALL');
+    setSourceFilter('');
+    setDateFrom('');
+    setDateTo('');
+    setShowMoreFilters(false);
+    setPage(1);
+  };
 
-    setHistoryLoading((prev) => ({ ...prev, [leadId]: true }));
-    try {
-      const res = await api.getLeadAutomationHistory(leadId);
-      const events = Array.isArray(res.data)
-        ? res.data
-        : (res.data?.data || res.data?.events || []);
-      setLeadHistories((prev) => ({ ...prev, [leadId]: events }));
-    } catch {
-      setLeadHistories((prev) => ({ ...prev, [leadId]: [] }));
-    } finally {
-      setHistoryLoading((prev) => ({ ...prev, [leadId]: false }));
-    }
-  }, [leadHistories]);
+  const hasActiveFilters = search || activeStatus !== 'ALL' || sourceFilter || dateFrom || dateTo;
 
-/* -------------------------------------------------------------------------- */
-/*                                   FILTERS                                  */
-/* -------------------------------------------------------------------------- */
+  const formatDate = (d) => {
+    if (!d) return '—';
+    return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  };
 
-const filteredLeads = useMemo(() => {
-  return leads.filter((lead) => {
-    const isAdsLead = ['facebook', 'google'].includes(lead.source);
-    const isBulkLead = lead.source === 'bulk_import';
+  const getScoreColor = (score) => {
+    if (score >= 71) return 'text-red-600 font-bold';
+    if (score >= 31) return 'text-orange-500 font-semibold';
+    return 'text-slate-500';
+  };
 
-    /* ------------------------------- TAB FILTER ------------------------------ */
-
-    if (activeTab === 'automation') return false;
-
-    if (activeTab === 'ads' && !isAdsLead) return false;
-    if (activeTab === 'ads' && isAdsLead) return true; // fall through to type filter
-
-    if (activeTab === 'bulk' && !isBulkLead) return false;
-    if (activeTab === 'bulk' && isBulkLead) return true; // fall through to type filter
-
-    // 'site' tab: exclude ads leads and bulk import leads
-    if (activeTab === 'site' && (isAdsLead || isBulkLead)) return false;
-
-    /* ---------------------------- LEAD TYPE FILTER --------------------------- */
-
-    if (leadTypeFilter !== 'ALL') {
-      const leadStatus = getStatusLabel(
-        lead.score,
-        lead.status
-      );
-
-      if (leadStatus !== leadTypeFilter) {
-        return false;
-      }
-    }
-
-    return true;
-  });
-}, [leads, activeTab, leadTypeFilter]);
-
-const searchFilteredLeads = useMemo(() => {
-  const term = debouncedSearch.toLowerCase();
-
-  return filteredLeads.filter((lead) => {
-    const name =
-      `${lead.first_name || ''} ${lead.last_name || ''}`.toLowerCase();
-
-    const phone = (lead.phone_number || '').toLowerCase();
-
-    return (
-      name.includes(term) ||
-      phone.includes(term)
-    );
-  });
-}, [filteredLeads, debouncedSearch]);
-
-  /* -------------------------------------------------------------------------- */
-  /*                              AUTOMATION GROUPS                             */
-  /* -------------------------------------------------------------------------- */
-
-  const groupedAutomations = useMemo(() => {
-    const groupsMap = {};
-
-    automations.forEach((auto) => {
-      if (!groupsMap[auto.leadId]) {
-        groupsMap[auto.leadId] = {
-          leadId: auto.leadId,
-          leadName: auto.leadName,
-          automations: []
-        };
-
-        const matchingLead = leads.find((l) => l.id === auto.leadId);
-
-        if (matchingLead) {
-          groupsMap[auto.leadId].phone_number = matchingLead.phone_number;
-          groupsMap[auto.leadId].createdAt = matchingLead.createdAt;
-        }
-      }
-
-      groupsMap[auto.leadId].automations.push(auto);
-    });
-
-    return Object.values(groupsMap).sort((a, b) => {
-      const latestA = Math.max(
-        ...a.automations.map((x) => new Date(x.scheduledAt).getTime())
-      );
-
-      const latestB = Math.max(
-        ...b.automations.map((x) => new Date(x.scheduledAt).getTime())
-      );
-
-      return latestB - latestA;
-    });
-  }, [automations, leads]);
-
-  const searchFilteredAutomations = useMemo(() => {
-    const term = debouncedSearch.toLowerCase();
-
-    return groupedAutomations.filter((group) => {
-      const name = (group.leadName || '').toLowerCase();
-      const phone = (group.phone_number || '').toLowerCase();
-
-      return name.includes(term) || phone.includes(term);
-    });
-  }, [groupedAutomations, debouncedSearch]);
-
-  /* -------------------------------------------------------------------------- */
-  /*                                 PAGINATION                                 */
-  /* -------------------------------------------------------------------------- */
-
-  const activeList =
-    activeTab === 'automation'
-      ? searchFilteredAutomations
-      : searchFilteredLeads;
-
-  const totalItems = activeList.length;
-  const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
-
-  const startIndex = (currentPage - 1) * itemsPerPage;
-
-  const paginatedItems = activeList.slice(
-    startIndex,
-    startIndex + itemsPerPage
-  );
-
-  /* -------------------------------------------------------------------------- */
-  /*                                   LOADER                                   */
-  /* -------------------------------------------------------------------------- */
-
-  if (loading) {
-    return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <div className="flex flex-col items-center">
-          <div className="h-10 w-10 rounded-full border-[3px] border-primary border-t-transparent animate-spin" />
-
-          <p className="mt-4 text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400">
-            Verifying CRM records...
+  // ── Render ────────────────────────────────────────────────────────────────
+  return (
+    <div className="min-h-screen bg-slate-50 dark:bg-[#0B1120] p-4 sm:p-6 lg:p-8">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-black text-slate-900 dark:text-white">Leads</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+            Manage and track all your leads in one place.
           </p>
         </div>
-      </div>
-    );
-  }
-
-  /* -------------------------------------------------------------------------- */
-  /*                                   RENDER                                   */
-  /* -------------------------------------------------------------------------- */
-
-  return (
-    <>
-      <div className="animate-fade-in pb-10 font-display text-slate-900 dark:text-slate-100">
-        {/* ------------------------------------------------------------------ */}
-        {/* HEADER */}
-        {/* ------------------------------------------------------------------ */}
-
-        <div
-          className="
-            mb-5
-            overflow-hidden
-            rounded-[26px]
-            border
-            border-slate-200/70
-            bg-white/80
-            p-4
-            shadow-sm
-            backdrop-blur-xl
-            transition-colors
-            duration-300
-
-            dark:border-white/10
-            dark:bg-white/[0.03]
-          "
-        >
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <div className="mb-2 flex items-center gap-2">
-                {/* <div
-                  className="
-                    flex
-                    h-10
-                    w-10
-                    items-center
-                    justify-center
-                    rounded-2xl
-                    bg-primary/10
-                    text-primary
-                  "
-                >
-                  <span className="material-symbols-outlined text-[20px]">
-                    hub
-                  </span>
-                </div> */}
-
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400">
-                    Workspace
-                  </p>
-
-                  <h1 className="text-xl font-black tracking-tight">
-                    Lead CRM
-                  </h1>
-                </div>
-              </div>
-
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                Manage leads, automations, and follow-up records.
-              </p>
-            </div>
-
-            {/* Search */}
-            <div className="relative w-full lg:w-[320px]">
-              <span
-                className="
-                  material-symbols-outlined
-                  absolute
-                  left-4
-                  top-1/2
-                  -translate-y-1/2
-                  text-[18px]
-                  text-slate-400
-                "
-              >
-                search
-              </span>
-
-              <input
-                type="text"
-                placeholder="Search lead name or phone..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="
-                  h-12
-                  w-full
-                  rounded-2xl
-                  border
-                  border-slate-200
-                  bg-slate-50
-                  pl-12
-                  pr-4
-                  text-sm
-                  font-medium
-                  outline-none
-                  transition-all
-
-                  focus:border-primary
-                  focus:bg-white
-
-                  dark:border-white/10
-                  dark:bg-white/[0.04]
-                  dark:text-white
-                  dark:placeholder:text-slate-500
-                  dark:focus:bg-white/[0.06]
-                "
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* ------------------------------------------------------------------ */}
-        {/* TABS */}
-        {/* ------------------------------------------------------------------ */}
-
-        <div
-          className="
-            mb-5
-            flex
-            rounded-[22px]
-            border
-            border-slate-200/70
-            bg-white/70
-            p-1
-            backdrop-blur-xl
-
-            dark:border-white/10
-            dark:bg-white/[0.03]
-          "
-        >
-          {[
-            {
-              id: 'site',
-              label: 'Site Leads',
-              icon: 'language',
-              active:
-                'bg-slate-900 text-white dark:bg-white dark:text-slate-900'
-            },
-            {
-              id: 'ads',
-              label: 'Ads Leads',
-              icon: 'campaign',
-              active: 'bg-primary text-white'
-            },
-            {
-              id: 'bulk',
-              label: 'Imported',
-              icon: 'upload_file',
-              active: 'bg-amber-500 text-white'
-            },
-            {
-              id: 'automation',
-              label: 'Automation',
-              icon: 'bolt',
-              active: 'bg-emerald-500 text-white'
-            }
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => {
-                setActiveTab(tab.id);
-                setCurrentPage(1);
-              }}
-              className={`
-                flex
-                flex-1
-                items-center
-                justify-center
-                gap-2
-                rounded-[16px]
-                px-4
-                py-3
-                text-[11px]
-                font-black
-                uppercase
-                tracking-[0.18em]
-                transition-all
-                duration-300
-
-                ${
-                  activeTab === tab.id
-                    ? tab.active
-                    : `
-                      text-slate-500
-                      hover:bg-slate-100
-                      hover:text-slate-900
-
-                      dark:text-slate-400
-                      dark:hover:bg-white/[0.05]
-                      dark:hover:text-white
-                    `
-                }
-              `}
-            >
-              <span className="material-symbols-outlined text-[16px]">
-                {tab.icon}
-              </span>
-
-              <span className="hidden sm:block">{tab.label}</span>
-            </button>
-          ))}
-        </div>
-
-        {/* ------------------------------------------------------------------ */}
-        {/* LEAD TYPE FILTERS */}
-        {/* ------------------------------------------------------------------ */}
-
-        {activeTab !== 'automation' && (
-          <div
-            className="
-              mb-5
-              flex
-              flex-wrap
-              items-center
-              gap-3
-            "
+        <div className="flex items-center gap-3 mt-4 sm:mt-0">
+          <button
+            onClick={() => navigate('/campaigns')}
+            className="flex items-center gap-1.5 px-4 py-2.5 text-xs font-bold rounded-lg border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
           >
-            {[
-              {
-                label: 'All',
-                value: 'ALL',
-                active:
-                  'bg-slate-900 text-white dark:bg-white dark:text-slate-900'
-              },
-              {
-                label: 'Hot',
-                value: 'HOT',
-                active: 'bg-red-500 text-white'
-              },
-              {
-                label: 'Warm',
-                value: 'WARM',
-                active: 'bg-orange-500 text-white'
-              },
-              {
-                label: 'Cold',
-                value: 'COLD',
-                active: 'bg-emerald-500 text-white'
-              }
-            ].map((filter) => (
-              <button
-                key={filter.value}
-                onClick={() => {
-                  setLeadTypeFilter(filter.value);
-                  setCurrentPage(1);
-                }}
-                className={`
-                  rounded-2xl
-                  px-4
-                  py-2.5
-                  text-[11px]
-                  font-black
-                  uppercase
-                  tracking-[0.18em]
-                  transition-all
-                  duration-300
-
-                  ${
-                    leadTypeFilter === filter.value
-                      ? filter.active
-                      : `
-                        border
-                        border-slate-200
-                        bg-white
-                        text-slate-600
-
-                        hover:border-primary/30
-                        hover:text-primary
-
-                        dark:border-white/10
-                        dark:bg-white/[0.03]
-                        dark:text-slate-400
-                      `
-                  }
-                `}
-              >
-                {filter.label}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* ------------------------------------------------------------------ */}
-        {/* LIST */}
-        {/* ------------------------------------------------------------------ */}
-
-        {paginatedItems.length === 0 ? (
-          <div
-            className="
-              flex
-              flex-col
-              items-center
-              justify-center
-              rounded-[28px]
-              border
-              border-dashed
-              border-slate-300
-              bg-white/60
-              px-6
-              py-20
-              text-center
-              backdrop-blur-xl
-
-              dark:border-white/10
-              dark:bg-white/[0.03]
-            "
+            <span className="material-symbols-outlined text-[16px]">upload_file</span>
+            Import Leads
+          </button>
+          <button
+            onClick={() => navigate('/users')}
+            className="flex items-center gap-1.5 px-4 py-2.5 text-xs font-bold rounded-lg text-white transition-colors"
+            style={{ background: BRAND_COLOR }}
           >
-            <div
-              className="
-                mb-5
-                flex
-                h-20
-                w-20
-                items-center
-                justify-center
-                rounded-full
-                bg-slate-100
-
-                dark:bg-white/[0.04]
-              "
-            >
-              <span className="material-symbols-outlined text-[36px] text-slate-400">
-                inventory_2
-              </span>
-            </div>
-
-            <h3 className="text-lg font-black tracking-tight">
-              No Records Found
-            </h3>
-
-            <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-              Try changing your search or selected category.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {paginatedItems.map((item) => {
-              /* ------------------------------------------------------------ */
-              /* AUTOMATION CARD */
-              /* ------------------------------------------------------------ */
-
-              if (activeTab === 'automation') {
-                const group = item;
-
-                return (
-                  <div
-                    key={group.leadId}
-                    className="
-                      rounded-[24px]
-                      border
-                      border-slate-200/70
-                      bg-white/80
-                      p-5
-                      shadow-sm
-                      backdrop-blur-xl
-                      transition-all
-                      duration-300
-
-                      hover:border-emerald-500/40
-                      hover:shadow-lg
-
-                      dark:border-white/10
-                      dark:bg-white/[0.03]
-                    "
-                  >
-                    <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                      <div className="flex min-w-0 items-start gap-4">
-                        <div
-                          className="
-                            flex
-                            h-12
-                            w-12
-                            shrink-0
-                            items-center
-                            justify-center
-                            rounded-2xl
-                            bg-emerald-500/10
-                            text-emerald-500
-                          "
-                        >
-                          <span className="material-symbols-outlined">
-                            quick_reference_all
-                          </span>
-                        </div>
-
-                        <div className="min-w-0">
-                          <div className="mb-2 flex flex-wrap items-center gap-2">
-                            <h3 className="truncate text-lg font-black tracking-tight">
-                              {group.leadName || 'Unknown Lead'}
-                            </h3>
-
-                            <span
-                              className="
-                                rounded-full
-                                bg-emerald-500/10
-                                px-2.5
-                                py-1
-                                text-[10px]
-                                font-black
-                                uppercase
-                                tracking-[0.2em]
-                                text-emerald-500
-                              "
-                            >
-                              {group.automations.length} Sent
-                            </span>
-                          </div>
-
-                          <div className="flex flex-wrap items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
-                            <span>{group.phone_number}</span>
-                            <span>•</span>
-                            <span>Automation Records</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-3">
-                        <button
-                          onClick={() =>
-                            navigate(`/lead-automation/${group.leadId}`)
-                          }
-                          className="
-                            rounded-2xl
-                            bg-emerald-500
-                            px-5
-                            py-3
-                            text-[11px]
-                            font-black
-                            uppercase
-                            tracking-[0.18em]
-                            text-white
-                            transition-all
-                            hover:scale-[1.02]
-                            hover:bg-emerald-600
-                          "
-                        >
-                          Manage
-                        </button>
-
-                        <button
-                          onClick={() =>
-                            setSelectedAutomationGroup(group)
-                          }
-                          className="
-                            rounded-2xl
-                            border
-                            border-slate-200
-                            bg-white
-                            px-5
-                            py-3
-                            text-[11px]
-                            font-black
-                            uppercase
-                            tracking-[0.18em]
-                            transition-all
-
-                            hover:border-slate-300
-                            hover:bg-slate-100
-
-                            dark:border-white/10
-                            dark:bg-white/[0.04]
-                            dark:hover:bg-white/[0.08]
-                          "
-                        >
-                          History
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              }
-
-              /* ------------------------------------------------------------ */
-              /* LEAD CARD — SITE TAB                                         */
-              /* ------------------------------------------------------------ */
-
-              if (activeTab !== 'ads') {
-                const lead = item;
-
-                return (
-                  <div
-                    key={lead.id}
-                    onClick={() => navigate(`/lead/${lead.id}`)}
-                    className="
-                      group
-                      cursor-pointer
-                      rounded-[24px]
-                      border
-                      border-slate-200/70
-                      bg-white/80
-                      p-5
-                      shadow-sm
-                      backdrop-blur-xl
-                      transition-all
-                      duration-300
-
-                      hover:-translate-y-0.5
-                      hover:border-primary/40
-                      hover:shadow-lg
-
-                      dark:border-white/10
-                      dark:bg-white/[0.03]
-                    "
-                  >
-                    <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
-                      <div className="flex min-w-0 items-start gap-4">
-                        <div
-                          className="
-                            flex
-                            h-12
-                            w-12
-                            shrink-0
-                            items-center
-                            justify-center
-                            rounded-2xl
-                            bg-slate-100
-                            text-slate-600
-                            transition-all
-                            group-hover:bg-primary/10
-                            group-hover:text-primary
-
-                            dark:bg-white/[0.04]
-                            dark:text-slate-300
-                          "
-                        >
-                          <span className="material-symbols-outlined">
-                            assignment_turned_in
-                          </span>
-                        </div>
-
-                        <div className="min-w-0">
-                          <h3 className="truncate text-lg font-black tracking-tight">
-                            {lead.first_name} {lead.last_name}
-                          </h3>
-
-                          <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
-                            <span>{lead.phone_number}</span>
-
-                            <span>•</span>
-
-                            <span>
-                              {new Date(
-                                lead.createdAt || Date.now()
-                              ).toLocaleDateString()}
-                            </span>
-
-                            {/* Source badge */}
-                            {lead.source === 'bulk_import' && (
-                              <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.18em] text-amber-600 dark:text-amber-400">
-                                Bulk Import
-                              </span>
-                            )}
-                            {lead.source === 'facebook' && (
-                              <span className="rounded-full bg-blue-500/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.18em] text-blue-600 dark:text-blue-400">
-                                Facebook
-                              </span>
-                            )}
-                            {lead.source === 'google' && (
-                              <span className="rounded-full bg-green-500/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.18em] text-green-600 dark:text-green-400">
-                                Google Ads
-                              </span>
-                            )}
-                            {lead.campaignId && (
-                              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500 dark:bg-white/10 dark:text-slate-400 truncate max-w-[120px]" title="Campaign lead">
-                                📋 Campaign
-                              </span>
-                            )}
-
-                            {user?.role === 'admin' &&
-                              lead.createdBy?.name && (
-                                <>
-                                  <span>•</span>
-
-                                  <span
-                                    className="
-                                      rounded-full
-                                      bg-primary/10
-                                      px-2
-                                      py-1
-                                      text-[10px]
-                                      font-black
-                                      uppercase
-                                      tracking-[0.18em]
-                                      text-primary
-                                    "
-                                  >
-                                    {lead.createdBy.name}
-                                  </span>
-                                </>
-                              )}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex flex-wrap items-center gap-3">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/lead-automation/${lead.id}`);
-                          }}
-                          className="
-                            flex
-                            items-center
-                            gap-2
-                            rounded-2xl
-                            border
-                            border-slate-200
-                            bg-white
-                            px-4
-                            py-3
-                            text-[11px]
-                            font-black
-                            uppercase
-                            tracking-[0.16em]
-                            transition-all
-
-                            hover:border-primary
-                            hover:bg-primary
-                            hover:text-white
-
-                            dark:border-white/10
-                            dark:bg-white/[0.04]
-                            dark:hover:bg-primary
-                          "
-                        >
-                          <span className="material-symbols-outlined text-[16px]">
-                            calendar_month
-                          </span>
-
-                          Automation
-                        </button>
-
-                        <div
-                          className={`
-                            rounded-2xl
-                            border
-                            px-4
-                            py-3
-                            text-[11px]
-                            font-black
-                            uppercase
-                            tracking-[0.16em]
-                            ${getStatusClasses(
-                              lead.score,
-                              lead.status
-                            )}
-                          `}
-                        >
-                          {getStatusLabel(
-                            lead.score,
-                            lead.status
-                          )}{' '}
-                          ({lead.score}%)
-                        </div>
-
-                        <span
-                          className="
-                            material-symbols-outlined
-                            text-slate-400
-                            transition-all
-                            duration-300
-                            group-hover:translate-x-1
-                            group-hover:text-primary
-                          "
-                        >
-                          arrow_forward
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              }
-
-              /* ------------------------------------------------------------ */
-              /* ADS LEAD CARD — ENHANCED                                      */
-              /* ------------------------------------------------------------ */
-
-              const lead           = item;
-              const isExpanded     = expandedLeadIds.has(lead.id);
-              const history        = leadHistories[lead.id] || [];
-              const isLoadingHist  = historyLoading[lead.id] === true;
-              const hasFetched     = leadHistories[lead.id] !== undefined;
-
-              // Compute automation summary from already-fetched history
-              const summaryLine    = hasFetched ? buildAutomationSummary(history) : null;
-
-              const campaignName   = lead.metadata?.campaignName || lead.metadata?.campaignId || null;
-              const formName       = lead.metadata?.formName || null;
-
-              return (
-                <div
-                  key={lead.id}
-                  className="
-                    rounded-[24px]
-                    border
-                    border-slate-200/70
-                    bg-white/80
-                    shadow-sm
-                    backdrop-blur-xl
-                    transition-all
-                    duration-300
-
-                    hover:border-primary/30
-                    hover:shadow-lg
-
-                    dark:border-white/10
-                    dark:bg-white/[0.03]
-                  "
-                >
-                  {/* ---- Top row (always visible) ---- */}
-                  <div
-                    className="flex cursor-pointer flex-col gap-4 p-5 xl:flex-row xl:items-start xl:justify-between"
-                    onClick={() => navigate(`/lead/${lead.id}`)}
-                  >
-                    {/* Left: avatar + info */}
-                    <div className="flex min-w-0 items-start gap-4">
-                      <div
-                        className="
-                          flex
-                          h-12
-                          w-12
-                          shrink-0
-                          items-center
-                          justify-center
-                          rounded-2xl
-                          bg-primary/10
-                          text-primary
-                        "
-                      >
-                        <span className="material-symbols-outlined">campaign</span>
-                      </div>
-
-                      <div className="min-w-0 flex-1">
-                        {/* Name */}
-                        <h3 className="truncate text-lg font-black tracking-tight">
-                          {lead.first_name} {lead.last_name}
-                        </h3>
-
-                        {/* Phone · Date · Created by */}
-                        <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
-                          <span>{lead.phone_number}</span>
-                          <span>•</span>
-                          <span>
-                            {new Date(lead.createdAt || Date.now()).toLocaleDateString()}
-                          </span>
-                          {user?.role === 'admin' && lead.createdBy?.name && (
-                            <>
-                              <span>•</span>
-                              <span className="rounded-full bg-primary/10 px-2 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-primary">
-                                {lead.createdBy.name}
-                              </span>
-                            </>
-                          )}
-                        </div>
-
-                        {/* Campaign · Form tags */}
-                        {(campaignName || formName) && (
-                          <div className="mt-2 flex flex-wrap items-center gap-2">
-                            {campaignName && (
-                              <span className="flex items-center gap-1 rounded-full bg-blue-500/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-blue-600 dark:text-blue-400">
-                                <span className="material-symbols-outlined text-[12px]">campaign</span>
-                                {campaignName}
-                              </span>
-                            )}
-                            {formName && (
-                              <span className="flex items-center gap-1 rounded-full bg-violet-500/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-violet-600 dark:text-violet-400">
-                                <span className="material-symbols-outlined text-[12px]">description</span>
-                                {formName}
-                              </span>
-                            )}
-                          </div>
-                        )}
-
-                        {/* Automation summary (shown once loaded) */}
-                        {summaryLine && (
-                          <p className="mt-2 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-                            {summaryLine}
-                          </p>
-                        )}
-                        {hasFetched && !summaryLine && (
-                          <p className="mt-2 text-[11px] text-slate-400 dark:text-slate-500">
-                            No automation activity yet
-                          </p>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Right: status badge + action buttons */}
-                    <div
-                      className="flex flex-wrap items-center gap-3 xl:shrink-0"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {/* Score + status badge */}
-                      <div
-                        className={`
-                          rounded-2xl
-                          border
-                          px-4
-                          py-3
-                          text-[11px]
-                          font-black
-                          uppercase
-                          tracking-[0.16em]
-                          ${getStatusClasses(lead.score, lead.status)}
-                        `}
-                      >
-                        {getStatusLabel(lead.score, lead.status)} ({lead.score}%)
-                      </div>
-
-                      {/* Automation page button */}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/lead-automation/${lead.id}`);
-                        }}
-                        className="
-                          flex
-                          items-center
-                          gap-2
-                          rounded-2xl
-                          border
-                          border-slate-200
-                          bg-white
-                          px-4
-                          py-3
-                          text-[11px]
-                          font-black
-                          uppercase
-                          tracking-[0.16em]
-                          transition-all
-
-                          hover:border-primary
-                          hover:bg-primary
-                          hover:text-white
-
-                          dark:border-white/10
-                          dark:bg-white/[0.04]
-                          dark:hover:bg-primary
-                        "
-                      >
-                        <span className="material-symbols-outlined text-[16px]">calendar_month</span>
-                        Automation
-                      </button>
-
-                      {/* Expand / collapse history button */}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleLeadHistory(lead.id);
-                        }}
-                        className={`
-                          flex
-                          items-center
-                          gap-2
-                          rounded-2xl
-                          border
-                          px-4
-                          py-3
-                          text-[11px]
-                          font-black
-                          uppercase
-                          tracking-[0.16em]
-                          transition-all
-
-                          ${
-                            isExpanded
-                              ? 'border-primary bg-primary text-white'
-                              : `
-                                border-slate-200
-                                bg-white
-                                text-slate-700
-                                hover:border-primary/50
-                                hover:text-primary
-
-                                dark:border-white/10
-                                dark:bg-white/[0.04]
-                                dark:text-slate-300
-                              `
-                          }
-                        `}
-                      >
-                        <span className="material-symbols-outlined text-[16px]">
-                          {isExpanded ? 'expand_less' : 'history'}
-                        </span>
-                        {isExpanded ? 'Collapse' : 'History'}
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* ---- Expanded history timeline ---- */}
-                  {isExpanded && (
-                    <div
-                      className="
-                        border-t
-                        border-slate-200/70
-                        px-5
-                        pb-5
-                        pt-4
-
-                        dark:border-white/10
-                      "
-                    >
-                      {isLoadingHist ? (
-                        <div className="flex items-center justify-center py-8">
-                          <div className="h-8 w-8 animate-spin rounded-full border-[3px] border-primary border-t-transparent" />
-                        </div>
-                      ) : history.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center rounded-[20px] border border-dashed border-slate-200 py-10 dark:border-white/10">
-                          <span className="material-symbols-outlined text-[36px] text-slate-300 dark:text-slate-600">
-                            history
-                          </span>
-                          <p className="mt-3 text-sm font-semibold text-slate-400 dark:text-slate-500">
-                            No automation history yet
-                          </p>
-                        </div>
-                      ) : (
-                        <div className="relative space-y-3 pl-6">
-                          {/* vertical line */}
-                          <div className="absolute left-[9px] top-0 h-full w-[2px] rounded-full bg-slate-200 dark:bg-white/10" />
-
-                          {history.map((event, idx) => {
-                            const meta = eventMeta(event.type);
-                            return (
-                              <div key={idx} className="relative flex items-start gap-4">
-                                {/* dot */}
-                                <div
-                                  className={`
-                                    absolute
-                                    -left-[17px]
-                                    top-3
-                                    flex
-                                    h-5
-                                    w-5
-                                    items-center
-                                    justify-center
-                                    rounded-full
-                                    border-2
-                                    border-white
-                                    dark:border-[#0b0f19]
-
-                                    ${meta.bg}
-                                  `}
-                                >
-                                  <span className={`material-symbols-outlined text-[11px] ${meta.color}`}>
-                                    {meta.icon}
-                                  </span>
-                                </div>
-
-                                <div
-                                  className="
-                                    flex-1
-                                    rounded-[18px]
-                                    border
-                                    border-slate-200/70
-                                    bg-slate-50/80
-                                    p-4
-
-                                    dark:border-white/10
-                                    dark:bg-white/[0.03]
-                                  "
-                                >
-                                  <div className="flex flex-wrap items-center justify-between gap-2">
-                                    <div className="flex items-center gap-2">
-                                      <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${meta.color}`}>
-                                        {meta.label}
-                                      </span>
-                                      {event.status && (
-                                        <span
-                                          className={`
-                                            rounded-full
-                                            px-2
-                                            py-0.5
-                                            text-[10px]
-                                            font-black
-                                            uppercase
-                                            tracking-[0.15em]
-                                            ${statusChipClass(event.status)}
-                                          `}
-                                        >
-                                          {event.status}
-                                        </span>
-                                      )}
-                                    </div>
-                                    {event.timestamp && (
-                                      <span className="text-[11px] text-slate-400">
-                                        {new Date(event.timestamp).toLocaleString()}
-                                      </span>
-                                    )}
-                                  </div>
-
-                                  {/* Event-specific detail line */}
-                                  {event.type === 'call' && (
-                                    <div className="mt-2 flex flex-wrap gap-4 text-xs text-slate-500 dark:text-slate-400">
-                                      {event.duration != null && (
-                                        <span>⏱ {event.duration}s</span>
-                                      )}
-                                      {event.transcript && (
-                                        <details className="w-full">
-                                          <summary className="cursor-pointer select-none font-semibold text-primary">
-                                            View transcript
-                                          </summary>
-                                          <p className="mt-2 whitespace-pre-wrap rounded-xl bg-white p-3 text-[11px] leading-relaxed dark:bg-white/[0.04]">
-                                            {event.transcript}
-                                          </p>
-                                        </details>
-                                      )}
-                                    </div>
-                                  )}
-
-                                  {event.type === 'whatsapp' && event.templateName && (
-                                    <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                                      Template: <span className="font-semibold">{event.templateName}</span>
-                                    </p>
-                                  )}
-
-                                  {event.type === 'email' && event.subject && (
-                                    <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                                      Subject: <span className="font-semibold">{event.subject}</span>
-                                    </p>
-                                  )}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {/* ------------------------------------------------------------------ */}
-        {/* PAGINATION */}
-        {/* ------------------------------------------------------------------ */}
-
-        {totalPages > 1 && (
-          <div className="mt-10 flex flex-wrap items-center justify-center gap-2">
-            <button
-              onClick={() =>
-                setCurrentPage((prev) => Math.max(prev - 1, 1))
-              }
-              disabled={currentPage === 1}
-              className="
-                rounded-2xl
-                border
-                border-slate-200
-                bg-white
-                px-5
-                py-3
-                text-[11px]
-                font-black
-                uppercase
-                tracking-[0.18em]
-                transition-all
-
-                hover:bg-slate-100
-
-                disabled:cursor-not-allowed
-                disabled:opacity-40
-
-                dark:border-white/10
-                dark:bg-white/[0.04]
-                dark:hover:bg-white/[0.08]
-              "
-            >
-              Prev
-            </button>
-
-            {Array.from({ length: totalPages }, (_, i) => i + 1)
-              .slice(
-                Math.max(currentPage - 3, 0),
-                Math.max(currentPage - 3, 0) + 5
-              )
-              .map((page) => (
-                <button
-                  key={page}
-                  onClick={() => setCurrentPage(page)}
-                  className={`
-                    h-11
-                    w-11
-                    rounded-2xl
-                    text-[11px]
-                    font-black
-                    transition-all
-
-                    ${
-                      currentPage === page
-                        ? activeTab === 'ads'
-                          ? 'bg-primary text-white'
-                          : activeTab === 'automation'
-                          ? 'bg-emerald-500 text-white'
-                          : 'bg-slate-900 text-white dark:bg-white dark:text-slate-900'
-                        : `
-                          border
-                          border-slate-200
-                          bg-white
-                          hover:bg-slate-100
-
-                          dark:border-white/10
-                          dark:bg-white/[0.04]
-                          dark:hover:bg-white/[0.08]
-                        `
-                    }
-                  `}
-                >
-                  {page}
-                </button>
-              ))}
-
-            <button
-              onClick={() =>
-                setCurrentPage((prev) =>
-                  Math.min(prev + 1, totalPages)
-                )
-              }
-              disabled={currentPage === totalPages}
-              className="
-                rounded-2xl
-                border
-                border-slate-200
-                bg-white
-                px-5
-                py-3
-                text-[11px]
-                font-black
-                uppercase
-                tracking-[0.18em]
-                transition-all
-
-                hover:bg-slate-100
-
-                disabled:cursor-not-allowed
-                disabled:opacity-40
-
-                dark:border-white/10
-                dark:bg-white/[0.04]
-                dark:hover:bg-white/[0.08]
-              "
-            >
-              Next
-            </button>
-          </div>
-        )}
-
-        {/* ------------------------------------------------------------------ */}
-        {/* FOOTER STATS */}
-        {/* ------------------------------------------------------------------ */}
-
-        <div
-          className="
-            mt-8
-            flex
-            flex-col
-            gap-4
-            rounded-[24px]
-            border
-            border-slate-200/70
-            bg-white/70
-            p-5
-            backdrop-blur-xl
-
-            sm:flex-row
-            sm:items-center
-            sm:justify-between
-
-            dark:border-white/10
-            dark:bg-white/[0.03]
-          "
-        >
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
-              Total Records
-            </p>
-
-            <h3 className="mt-1 text-2xl font-black tracking-tight">
-              {filteredLeads.length}
-            </h3>
-          </div>
-
-          <div className="text-left sm:text-right">
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
-              Navigation
-            </p>
-
-            <h3 className="mt-1 text-lg font-black tracking-tight">
-              Page {currentPage} / {totalPages}
-            </h3>
-          </div>
+            <span className="material-symbols-outlined text-[16px]">add</span>
+            Add Lead
+          </button>
         </div>
       </div>
 
-      {/* -------------------------------------------------------------------- */}
-      {/* MODAL */}
-      {/* -------------------------------------------------------------------- */}
-
-      {selectedAutomationGroup && (
-        <div
-          className="
-            fixed
-            inset-0
-            z-[120]
-            flex
-            items-center
-            justify-center
-            bg-black/60
-            p-4
-            backdrop-blur-md
-          "
-        >
-          <div
-            className="
-              flex
-              max-h-[90vh]
-              w-full
-              max-w-3xl
-              flex-col
-              overflow-hidden
-              rounded-[32px]
-              border
-              border-slate-200/70
-              bg-white
-              shadow-2xl
-
-              dark:border-white/10
-              dark:bg-[#0b0f19]
-            "
+      {/* Status Tabs */}
+      <div className="flex items-center gap-1 overflow-x-auto pb-2 mb-4 border-b border-slate-200 dark:border-slate-700 scrollbar-hide">
+        {STATUS_TABS.map(tab => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveStatus(tab.key)}
+            className={`whitespace-nowrap px-3 py-2 text-xs font-bold rounded-t-lg transition-colors border-b-2 ${
+              activeStatus === tab.key
+                ? 'border-[var(--brand)] text-[var(--brand)] bg-white dark:bg-slate-800'
+                : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+            }`}
+            style={{ '--brand': BRAND_COLOR }}
           >
-            {/* Header */}
-            <div
-              className="
-                flex
-                items-center
-                justify-between
-                border-b
-                border-slate-200
-                p-6
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
-                dark:border-white/10
-              "
-            >
-              <div>
-                <div className="mb-2 flex items-center gap-2">
-                  <h2 className="text-xl font-black tracking-tight">
-                    {selectedAutomationGroup.leadName}
-                  </h2>
+      {/* Search & Filters Bar */}
+      <div className="flex flex-wrap items-center gap-3 mb-4">
+        {/* Search */}
+        <div className="relative flex-1 min-w-[200px] max-w-md">
+          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[18px] text-slate-400">search</span>
+          <input
+            type="text"
+            placeholder="Search leads by name, phone, company..."
+            value={searchInput}
+            onChange={e => setSearchInput(e.target.value)}
+            className="w-full pl-9 pr-4 py-2.5 text-sm rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 outline-none focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)]/20"
+            style={{ '--brand': BRAND_COLOR }}
+          />
+        </div>
 
-                  <span
-                    className="
-                      rounded-full
-                      bg-emerald-500/10
-                      px-2.5
-                      py-1
-                      text-[10px]
-                      font-black
-                      uppercase
-                      tracking-[0.2em]
-                      text-emerald-500
-                    "
-                  >
-                    Live
-                  </span>
-                </div>
+        {/* Source Filter */}
+        <select
+          value={sourceFilter}
+          onChange={e => setSourceFilter(e.target.value)}
+          className="px-3 py-2.5 text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 outline-none"
+        >
+          {SOURCE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+        </select>
 
-                <p className="text-sm text-slate-500 dark:text-slate-400">
-                  {selectedAutomationGroup.phone_number}
-                </p>
-              </div>
+        {/* More Filters */}
+        <button
+          onClick={() => setShowMoreFilters(!showMoreFilters)}
+          className={`flex items-center gap-1 px-3 py-2.5 text-xs font-medium rounded-lg border transition-colors ${
+            showMoreFilters ? 'border-[var(--brand)] text-[var(--brand)] bg-orange-50 dark:bg-orange-900/10' : 'border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
+          }`}
+          style={{ '--brand': BRAND_COLOR }}
+        >
+          <span className="material-symbols-outlined text-[16px]">tune</span>
+          More Filters
+        </button>
 
-              <button
-                onClick={() => setSelectedAutomationGroup(null)}
-                className="
-                  flex
-                  h-11
-                  w-11
-                  items-center
-                  justify-center
-                  rounded-2xl
-                  border
-                  border-slate-200
-                  transition-all
-                  hover:bg-red-500
-                  hover:text-white
+        {/* Clear Filters */}
+        {hasActiveFilters && (
+          <button
+            onClick={clearFilters}
+            className="px-3 py-2.5 text-xs font-bold text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg transition-colors"
+          >
+            Clear
+          </button>
+        )}
+      </div>
 
-                  dark:border-white/10
-                  dark:hover:border-red-500
-                "
-              >
-                <span className="material-symbols-outlined">
-                  close
-                </span>
-              </button>
-            </div>
-
-            {/* Body */}
-            <div className="flex-1 overflow-y-auto p-6">
-              <div className="space-y-4">
-                {selectedAutomationGroup.automations.map((auto) => (
-                  <div
-                    key={auto._id || auto.id}
-                    className="
-                      rounded-[24px]
-                      border
-                      border-slate-200/70
-                      bg-slate-50
-                      p-5
-
-                      dark:border-white/10
-                      dark:bg-white/[0.03]
-                    "
-                  >
-                    <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                      <div className="flex items-start gap-4">
-                        <div
-                          className={`
-                            flex
-                            h-12
-                            w-12
-                            items-center
-                            justify-center
-                            rounded-2xl
-
-                            ${
-                              auto.status === 'sent'
-                                ? 'bg-emerald-500/10 text-emerald-500'
-                                : auto.status === 'failed'
-                                ? 'bg-red-500/10 text-red-500'
-                                : 'bg-slate-200 text-slate-500 dark:bg-white/10'
-                            }
-                          `}
-                        >
-                          <span className="material-symbols-outlined">
-                            {auto.status === 'sent'
-                              ? 'done_all'
-                              : auto.status === 'failed'
-                              ? 'error'
-                              : 'schedule'}
-                          </span>
-                        </div>
-
-                        <div>
-                          <h3 className="text-sm font-black uppercase tracking-wide">
-                            {auto.templateName.replace(/_/g, ' ')}
-                          </h3>
-
-                          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-                            {new Date(
-                              auto.scheduledAt
-                            ).toLocaleString()}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-5">
-                        <div>
-                          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
-                            Opened
-                          </p>
-
-                          <p
-                            className={`
-                              mt-1
-                              text-sm
-                              font-black
-
-                              ${
-                                auto.linkActivity?.opened
-                                  ? 'text-emerald-500'
-                                  : 'text-slate-400'
-                              }
-                            `}
-                          >
-                            {auto.linkActivity?.opened
-                              ? 'Yes'
-                              : 'No'}
-                          </p>
-                        </div>
-
-                        <div>
-                          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
-                            Duration
-                          </p>
-
-                          <p className="mt-1 text-sm font-black">
-                            {auto.linkActivity?.timeSpentSeconds
-                              ? auto.linkActivity.timeSpentSeconds >= 60
-                                ? `${Math.floor(
-                                    auto.linkActivity
-                                      .timeSpentSeconds / 60
-                                  )}m`
-                                : `${auto.linkActivity.timeSpentSeconds}s`
-                              : '0s'}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Footer */}
-            <div
-              className="
-                flex
-                justify-end
-                gap-3
-                border-t
-                border-slate-200
-                p-5
-
-                dark:border-white/10
-              "
-            >
-              <button
-                onClick={() => {
-                  navigate(
-                    `/lead-automation/${selectedAutomationGroup.leadId}`
-                  );
-
-                  setSelectedAutomationGroup(null);
-                }}
-                className="
-                  rounded-2xl
-                  bg-slate-900
-                  px-5
-                  py-3
-                  text-[11px]
-                  font-black
-                  uppercase
-                  tracking-[0.18em]
-                  text-white
-                  transition-all
-                  hover:bg-emerald-500
-
-                  dark:bg-white
-                  dark:text-slate-900
-                "
-              >
-                New Automation
-              </button>
-
-              <button
-                onClick={() => setSelectedAutomationGroup(null)}
-                className="
-                  rounded-2xl
-                  border
-                  border-slate-200
-                  px-5
-                  py-3
-                  text-[11px]
-                  font-black
-                  uppercase
-                  tracking-[0.18em]
-                  transition-all
-                  hover:bg-slate-100
-
-                  dark:border-white/10
-                  dark:hover:bg-white/[0.08]
-                "
-              >
-                Close
-              </button>
-            </div>
+      {/* More Filters Panel */}
+      {showMoreFilters && (
+        <div className="flex flex-wrap items-center gap-3 mb-4 p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
+          <div className="flex items-center gap-2">
+            <label className="text-[10px] font-bold uppercase text-slate-500">From</label>
+            <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
+              className="px-2 py-1.5 text-xs rounded border border-slate-200 dark:border-slate-600 bg-transparent text-slate-700 dark:text-slate-300" />
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-[10px] font-bold uppercase text-slate-500">To</label>
+            <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
+              className="px-2 py-1.5 text-xs rounded border border-slate-200 dark:border-slate-600 bg-transparent text-slate-700 dark:text-slate-300" />
           </div>
         </div>
       )}
-    </>
-  );
-};
 
-export default CRMPage;
+      {/* Bulk Actions Bar */}
+      {selectedIds.size > 0 && (
+        <div className="flex items-center gap-3 mb-4 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+          <span className="text-sm font-bold text-blue-700 dark:text-blue-300">
+            {selectedIds.size} lead{selectedIds.size > 1 ? 's' : ''} selected
+          </span>
+          <div className="flex items-center gap-2 ml-auto">
+            <select
+              value={statusModal.newStatus}
+              onChange={e => setStatusModal({ open: false, newStatus: e.target.value })}
+              className="px-2 py-1.5 text-xs rounded border border-blue-300 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300"
+            >
+              <option value="">Change Status...</option>
+              {STATUS_TABS.filter(t => t.key !== 'ALL').map(t => (
+                <option key={t.key} value={t.key}>{t.label}</option>
+              ))}
+            </select>
+            {statusModal.newStatus && (
+              <button onClick={handleBulkStatus} className="px-3 py-1.5 text-xs font-bold rounded bg-blue-500 text-white hover:bg-blue-600">
+                Apply
+              </button>
+            )}
+            <button
+              onClick={() => setDeleteModal({ open: true, leadId: null, bulk: true })}
+              className="px-3 py-1.5 text-xs font-bold rounded bg-red-500 text-white hover:bg-red-600"
+            >
+              Delete
+            </button>
+            <button onClick={() => setSelectedIds(new Set())} className="px-2 py-1.5 text-xs text-slate-500 hover:text-slate-700">
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Table */}
+      <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 overflow-hidden shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700">
+              <tr>
+                <th className="px-4 py-3 w-10">
+                  <input
+                    type="checkbox"
+                    checked={leads.length > 0 && selectedIds.size === leads.length}
+                    onChange={toggleSelectAll}
+                    className="rounded border-slate-300"
+                  />
+                </th>
+                <th className="px-4 py-3 text-left">
+                  <button onClick={() => handleSort('first_name')} className="flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-slate-500 hover:text-slate-700">
+                    Lead
+                    {sortBy === 'first_name' && <span className="material-symbols-outlined text-[14px]">{sortOrder === 'asc' ? 'arrow_upward' : 'arrow_downward'}</span>}
+                  </button>
+                </th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-wider text-slate-500">Contact</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-wider text-slate-500">Source</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-wider text-slate-500">Status</th>
+                <th className="px-4 py-3 text-left">
+                  <button onClick={() => handleSort('score')} className="flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-slate-500 hover:text-slate-700">
+                    Score
+                    {sortBy === 'score' && <span className="material-symbols-outlined text-[14px]">{sortOrder === 'asc' ? 'arrow_upward' : 'arrow_downward'}</span>}
+                  </button>
+                </th>
+                <th className="px-4 py-3 text-left">
+                  <button onClick={() => handleSort('createdAt')} className="flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-slate-500 hover:text-slate-700">
+                    Added On
+                    {sortBy === 'createdAt' && <span className="material-symbols-outlined text-[14px]">{sortOrder === 'asc' ? 'arrow_upward' : 'arrow_downward'}</span>}
+                  </button>
+                </th>
+                <th className="px-4 py-3 text-center text-[10px] font-black uppercase tracking-wider text-slate-500">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+              {loading ? (
+                Array.from({ length: pageSize > 10 ? 10 : pageSize }).map((_, i) => <SkeletonRow key={i} />)
+              ) : leads.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="px-4 py-16 text-center">
+                    <div className="flex flex-col items-center">
+                      <span className="material-symbols-outlined text-[48px] text-slate-300 mb-3">person_search</span>
+                      <p className="text-sm font-bold text-slate-500 mb-1">
+                        {hasActiveFilters ? 'No leads found' : 'No leads yet'}
+                      </p>
+                      <p className="text-xs text-slate-400 mb-4">
+                        {hasActiveFilters ? 'Try changing your filters or search terms.' : 'Add your first lead to get started.'}
+                      </p>
+                      {hasActiveFilters ? (
+                        <button onClick={clearFilters} className="text-xs font-bold text-[var(--brand)] hover:underline" style={{ '--brand': BRAND_COLOR }}>
+                          Clear Filters
+                        </button>
+                      ) : (
+                        <button onClick={() => navigate('/users')} className="px-4 py-2 text-xs font-bold rounded-lg text-white" style={{ background: BRAND_COLOR }}>
+                          + Add Lead
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                leads.map(lead => {
+                  const name = `${lead.first_name || ''} ${lead.last_name || ''}`.trim();
+                  const status = lead.status?.toUpperCase() || 'CREATED';
+                  const source = lead.source || 'manual';
+                  const sourceBadge = SOURCE_BADGES[source] || SOURCE_BADGES.manual;
+                  const statusColor = STATUS_COLORS[status] || STATUS_COLORS.COLD;
+
+                  return (
+                    <tr
+                      key={lead.id}
+                      className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors cursor-pointer"
+                      onClick={() => navigate(`/lead/${lead.id}`)}
+                    >
+                      <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(lead.id)}
+                          onChange={() => toggleSelect(lead.id)}
+                          className="rounded border-slate-300"
+                        />
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0" style={{ background: BRAND_COLOR }}>
+                            {(lead.first_name?.[0] || '?').toUpperCase()}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">{name || 'Unknown'}</p>
+                            {lead.email && <p className="text-[11px] text-slate-400 truncate">{lead.email}</p>}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <p className="text-sm text-slate-700 dark:text-slate-300">{lead.phone_number || '—'}</p>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex px-2 py-0.5 text-[10px] font-bold rounded border ${sourceBadge.color}`}>
+                          {sourceBadge.label}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex px-2 py-0.5 text-[10px] font-bold rounded ${statusColor}`}>
+                          {status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`text-sm ${getScoreColor(lead.score)}`}>{lead.score}%</span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="text-xs text-slate-500">{formatDate(lead.createdAt)}</span>
+                      </td>
+                      <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center justify-center gap-1">
+                          <button
+                            onClick={() => navigate(`/lead/${lead.id}`)}
+                            className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 hover:text-blue-600 transition-colors"
+                            title="View"
+                          >
+                            <span className="material-symbols-outlined text-[18px]">visibility</span>
+                          </button>
+                          <button
+                            onClick={() => setDeleteModal({ open: true, leadId: lead.id, bulk: false })}
+                            className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-slate-500 hover:text-red-600 transition-colors"
+                            title="Delete"
+                          >
+                            <span className="material-symbols-outlined text-[18px]">delete</span>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Pagination Footer */}
+        {!loading && total > 0 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between px-4 py-3 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/30">
+            <p className="text-xs text-slate-500 mb-2 sm:mb-0">
+              Showing {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, total)} of {total.toLocaleString()} leads
+            </p>
+            <div className="flex items-center gap-2">
+              {/* Page Size */}
+              <select
+                value={pageSize}
+                onChange={e => { setPageSize(Number(e.target.value)); setPage(1); }}
+                className="px-2 py-1 text-xs rounded border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300"
+              >
+                {PAGE_SIZES.map(s => <option key={s} value={s}>{s} / page</option>)}
+              </select>
+              {/* Prev */}
+              <button
+                disabled={page <= 1}
+                onClick={() => setPage(p => p - 1)}
+                className="px-2.5 py-1 text-xs font-medium rounded border border-slate-200 dark:border-slate-600 disabled:opacity-40 hover:bg-slate-100 dark:hover:bg-slate-700"
+              >
+                Prev
+              </button>
+              {/* Page Numbers */}
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let p;
+                if (totalPages <= 5) p = i + 1;
+                else if (page <= 3) p = i + 1;
+                else if (page >= totalPages - 2) p = totalPages - 4 + i;
+                else p = page - 2 + i;
+                return (
+                  <button
+                    key={p}
+                    onClick={() => setPage(p)}
+                    className={`px-2.5 py-1 text-xs font-bold rounded ${
+                      page === p
+                        ? 'text-white'
+                        : 'border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
+                    }`}
+                    style={page === p ? { background: BRAND_COLOR } : {}}
+                  >
+                    {p}
+                  </button>
+                );
+              })}
+              {totalPages > 5 && page < totalPages - 2 && <span className="text-xs text-slate-400">...</span>}
+              {totalPages > 5 && page < totalPages - 2 && (
+                <button onClick={() => setPage(totalPages)} className="px-2.5 py-1 text-xs font-bold rounded border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700">
+                  {totalPages}
+                </button>
+              )}
+              {/* Next */}
+              <button
+                disabled={page >= totalPages}
+                onClick={() => setPage(p => p + 1)}
+                className="px-2.5 py-1 text-xs font-medium rounded border border-slate-200 dark:border-slate-600 disabled:opacity-40 hover:bg-slate-100 dark:hover:bg-slate-700"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        open={deleteModal.open}
+        title={deleteModal.bulk ? `Delete ${selectedIds.size} Leads?` : 'Delete Lead?'}
+        message={deleteModal.bulk
+          ? `This action will permanently remove ${selectedIds.size} leads and their associated records. This cannot be undone.`
+          : 'This action will permanently remove this lead and its associated records. This cannot be undone.'
+        }
+        confirmLabel={deleteModal.bulk ? `Delete ${selectedIds.size} Leads` : 'Delete Lead'}
+        onConfirm={handleDeleteLead}
+        onCancel={() => setDeleteModal({ open: false, leadId: null, bulk: false })}
+      />
+    </div>
+  );
+}

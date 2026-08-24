@@ -60,6 +60,9 @@ export const updateAiCall = (id, data) => leadsApi.post(`/${id}/ai-call-result`,
 export const updateLinkActivity = (id, data) => leadsApi.post(`/${id}/link-activity`, data);
 export const getSummary = (id) => leadsApi.get(`/${id}/summary`);
 export const deleteLead = (id) => leadsApi.delete(`/${id}`);
+export const updateLead = (id, data) => leadsApi.put(`/${id}`, data);
+export const bulkDeleteLeads = (ids) => leadsApi.post('/bulk-delete', { ids });
+export const bulkUpdateStatus = (ids, status) => leadsApi.post('/bulk-status', { ids, status });
 
 // ====== VOICE CALL ENDPOINTS ======
 export const getCallStatus = (leadId) => voiceApi.get(`/status/${leadId}`);
