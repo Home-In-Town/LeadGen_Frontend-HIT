@@ -200,14 +200,9 @@ const UsersPage = () => {
       } else {
         const res = await getFBCampaigns({ limit: 200 });
         const campaignList = res.data?.campaigns || res.data?.data || [];
-        const defaultOption = {
-          campaignId: '__default__',
-          campaignName: 'Default Automation (Call + WhatsApp)',
-          status: 'ACTIVE',
-          leadsCount: 0,
-          isDefault: true,
-        };
-        setCampaigns([defaultOption, ...campaignList]);
+        // Default campaigns (isDefault: true) are already included from the backend
+        // and sorted first — no need for a synthetic '__default__' option
+        setCampaigns(campaignList);
       }
       setBulkMode(mode);
       setShowProjectModal(true);
@@ -224,13 +219,12 @@ const UsersPage = () => {
     setProcessing(true);
     try {
       if (!user) { addToast('Please login first.', 'error'); return; }
-      const isDefault = campaignId === '__default__';
       const creatorData = {
         creatorId: user.id || user._id,
         creatorName: user.name || `${user.first_name || ''} ${user.last_name || ''}`.trim(),
         creatorRole: user.role || 'agent',
-        projectSlug: isDefault ? undefined : campaignId,
-        projectName: isDefault ? undefined : campaignName,
+        projectSlug: campaignId || undefined,
+        projectName: campaignName || undefined,
       };
       const userIds = Array.from(selectedUsers);
       const CONCURRENCY = 5;
@@ -256,7 +250,7 @@ const UsersPage = () => {
           selectedUserData.forEach(u => csvLines.push(`${u.first_name || ''},${u.last_name || ''},${u.phone_number || ''}`));
           const blob = new Blob([csvLines.join('\n')], { type: 'text/csv' });
           const csvFile = new File([blob], `auto_${Date.now()}.csv`, { type: 'text/csv' });
-          await uploadCampaign(csvFile, `Auto - ${campaignName || 'Default'}`, isDefault ? null : campaignId);
+          await uploadCampaign(csvFile, `Auto - ${campaignName || 'Default'}`, campaignId || null);
           addToast(`Automation started! ${successCount} leads will receive calls shortly.`, 'success');
         } catch {
           addToast(`Leads created (${successCount}) but automation failed.`, 'warning');

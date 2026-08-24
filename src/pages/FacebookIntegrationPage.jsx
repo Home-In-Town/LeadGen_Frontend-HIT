@@ -277,7 +277,9 @@ function CampaignCard({ campaign, onMappingCreated, hitLinked, projects }) {
             <div className="w-full flex items-center justify-between gap-3 px-5 py-4 bg-slate-50/80 dark:bg-white/[0.02] hover:bg-slate-100/80 dark:hover:bg-white/[0.04] transition-all">
                 <button onClick={() => setExpanded(v => !v)}
                     className="flex items-center gap-3 min-w-0 flex-1 text-left">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-600 text-white font-black text-xs flex-shrink-0">f</div>
+                    <div className={`flex h-8 w-8 items-center justify-center rounded-xl text-white font-black text-xs flex-shrink-0 ${campaign.isDefault ? 'bg-gradient-to-br from-emerald-500 to-teal-600' : 'bg-blue-600'}`}>
+                        {campaign.isDefault ? <span className="material-symbols-outlined text-[16px]">bolt</span> : 'f'}
+                    </div>
                     <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
                             <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{campaign.campaignName}</p>
@@ -429,19 +431,16 @@ function CampaignCard({ campaign, onMappingCreated, hitLinked, projects }) {
 function TabCampaigns({ campaigns, campaignsLoading, onSync, syncing, isConnected, onMappingCreated, hitLinked, hitProjects }) {
     const ORDER = { ACTIVE: 0, PAUSED: 1, ARCHIVED: 2, DELETED: 3 };
     const sorted = [...campaigns].sort((a, b) => {
+        // Default campaigns always first
+        if (a.isDefault && !b.isDefault) return -1;
+        if (!a.isDefault && b.isDefault) return 1;
         const ao = ORDER[a.status] ?? 9;
         const bo = ORDER[b.status] ?? 9;
         return ao !== bo ? ao - bo : (b.leadsCount || 0) - (a.leadsCount || 0);
     });
 
-    if (!isConnected) {
-        return (
-            <div className={`${cardClass} p-12 text-center`}>
-                <span className="material-symbols-outlined text-4xl text-slate-400 mb-3 block">lock</span>
-                <p className="text-slate-500">Connect Facebook first to view campaigns.</p>
-            </div>
-        );
-    }
+    const defaultCampaigns = sorted.filter(c => c.isDefault);
+    const fbCampaigns = sorted.filter(c => !c.isDefault);
 
     return (
         <div className="space-y-4">
@@ -450,34 +449,69 @@ function TabCampaigns({ campaigns, campaignsLoading, onSync, syncing, isConnecte
                     Campaigns & Forms
                     {campaigns.length > 0 && <span className="ml-2 text-slate-400 text-base font-normal">({campaigns.length})</span>}
                 </h2>
-                <button onClick={onSync} disabled={syncing}
-                    className="flex items-center gap-2 rounded-2xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-[11px] font-black uppercase tracking-[0.2em] px-4 py-2.5 transition-all">
-                    <span className={`material-symbols-outlined text-base ${syncing ? 'animate-spin' : ''}`}>sync</span>
-                    {syncing ? 'Syncing…' : 'Sync Now'}
-                </button>
+                {isConnected && (
+                    <button onClick={onSync} disabled={syncing}
+                        className="flex items-center gap-2 rounded-2xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-[11px] font-black uppercase tracking-[0.2em] px-4 py-2.5 transition-all">
+                        <span className={`material-symbols-outlined text-base ${syncing ? 'animate-spin' : ''}`}>sync</span>
+                        {syncing ? 'Syncing…' : 'Sync Now'}
+                    </button>
+                )}
             </div>
 
             {campaignsLoading && (
                 <div className="flex justify-center py-12"><Spinner size="lg" /></div>
             )}
 
+            {/* Default Campaigns — always visible */}
+            {!campaignsLoading && defaultCampaigns.length > 0 && (
+                <div className="space-y-3">
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 px-1">Default Automation Campaigns</p>
+                    {defaultCampaigns.map(camp => (
+                        <CampaignCard
+                            key={camp.campaignId}
+                            campaign={camp}
+                            onMappingCreated={onMappingCreated}
+                            hitLinked={hitLinked}
+                            projects={hitProjects}
+                        />
+                    ))}
+                </div>
+            )}
+
+            {/* FB Campaigns — only when connected */}
+            {!campaignsLoading && isConnected && fbCampaigns.length > 0 && (
+                <div className="space-y-3">
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 px-1">Facebook Ad Campaigns</p>
+                    {fbCampaigns.map(camp => (
+                        <CampaignCard
+                            key={camp.campaignId}
+                            campaign={camp}
+                            onMappingCreated={onMappingCreated}
+                            hitLinked={hitLinked}
+                            projects={hitProjects}
+                        />
+                    ))}
+                </div>
+            )}
+
+            {/* Not connected hint */}
+            {!campaignsLoading && !isConnected && fbCampaigns.length === 0 && (
+                <div className="rounded-xl border border-blue-200 dark:border-blue-800/40 bg-blue-50 dark:bg-blue-900/10 p-4 flex items-start gap-3">
+                    <span className="material-symbols-outlined text-blue-500 text-lg mt-0.5 flex-shrink-0">info</span>
+                    <div>
+                        <p className="text-xs font-bold text-blue-800 dark:text-blue-300">Connect Facebook to sync ad campaigns</p>
+                        <p className="text-[11px] text-blue-600 dark:text-blue-400 mt-0.5">Your default campaigns above are ready to use. Connect Facebook Lead Ads to also sync ad campaigns and forms automatically.</p>
+                    </div>
+                </div>
+            )}
+
             {!campaignsLoading && sorted.length === 0 && (
                 <div className={`${cardClass} p-12 text-center`}>
                     <span className="material-symbols-outlined text-4xl text-slate-400 mb-3 block">campaign</span>
                     <p className="text-slate-500 font-bold">No campaigns found</p>
-                    <p className="text-slate-400 text-sm mt-1">Click "Sync Now" to fetch campaigns from your ad accounts.</p>
+                    <p className="text-slate-400 text-sm mt-1">Loading your default campaigns...</p>
                 </div>
             )}
-
-            {!campaignsLoading && sorted.map(camp => (
-                <CampaignCard
-                    key={camp.campaignId}
-                    campaign={camp}
-                    onMappingCreated={onMappingCreated}
-                    hitLinked={hitLinked}
-                    projects={hitProjects}
-                />
-            ))}
         </div>
     );
 }
