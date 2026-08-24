@@ -74,6 +74,9 @@ const LeadGenerationPage = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [deleteModal, setDeleteModal] = useState(false);
   const [automationHistory, setAutomationHistory] = useState([]);
+  const [editModal, setEditModal] = useState(false);
+  const [editForm, setEditForm] = useState({});
+  const [saving, setSaving] = useState(false);
 
   // ── Data Fetching ─────────────────────────────────────────────────────────
   const refreshData = useCallback(async () => {
@@ -181,6 +184,36 @@ const LeadGenerationPage = () => {
     setDeleteModal(false);
   };
 
+  // ── Edit Lead ─────────────────────────────────────────────────────────────
+  const openEditModal = () => {
+    setEditForm({
+      first_name: leadData.first_name || '',
+      last_name: leadData.last_name || '',
+      phone_number: leadData.phone_number || '',
+      email: leadData.email || '',
+      status: leadData.status || 'CREATED',
+      city: leadData.city || '',
+      interest: leadData.interest || '',
+      budget: leadData.budget || '',
+      source: leadData.source || 'manual',
+    });
+    setEditModal(true);
+  };
+
+  const handleSaveEdit = async () => {
+    setSaving(true);
+    try {
+      await api.updateLead(id, editForm);
+      addToast('Lead updated successfully', 'success');
+      setEditModal(false);
+      refreshData();
+    } catch {
+      addToast('Failed to update lead', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   // ── Loading State ─────────────────────────────────────────────────────────
   if (!leadData) {
     return (
@@ -220,7 +253,7 @@ const LeadGenerationPage = () => {
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Live
             </span>
           )}
-          <button onClick={() => navigate(`/chat/whatsapp/${id}`)} className="px-3 py-2 text-xs font-bold rounded-lg border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">
+          <button onClick={openEditModal} className="px-3 py-2 text-xs font-bold rounded-lg border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">
             Edit Lead
           </button>
           <button onClick={() => setDeleteModal(true)} className="px-3 py-2 text-xs font-bold rounded-lg border border-red-200 text-red-600 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-900/20">

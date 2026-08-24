@@ -283,21 +283,11 @@ const UsersPage = () => {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#0B1120] p-4 sm:p-6 lg:p-8">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-black text-slate-900 dark:text-white">Users</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-            Manage team members and contacts.
-          </p>
-        </div>
-        <button
-          onClick={() => navigate('/add-user')}
-          className="flex items-center gap-1.5 px-4 py-2.5 text-xs font-bold rounded-lg text-white mt-4 sm:mt-0 transition-colors"
-          style={{ background: BRAND_COLOR }}
-        >
-          <span className="material-symbols-outlined text-[16px]">person_add</span>
-          Add User
-        </button>
+      <div className="mb-6">
+        <h1 className="text-2xl font-black text-slate-900 dark:text-white">Users</h1>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+          Manage team members and contacts.
+        </p>
       </div>
 
       {/* Search & Info Bar */}

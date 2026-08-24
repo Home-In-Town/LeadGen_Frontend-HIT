@@ -2,7 +2,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import NotificationCenter from './NotificationCenter';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { APP_NAME, APP_TAGLINE, LOGO_PATH, BRAND_GRADIENT, IS_PHASE_1 } from '../config/phase';
+import { APP_NAME, APP_TAGLINE, BRAND_GRADIENT, IS_PHASE_1 } from '../config/phase';
 
 const Header = ({ onMenuClick }) => {
   const navigate          = useNavigate();
@@ -40,27 +40,22 @@ const Header = ({ onMenuClick }) => {
             <span className="material-symbols-outlined text-[20px]">menu</span>
           </button>
 
-          <Link to="/dashboard" className="no-underline flex items-center gap-2.5">
-            {IS_PHASE_1 ? (
-              <img src={LOGO_PATH} alt={APP_NAME} className="w-8 h-8 rounded-[10px]" />
-            ) : (
+          {/* Branding shown only in Phase 2 (Phase 1 already has it in sidebar) */}
+          {!IS_PHASE_1 && (
+            <Link to="/dashboard" className="no-underline flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-[10px] flex items-center justify-center"
                 style={{ background: 'linear-gradient(135deg,#0866FF,#58A6FF)' }}>
                 <span className="material-symbols-outlined text-white text-[17px]"
                   style={{ fontVariationSettings: "'FILL' 1" }}>hub</span>
               </div>
-            )}
-            <div className="hidden sm:flex flex-col leading-none">
-              <span className="text-[14px] font-black tracking-tight" style={{ color: C.text }}>
-                {IS_PHASE_1 ? (
-                  <><span style={{ color: '#F47B20' }}>Web Magnet</span> Media</>
-                ) : (
-                  <>One<span style={{ color: '#0866FF' }}>Employee</span></>
-                )}
-              </span>
-              <span className="text-[10px] font-medium" style={{ color: C.icon }}>{APP_TAGLINE}</span>
-            </div>
-          </Link>
+              <div className="hidden sm:flex flex-col leading-none">
+                <span className="text-[14px] font-black tracking-tight" style={{ color: C.text }}>
+                  One<span style={{ color: '#0866FF' }}>Employee</span>
+                </span>
+                <span className="text-[10px] font-medium" style={{ color: C.icon }}>{APP_TAGLINE}</span>
+              </div>
+            </Link>
+          )}
         </div>
 
         {/* RIGHT */}

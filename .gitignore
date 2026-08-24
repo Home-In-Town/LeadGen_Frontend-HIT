@@ -27,3 +27,4 @@ dist-ssr
 .code-review-graph
 .code-review-graphignore
 .vercel
+.env*.local

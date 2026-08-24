@@ -141,6 +141,9 @@ export default function CRMPage() {
   // Modal
   const [deleteModal, setDeleteModal] = useState({ open: false, leadId: null, bulk: false });
   const [statusModal, setStatusModal] = useState({ open: false, newStatus: '' });
+  const [editModal, setEditModal] = useState({ open: false, lead: null });
+  const [editForm, setEditForm] = useState({});
+  const [editSaving, setEditSaving] = useState(false);
 
   const debounceRef = useRef(null);
   const totalPages = Math.ceil(total / pageSize) || 1;
@@ -224,6 +227,37 @@ export default function CRMPage() {
     setStatusModal({ open: false, newStatus: '' });
   };
 
+  // ── Edit Lead ──────────────────────────────────────────────────────────────
+  const openEditModal = (lead) => {
+    setEditForm({
+      first_name: lead.first_name || '',
+      last_name: lead.last_name || '',
+      phone_number: lead.phone_number || '',
+      email: lead.email || '',
+      status: lead.status?.toUpperCase() || 'CREATED',
+      city: lead.city || '',
+      interest: lead.interest || '',
+      budget: lead.budget || '',
+      source: lead.source || 'manual',
+    });
+    setEditModal({ open: true, lead });
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editModal.lead) return;
+    setEditSaving(true);
+    try {
+      await api.updateLead(editModal.lead.id, editForm);
+      addToast?.('Lead updated successfully', 'success');
+      setEditModal({ open: false, lead: null });
+      fetchLeads();
+    } catch {
+      addToast?.('Failed to update lead', 'error');
+    } finally {
+      setEditSaving(false);
+    }
+  };
+
   const handleSort = (field) => {
     if (sortBy === field) {
       setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
@@ -277,48 +311,11 @@ export default function CRMPage() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#0B1120] p-4 sm:p-6 lg:p-8">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-black text-slate-900 dark:text-white">Leads</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-            Manage and track all your leads in one place.
-          </p>
-        </div>
-        <div className="flex items-center gap-3 mt-4 sm:mt-0">
-          <button
-            onClick={() => navigate('/campaigns')}
-            className="flex items-center gap-1.5 px-4 py-2.5 text-xs font-bold rounded-lg border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-          >
-            <span className="material-symbols-outlined text-[16px]">upload_file</span>
-            Import Leads
-          </button>
-          <button
-            onClick={() => navigate('/users')}
-            className="flex items-center gap-1.5 px-4 py-2.5 text-xs font-bold rounded-lg text-white transition-colors"
-            style={{ background: BRAND_COLOR }}
-          >
-            <span className="material-symbols-outlined text-[16px]">add</span>
-            Add Lead
-          </button>
-        </div>
-      </div>
-
-      {/* Status Tabs */}
-      <div className="flex items-center gap-1 overflow-x-auto pb-2 mb-4 border-b border-slate-200 dark:border-slate-700 scrollbar-hide">
-        {STATUS_TABS.map(tab => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveStatus(tab.key)}
-            className={`whitespace-nowrap px-3 py-2 text-xs font-bold rounded-t-lg transition-colors border-b-2 ${
-              activeStatus === tab.key
-                ? 'border-[var(--brand)] text-[var(--brand)] bg-white dark:bg-slate-800'
-                : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
-            }`}
-            style={{ '--brand': BRAND_COLOR }}
-          >
-            {tab.label}
-          </button>
-        ))}
+      <div className="mb-6">
+        <h1 className="text-2xl font-black text-slate-900 dark:text-white">Leads</h1>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+          Manage and track all your leads in one place.
+        </p>
       </div>
 
       {/* Search & Filters Bar */}
@@ -421,6 +418,23 @@ export default function CRMPage() {
 
       {/* Table */}
       <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 overflow-hidden shadow-sm">
+        {/* Status Tabs - inside table card */}
+        <div className="flex items-center gap-2 overflow-x-auto px-4 pt-4 pb-2 scrollbar-hide border-b border-slate-100 dark:border-slate-700">
+          {STATUS_TABS.map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveStatus(tab.key)}
+              className={`whitespace-nowrap px-4 py-2 text-xs font-bold rounded-full transition-all ${
+                activeStatus === tab.key
+                  ? 'text-white shadow-md'
+                  : 'bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:border-[var(--brand)] hover:text-[var(--brand)]'
+              }`}
+              style={activeStatus === tab.key ? { background: BRAND_COLOR, '--brand': BRAND_COLOR } : { '--brand': BRAND_COLOR }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700">
@@ -545,6 +559,13 @@ export default function CRMPage() {
                             <span className="material-symbols-outlined text-[18px]">visibility</span>
                           </button>
                           <button
+                            onClick={() => openEditModal(lead)}
+                            className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 hover:text-amber-600 transition-colors"
+                            title="Edit"
+                          >
+                            <span className="material-symbols-outlined text-[18px]">edit</span>
+                          </button>
+                          <button
                             onClick={() => setDeleteModal({ open: true, leadId: lead.id, bulk: false })}
                             className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-slate-500 hover:text-red-600 transition-colors"
                             title="Delete"
@@ -637,6 +658,155 @@ export default function CRMPage() {
         onConfirm={handleDeleteLead}
         onCancel={() => setDeleteModal({ open: false, leadId: null, bulk: false })}
       />
+
+      {/* Edit Lead Modal */}
+      {editModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setEditModal({ open: false, lead: null })}>
+          <div className="w-full max-w-lg bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Edit Lead</h3>
+              <button onClick={() => setEditModal({ open: false, lead: null })} className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700">
+                <span className="material-symbols-outlined text-slate-500">close</span>
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Name Row */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-1">First Name</label>
+                  <input
+                    type="text"
+                    value={editForm.first_name}
+                    onChange={e => setEditForm(f => ({ ...f, first_name: e.target.value }))}
+                    className="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)]/20"
+                    style={{ '--brand': BRAND_COLOR }}
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-1">Last Name</label>
+                  <input
+                    type="text"
+                    value={editForm.last_name}
+                    onChange={e => setEditForm(f => ({ ...f, last_name: e.target.value }))}
+                    className="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)]/20"
+                    style={{ '--brand': BRAND_COLOR }}
+                  />
+                </div>
+              </div>
+
+              {/* Phone */}
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-1">Phone Number</label>
+                <input
+                  type="text"
+                  value={editForm.phone_number}
+                  onChange={e => setEditForm(f => ({ ...f, phone_number: e.target.value }))}
+                  className="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)]/20"
+                  style={{ '--brand': BRAND_COLOR }}
+                />
+              </div>
+
+              {/* Email */}
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-1">Email</label>
+                <input
+                  type="email"
+                  value={editForm.email}
+                  onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))}
+                  className="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)]/20"
+                  style={{ '--brand': BRAND_COLOR }}
+                />
+              </div>
+
+              {/* Status & Source Row */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-1">Status</label>
+                  <select
+                    value={editForm.status}
+                    onChange={e => setEditForm(f => ({ ...f, status: e.target.value }))}
+                    className="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none"
+                  >
+                    {STATUS_TABS.filter(t => t.key !== 'ALL').map(t => (
+                      <option key={t.key} value={t.key}>{t.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-1">Source</label>
+                  <select
+                    value={editForm.source}
+                    onChange={e => setEditForm(f => ({ ...f, source: e.target.value }))}
+                    className="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none"
+                  >
+                    {SOURCE_OPTIONS.filter(o => o.value).map(o => (
+                      <option key={o.value} value={o.value}>{o.label}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* City */}
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-1">City</label>
+                <input
+                  type="text"
+                  value={editForm.city}
+                  onChange={e => setEditForm(f => ({ ...f, city: e.target.value }))}
+                  placeholder="e.g., Mumbai, Pune, Delhi"
+                  className="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 outline-none focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)]/20"
+                  style={{ '--brand': BRAND_COLOR }}
+                />
+              </div>
+
+              {/* Interest & Budget Row */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-1">Interest</label>
+                  <input
+                    type="text"
+                    value={editForm.interest}
+                    onChange={e => setEditForm(f => ({ ...f, interest: e.target.value }))}
+                    placeholder="e.g., 2BHK, Plot"
+                    className="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 outline-none focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)]/20"
+                    style={{ '--brand': BRAND_COLOR }}
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-1">Budget</label>
+                  <input
+                    type="text"
+                    value={editForm.budget}
+                    onChange={e => setEditForm(f => ({ ...f, budget: e.target.value }))}
+                    placeholder="e.g., 50L - 1Cr"
+                    className="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 outline-none focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)]/20"
+                    style={{ '--brand': BRAND_COLOR }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-200 dark:border-slate-700">
+              <button
+                onClick={() => setEditModal({ open: false, lead: null })}
+                className="px-4 py-2.5 text-sm font-medium rounded-lg border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveEdit}
+                disabled={editSaving}
+                className="px-5 py-2.5 text-sm font-bold rounded-lg text-white disabled:opacity-50 transition-colors"
+                style={{ background: BRAND_COLOR }}
+              >
+                {editSaving ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
