@@ -10,8 +10,32 @@ import {
   listEmailTemplates,
   getChannelStatus,
   getFBCampaigns,
+  generateProjectTemplates,
+  listProjectTemplates,
+  syncProjectTemplates,
+  deleteProjectTemplate,
 } from '../api';
 import VoicePicker, { LANGUAGE_OPTIONS, SECTOR_OPTIONS } from '../components/VoicePicker';
+
+// Human labels for each need-based template kind (matches backend ProjectTemplate.kind)
+const TEMPLATE_KIND_META = {
+  voice_guide: { label: 'Voice Guide',      need: 'What is this project?' },
+  ecosystem:   { label: 'Area / Ecosystem', need: 'Schools, hospitals nearby?' },
+  progress:    { label: 'Site Progress',    need: 'Will builder deliver on time?' },
+  tour_3d:     { label: '3D Tour',          need: 'How will it look?' },
+  rera:        { label: 'RERA Docs',        need: 'Legal clear? approvals?' },
+  emi:         { label: 'EMI Calculator',   need: 'Price is high / affordable?' },
+  inventory:   { label: 'Live Inventory',   need: 'Which unit is left?' },
+  traffic:     { label: 'Traffic / Commute',need: 'How far from office?' },
+};
+
+const TEMPLATE_STATUS_STYLES = {
+  approved: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300',
+  pending:  'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300',
+  rejected: 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300',
+  paused:   'bg-slate-100 text-slate-500 dark:bg-slate-700/50 dark:text-slate-300',
+  draft:    'bg-slate-100 text-slate-500 dark:bg-slate-700/50 dark:text-slate-300',
+};
 
 const cardClass = 'rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200/70 dark:border-white/10 shadow-sm';
 const inputClass = 'w-full rounded-xl border border-slate-200 dark:border-white/15 bg-white dark:bg-slate-800/60 px-4 py-3 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all';
@@ -20,6 +44,7 @@ const btnOutline = 'inline-flex items-center justify-center gap-2 rounded-xl bor
 
 const TABS = [
   { id: 'settings', label: 'Automation', icon: 'settings_suggest' },
+  { id: 'templates', label: 'WhatsApp Templates', icon: 'chat' },
   { id: 'campaigns', label: 'Linked Sources', icon: 'campaign' },
 ];
 
@@ -46,6 +71,58 @@ const ProjectSettingsPage = () => {
 
   // Channel connectivity
   const [channelStatus, setChannelStatus] = useState({ voice: true, whatsapp: null, email: null });
+
+  // ── WhatsApp per-project templates (Phase 2 template engine) ────────────────
+  const [projTemplates, setProjTemplates] = useState([]);
+  const [templatesLoading, setTemplatesLoading] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [syncingTemplates, setSyncingTemplates] = useState(false);
+
+  const fetchTemplates = useCallback(async () => {
+    try {
+      setTemplatesLoading(true);
+      const res = await listProjectTemplates(hitProjectId);
+      setProjTemplates(res.data?.templates || []);
+    } catch { setProjTemplates([]); }
+    finally { setTemplatesLoading(false); }
+  }, [hitProjectId]);
+
+  const handleGenerateTemplates = async () => {
+    try {
+      setGenerating(true);
+      const res = await generateProjectTemplates(hitProjectId, {});
+      const results = res.data?.results || [];
+      addToast(`${results.length} templates submitted to Meta for approval`, 'success');
+      await fetchTemplates();
+    } catch (err) {
+      addToast(err.response?.data?.error || 'Failed to generate templates', 'error');
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const handleSyncTemplates = async () => {
+    try {
+      setSyncingTemplates(true);
+      const res = await syncProjectTemplates(hitProjectId);
+      addToast(`Synced — ${res.data?.updated || 0} status update(s)`, 'success');
+      await fetchTemplates();
+    } catch (err) {
+      addToast(err.response?.data?.error || 'Failed to sync status', 'error');
+    } finally {
+      setSyncingTemplates(false);
+    }
+  };
+
+  const handleDeleteTemplate = async (kind) => {
+    try {
+      await deleteProjectTemplate(hitProjectId, kind);
+      addToast('Template deleted', 'success');
+      await fetchTemplates();
+    } catch (err) {
+      addToast(err.response?.data?.error || 'Failed to delete template', 'error');
+    }
+  };
 
   // ── Fetch project + settings ────────────────────────────────────────────────
   const fetchData = useCallback(async () => {
@@ -125,6 +202,7 @@ const ProjectSettingsPage = () => {
 
   useEffect(() => { fetchData(); }, [fetchData]);
   useEffect(() => { if (tab === 'campaigns') fetchCampaigns(); }, [tab, fetchCampaigns]);
+  useEffect(() => { if (tab === 'templates') fetchTemplates(); }, [tab, fetchTemplates]);
 
   // ── Handlers ────────────────────────────────────────────────────────────────
   const updateConfig = (path, value) => {
@@ -399,6 +477,106 @@ const ProjectSettingsPage = () => {
               {saving ? 'Saving...' : 'Save Settings'}
             </button>
           </div>
+        </div>
+      )}
+
+      {/* ═══════ WhatsApp Templates Tab ═══════ */}
+      {tab === 'templates' && (
+        <div className="space-y-5">
+          {/* Intro + actions */}
+          <div className={`${cardClass} p-5`}>
+            <div className="flex items-start justify-between gap-3 flex-wrap">
+              <div className="min-w-0">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">Need-based WhatsApp Templates</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-lg">
+                  Auto-generates one template per customer need (3D tour, EMI, progress, RERA, etc.) from this project's content and submits them to Meta for approval. Each is sent to a lead only when its question comes up.
+                </p>
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <button onClick={handleSyncTemplates} disabled={syncingTemplates || generating} className={btnOutline}>
+                  {syncingTemplates && <span className="animate-spin h-3 w-3 border-2 border-slate-400/40 border-t-slate-500 rounded-full" />}
+                  {syncingTemplates ? 'Syncing…' : 'Sync Status'}
+                </button>
+                <button onClick={handleGenerateTemplates} disabled={generating || channelStatus.whatsapp === false} className={btnPrimary}>
+                  {generating && <span className="animate-spin h-3.5 w-3.5 border-2 border-white/30 border-t-white rounded-full" />}
+                  {generating ? 'Submitting…' : (projTemplates.length ? 'Regenerate & Submit' : 'Generate Templates')}
+                </button>
+              </div>
+            </div>
+
+            {channelStatus.whatsapp === false && (
+              <div className="mt-3 rounded-lg bg-amber-50 dark:bg-amber-900/10 border border-amber-200/60 dark:border-amber-500/20 px-3 py-2">
+                <p className="text-[10px] text-amber-700 dark:text-amber-400 font-bold">
+                  WhatsApp not connected — <a href="/whatsapp-setup" className="underline hover:no-underline">connect a WABA</a> to generate templates.
+                </p>
+              </div>
+            )}
+            <div className="mt-3 rounded-lg bg-blue-50 dark:bg-blue-900/10 border border-blue-200/60 dark:border-blue-500/20 px-3 py-2">
+              <p className="text-[10px] text-blue-700 dark:text-blue-300">
+                Meta approval takes a few minutes to a few hours. Use <b>Sync Status</b> to refresh, or approvals update automatically once your WABA webhook is subscribed.
+              </p>
+            </div>
+          </div>
+
+          {/* Template list */}
+          {templatesLoading ? (
+            <div className="flex justify-center py-8"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" /></div>
+          ) : projTemplates.length === 0 ? (
+            <div className={`${cardClass} p-8 text-center`}>
+              <span className="material-symbols-outlined text-4xl text-slate-300 dark:text-slate-600 block mb-2">chat_add_on</span>
+              <p className="text-sm text-slate-500">No templates yet. Click "Generate Templates" to create them from this project.</p>
+            </div>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {projTemplates.map(t => {
+                const meta = TEMPLATE_KIND_META[t.kind] || { label: t.kind, need: '' };
+                const st = TEMPLATE_STATUS_STYLES[t.status] || TEMPLATE_STATUS_STYLES.draft;
+                const bodyComp = Array.isArray(t.components) ? t.components.find(c => c.type === 'BODY') : null;
+                const btnComp = Array.isArray(t.components) ? t.components.find(c => c.type === 'BUTTONS') : null;
+                return (
+                  <div key={t.kind} className={`${cardClass} p-4`}>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-slate-900 dark:text-white">{meta.label}</p>
+                        <p className="text-[10px] text-slate-500 mt-0.5">{meta.need}</p>
+                      </div>
+                      <span className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded-full flex-shrink-0 ${st}`}>{t.status}</span>
+                    </div>
+
+                    {t.headerImageUrl && (
+                      <img src={t.headerImageUrl} alt="" className="mt-3 w-full h-24 object-cover rounded-lg" onError={e => { e.target.style.display = 'none'; }} />
+                    )}
+
+                    {bodyComp?.text && (
+                      <p className="mt-2 text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed line-clamp-3 whitespace-pre-wrap">{bodyComp.text}</p>
+                    )}
+
+                    {btnComp?.buttons?.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        {btnComp.buttons.map((b, i) => (
+                          <span key={i} className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300">
+                            {b.text || b.type}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {t.status === 'rejected' && t.rejectedReason && (
+                      <p className="mt-2 text-[10px] text-red-600 dark:text-red-400">Rejected: {t.rejectedReason}</p>
+                    )}
+
+                    <div className="mt-3 flex justify-between items-center">
+                      <span className="text-[9px] text-slate-400 font-mono truncate">{t.templateName}</span>
+                      <button onClick={() => handleDeleteTemplate(t.kind)}
+                        className="text-[9px] font-black uppercase tracking-wider text-red-500 hover:text-red-600">
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 

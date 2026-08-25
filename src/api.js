@@ -276,6 +276,12 @@ export const uploadProjectCampaign   = (hitProjectId, file, name) => {
 
 export const syncProjects             = ()     => projectApi.post('/sync');
 
+// ── Per-project WhatsApp template engine (Phase 2) ──────────────────────────
+export const generateProjectTemplates = (hitProjectId, data = {}) => projectApi.post(`/${hitProjectId}/templates/generate`, data);
+export const listProjectTemplates     = (hitProjectId)            => projectApi.get(`/${hitProjectId}/templates`);
+export const syncProjectTemplates      = (hitProjectId)            => projectApi.post(`/${hitProjectId}/templates/sync`);
+export const deleteProjectTemplate     = (hitProjectId, kind)      => projectApi.delete(`/${hitProjectId}/templates/${kind}`);
+
 // ====== HIT PROJECT CRUD (create, update, delete) ======
 export const createHitProject         = (data) => projectApi.post('/create', data);
 export const updateHitProject         = (hitProjectId, data) => projectApi.put(`/${hitProjectId}/update`, data);
