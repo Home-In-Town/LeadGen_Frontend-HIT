@@ -18,6 +18,7 @@ import {
     getChatConversations,
     getChatMessages,
     sendChatMessage,
+    sendChatTemplate,
     markChatAsRead,
     listWAPhoneNumbers,
 } from '../api';
@@ -57,7 +58,7 @@ const EmptyChatPlaceholder = memo(() => (
 export default function ChatDashboard() {
     const { leadId: urlLeadId } = useParams();
     const navigate = useNavigate();
-    const { socket } = useNotifications();
+    const { socket, addToast } = useNotifications();
     const { user } = useAuth();
 
     // -----------------------------------------------------------------------
@@ -342,13 +343,12 @@ export default function ChatDashboard() {
             if (!templateName || !activeLeadId) return;
 
             const tempId = `temp_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-            const content = `[Template: ${templateName}]`;
             const optimisticMsg = {
                 _id: tempId,
                 tempId,
                 leadId: activeLeadId,
-                content,
-                sender: 'system',
+                content: `Template: ${templateName}`,
+                sender: 'agent',
                 messageType: 'template',
                 templateName,
                 createdAt: new Date().toISOString(),
@@ -358,7 +358,10 @@ export default function ChatDashboard() {
             setMessages((prev) => [...prev, optimisticMsg]);
 
             try {
-                const res = await sendChatMessage(activeLeadId, { message: content });
+                // Use the REAL template endpoint (/send-template) — NOT /send.
+                // Sending a template as plain text ("[Template: X]") fails Meta's
+                // rules and shows as a failed message.
+                const res = await sendChatTemplate(activeLeadId, { templateName });
                 const savedMsg = res.data?.data;
 
                 if (savedMsg) {
@@ -371,11 +374,14 @@ export default function ChatDashboard() {
                     });
                 }
                 fetchConversations();
-            } catch {
+            } catch (err) {
+                // Roll back the optimistic message and surface the reason.
                 setMessages((prev) => prev.filter((m) => m._id !== tempId));
+                const msg = err?.response?.data?.error || 'Failed to send template';
+                if (typeof addToast === 'function') addToast(msg, 'error');
             }
         },
-        [activeLeadId, fetchConversations]
+        [activeLeadId, fetchConversations, addToast]
     );
 
     // -----------------------------------------------------------------------
@@ -436,17 +442,19 @@ export default function ChatDashboard() {
                     if (payload.wamid && prev.some((m) => m.wamid === payload.wamid)) {
                         return prev;
                     }
-                    // Check if this is a socket echo for an optimistic message we sent
-                    // _fromSendAPI flag means backend sent this from the send endpoint,
-                    // so the HTTP caller already has it — just replace the optimistic version
-                    const matchingOptimistic = prev.find(
-                        (m) =>
-                            m._id?.startsWith?.('temp_') &&
-                            m.content === payload.content &&
-                            (payload.sender === 'system' || payload.sender === 'agent' || payload._fromSendAPI)
-                    );
+                    // Replace a matching optimistic (temp_) message with the real one.
+                    // Match on templateName for templates (content differs: the optimistic
+                    // row shows "[Template: X]" while the saved row shows "Template: X"),
+                    // else on content. Prevents both a stray duplicate AND a leftover temp.
+                    const matchingOptimistic = prev.find((m) => {
+                        if (!m._id?.startsWith?.('temp_')) return false;
+                        if (payload.messageType === 'template' || m.messageType === 'template') {
+                            return !!payload.templateName && m.templateName === payload.templateName;
+                        }
+                        return m.content === payload.content &&
+                            (payload.sender === 'system' || payload.sender === 'agent' || payload._fromSendAPI);
+                    });
                     if (matchingOptimistic) {
-                        // Replace the optimistic message with the real one
                         return prev.map((m) =>
                             m._id === matchingOptimistic._id ? { ...payload, _fromSendAPI: undefined } : m
                         );
