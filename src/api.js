@@ -280,6 +280,7 @@ export const syncProjects             = ()     => projectApi.post('/sync');
 export const generateProjectTemplates = (hitProjectId, data = {}) => projectApi.post(`/${hitProjectId}/templates/generate`, data);
 export const listProjectTemplates     = (hitProjectId)            => projectApi.get(`/${hitProjectId}/templates`);
 export const syncProjectTemplates      = (hitProjectId)            => projectApi.post(`/${hitProjectId}/templates/sync`);
+export const retryProjectTemplate      = (hitProjectId, kind)      => projectApi.post(`/${hitProjectId}/templates/${kind}/retry`);
 export const deleteProjectTemplate     = (hitProjectId, kind)      => projectApi.delete(`/${hitProjectId}/templates/${kind}`);
 
 // ====== HIT PROJECT CRUD (create, update, delete) ======

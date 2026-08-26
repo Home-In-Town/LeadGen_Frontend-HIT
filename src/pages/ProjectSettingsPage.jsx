@@ -13,6 +13,7 @@ import {
   generateProjectTemplates,
   listProjectTemplates,
   syncProjectTemplates,
+  retryProjectTemplate,
   deleteProjectTemplate,
 } from '../api';
 import VoicePicker, { LANGUAGE_OPTIONS, SECTOR_OPTIONS } from '../components/VoicePicker';
@@ -90,14 +91,30 @@ const ProjectSettingsPage = () => {
   const handleGenerateTemplates = async () => {
     try {
       setGenerating(true);
-      const res = await generateProjectTemplates(hitProjectId, {});
+      // If templates already exist, pass force=true to delete old Meta templates
+      // and re-submit with fresh content (covers image updates, text changes, rejected retries).
+      const isReapply = projTemplates.length > 0;
+      const res = await generateProjectTemplates(hitProjectId, { force: isReapply });
       const results = res.data?.results || [];
-      addToast(`${results.length} templates submitted to Meta for approval`, 'success');
+      const msg = isReapply
+        ? `${results.length} templates re-submitted (old deleted + fresh submission)`
+        : `${results.length} templates submitted to Meta for approval`;
+      addToast(msg, 'success');
       await fetchTemplates();
     } catch (err) {
       addToast(err.response?.data?.error || 'Failed to generate templates', 'error');
     } finally {
       setGenerating(false);
+    }
+  };
+
+  const handleRetryTemplate = async (kind) => {
+    try {
+      await retryProjectTemplate(hitProjectId, kind);
+      addToast(`Template "${kind}" re-submitted`, 'success');
+      await fetchTemplates();
+    } catch (err) {
+      addToast(err.response?.data?.error || 'Retry failed', 'error');
     }
   };
 
@@ -533,18 +550,27 @@ const ProjectSettingsPage = () => {
                 const st = TEMPLATE_STATUS_STYLES[t.status] || TEMPLATE_STATUS_STYLES.draft;
                 const bodyComp = Array.isArray(t.components) ? t.components.find(c => c.type === 'BODY') : null;
                 const btnComp = Array.isArray(t.components) ? t.components.find(c => c.type === 'BUTTONS') : null;
+                const isWelcome = t.kind === 'voice_guide';
+                const hasImage = !!t.headerImageUrl;
                 return (
                   <div key={t.kind} className={`${cardClass} p-4`}>
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
-                        <p className="text-sm font-bold text-slate-900 dark:text-white">{meta.label}</p>
+                        <p className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                          {meta.label}
+                          {isWelcome && <span className="text-[8px] bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300 font-black uppercase px-1.5 py-0.5 rounded-full">Welcome</span>}
+                        </p>
                         <p className="text-[10px] text-slate-500 mt-0.5">{meta.need}</p>
                       </div>
                       <span className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded-full flex-shrink-0 ${st}`}>{t.status}</span>
                     </div>
 
-                    {t.headerImageUrl && (
+                    {hasImage ? (
                       <img src={t.headerImageUrl} alt="" className="mt-3 w-full h-24 object-cover rounded-lg" onError={e => { e.target.style.display = 'none'; }} />
+                    ) : (
+                      <div className="mt-3 w-full h-16 rounded-lg bg-slate-50 dark:bg-white/5 border border-dashed border-slate-200 dark:border-white/10 flex items-center justify-center">
+                        <span className="text-[10px] text-slate-400">No header image — text-only template</span>
+                      </div>
                     )}
 
                     {bodyComp?.text && (
@@ -562,15 +588,26 @@ const ProjectSettingsPage = () => {
                     )}
 
                     {t.status === 'rejected' && t.rejectedReason && (
-                      <p className="mt-2 text-[10px] text-red-600 dark:text-red-400">Rejected: {t.rejectedReason}</p>
+                      <p className="mt-2 text-[10px] text-red-600 dark:text-red-400 flex items-start gap-1">
+                        <span className="material-symbols-outlined text-xs mt-0.5">error</span>
+                        {t.rejectedReason}
+                      </p>
                     )}
 
                     <div className="mt-3 flex justify-between items-center">
                       <span className="text-[9px] text-slate-400 font-mono truncate">{t.templateName}</span>
-                      <button onClick={() => handleDeleteTemplate(t.kind)}
-                        className="text-[9px] font-black uppercase tracking-wider text-red-500 hover:text-red-600">
-                        Delete
-                      </button>
+                      <div className="flex items-center gap-2">
+                        {t.status === 'rejected' && (
+                          <button onClick={() => handleRetryTemplate(t.kind)}
+                            className="text-[9px] font-black uppercase tracking-wider text-amber-600 hover:text-amber-700">
+                            Retry
+                          </button>
+                        )}
+                        <button onClick={() => handleDeleteTemplate(t.kind)}
+                          className="text-[9px] font-black uppercase tracking-wider text-red-500 hover:text-red-600">
+                          Delete
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );
