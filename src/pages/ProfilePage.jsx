@@ -34,7 +34,7 @@ const ProfilePage = () => {
   const navigate = useNavigate();
 
   // ── State ───────────────────────────────────────────────────────────────────
-  const [profile, setProfile] = useState({ name: '', email: '', mobile: '', companyName: '' });
+  const [profile, setProfile] = useState({ name: '', email: '', mobile: '', companyName: '', autoTemplateSubmit: false });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
@@ -70,7 +70,7 @@ const ProfilePage = () => {
 
       if (profRes.status === 'fulfilled') {
         const d = profRes.value.data;
-        setProfile({ name: d.name || '', email: d.email || '', mobile: d.mobile || '', companyName: d.companyName || '' });
+        setProfile({ name: d.name || '', email: d.email || '', mobile: d.mobile || '', companyName: d.companyName || '', autoTemplateSubmit: d.autoTemplateSubmit === true });
       }
       if (hitRes.status === 'fulfilled') setHitStatus({ linked: hitRes.value.data.linked, hitUser: hitRes.value.data.hitUser, loading: false });
       else setHitStatus(s => ({ ...s, loading: false }));
@@ -99,7 +99,7 @@ const ProfilePage = () => {
   const handleSave = async () => {
     try {
       setSaving(true);
-      await updateProfile({ name: profile.name, companyName: profile.companyName, mobile: profile.mobile });
+      await updateProfile({ name: profile.name, companyName: profile.companyName, mobile: profile.mobile, autoTemplateSubmit: profile.autoTemplateSubmit });
       addToast('Profile saved', 'success');
       setDirty(false);
       checkAuth();
@@ -268,6 +268,31 @@ const ProfilePage = () => {
             <input type="tel" value={profile.mobile} onChange={e => handleProfileChange('mobile', e.target.value)} className={inputClass} placeholder="10-digit mobile" maxLength={10} />
           </div>
         </div>
+
+        {/* Auto WhatsApp Templates (Phase 2 only) */}
+        {FEATURES.projects && (
+          <div className="mt-4 flex items-start justify-between gap-4 rounded-xl border border-slate-200/70 dark:border-white/10 bg-slate-50/60 dark:bg-white/[0.02] p-4">
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-base text-primary">auto_awesome</span>
+                Auto WhatsApp Templates
+              </p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                Automatically generate &amp; submit need-based WhatsApp templates to Meta for every project (and new ones as you add them).
+              </p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={!!profile.autoTemplateSubmit}
+              onClick={() => handleProfileChange('autoTemplateSubmit', !profile.autoTemplateSubmit)}
+              className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors ${profile.autoTemplateSubmit ? 'bg-primary' : 'bg-slate-300 dark:bg-slate-600'}`}
+            >
+              <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${profile.autoTemplateSubmit ? 'translate-x-5' : 'translate-x-0.5'}`} />
+            </button>
+          </div>
+        )}
+
         <div className="mt-4 flex items-center justify-between">
           <button onClick={() => setShowPin(!showPin)} className={btnOutline}>
             <span className="material-symbols-outlined text-sm">lock</span>
