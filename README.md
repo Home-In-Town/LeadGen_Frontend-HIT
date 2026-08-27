@@ -47,6 +47,22 @@ VITE_META_SIGNUP_CONFIG_ID= # Meta Embedded Signup config (production)
 - **Google Ads** — auto-import from Google campaigns
 - **Call Logs** — paginated table with search + expandable transcripts (`/call-logs`)
 - **Integrations** — configure WhatsApp, voice, and project source webhooks (`/integrations`)
+- **Projects (Phase 2 only)** — per-project settings, automation, and the WhatsApp Template engine (generate/re-apply/retry/sync, status badges, welcome-template + no-image indicators)
+
+---
+
+## Phase 1 / Phase 2 (build flag)
+
+Set `VITE_PHASE` at build time — the backend is shared:
+
+| | Phase 1 | Phase 2 |
+|-|---------|---------|
+| `VITE_PHASE` | `1` | `2` (default) |
+| Domain | webmagnetmedia.com | oneemployee.in |
+| Brand | Web Magnet Media | OneEmployee |
+| Projects / HIT / Templates | hidden | visible |
+
+`src/config/phase.js` derives branding + `FEATURES` flags. Only `projects`, `hitIntegration`, `hitLinking`, `addProject` are Phase-2-only; everything else is in both.
 
 ---
 
@@ -62,6 +78,8 @@ VITE_META_SIGNUP_CONFIG_ID= # Meta Embedded Signup config (production)
 | `/integrations` | WhatsApp + voice + webhook settings |
 | `/whatsapp-setup` | Connect Meta WhatsApp number |
 | `/whatsapp-templates` | Create/manage WA templates |
+| `/projects` | Projects list (Phase 2) |
+| `/projects/:id` | Project settings — Automation / WhatsApp Templates / Linked Sources (Phase 2) |
 
 ---
 
