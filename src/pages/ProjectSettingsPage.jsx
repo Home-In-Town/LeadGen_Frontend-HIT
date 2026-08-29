@@ -528,9 +528,63 @@ const ProjectSettingsPage = () => {
                 </p>
               </div>
             )}
+            {/* ── Submission status summary ─────────────────────────────── */}
+            {projTemplates.length > 0 && (() => {
+              const total    = projTemplates.length;
+              const approved = projTemplates.filter(t => t.status === 'approved').length;
+              const pending  = projTemplates.filter(t => t.status === 'pending').length;
+              const rejected = projTemplates.filter(t => t.status === 'rejected').length;
+              const other    = total - approved - pending - rejected;
+              const allApproved = total > 0 && approved === total;
+              return (
+                <div className="mt-4">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300">
+                      {total} submitted
+                    </span>
+                    <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300">
+                      {approved} approved
+                    </span>
+                    <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300">
+                      {pending} under verification
+                    </span>
+                    {rejected > 0 && (
+                      <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300">
+                        {rejected} rejected
+                      </span>
+                    )}
+                    {other > 0 && (
+                      <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-slate-100 dark:bg-white/5 text-slate-500">
+                        {other} draft
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Progress bar */}
+                  <div className="mt-2 h-1.5 w-full rounded-full bg-slate-100 dark:bg-white/10 overflow-hidden">
+                    <div className="h-full bg-emerald-500 transition-all duration-500" style={{ width: `${Math.round((approved / total) * 100)}%` }} />
+                  </div>
+
+                  {/* Automation readiness */}
+                  <div className={`mt-3 rounded-lg px-3 py-2 border ${allApproved
+                    ? 'bg-emerald-50 dark:bg-emerald-900/10 border-emerald-200/60 dark:border-emerald-500/20'
+                    : 'bg-slate-50 dark:bg-white/5 border-slate-200/60 dark:border-white/10'}`}>
+                    <p className={`text-[10px] font-bold flex items-center gap-1.5 ${allApproved
+                      ? 'text-emerald-700 dark:text-emerald-400'
+                      : 'text-slate-600 dark:text-slate-400'}`}>
+                      <span className="material-symbols-outlined text-sm">{allApproved ? 'check_circle' : 'hourglass_top'}</span>
+                      {allApproved
+                        ? 'All templates approved — need-based automation is active for this project.'
+                        : `Automation runs on approved templates only. ${approved}/${total} ready${rejected > 0 ? ` · ${rejected} rejected (retry to resubmit with revised wording)` : ''}.`}
+                    </p>
+                  </div>
+                </div>
+              );
+            })()}
+
             <div className="mt-3 rounded-lg bg-blue-50 dark:bg-blue-900/10 border border-blue-200/60 dark:border-blue-500/20 px-3 py-2">
               <p className="text-[10px] text-blue-700 dark:text-blue-300">
-                Meta approval takes a few minutes to a few hours. Use <b>Sync Status</b> to refresh, or approvals update automatically once your WABA webhook is subscribed.
+                Meta approval takes a few minutes to a few hours. Use <b>Sync Status</b> to refresh, or approvals update automatically once your WABA webhook is subscribed. Rejected templates are automatically retried with plainer wording by the hourly job.
               </p>
             </div>
           </div>
