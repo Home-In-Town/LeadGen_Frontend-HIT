@@ -96,10 +96,22 @@ const ProjectSettingsPage = () => {
       const isReapply = projTemplates.length > 0;
       const res = await generateProjectTemplates(hitProjectId, { force: isReapply });
       const results = res.data?.results || [];
-      const msg = isReapply
-        ? `${results.length} templates re-submitted (old deleted + fresh submission)`
-        : `${results.length} templates submitted to Meta for approval`;
-      addToast(msg, 'success');
+      // `results` mixes successes with { status: 'error' } entries — count them
+      // separately so a batch that entirely failed is never reported as success.
+      const failed = results.filter(r => r.status === 'error');
+      const ok = results.length - failed.length;
+
+      if (ok === 0 && failed.length) {
+        addToast(`All ${failed.length} templates failed: ${failed[0].error || 'unknown error'}`, 'error');
+      } else {
+        const verb = isReapply ? 're-submitted' : 'submitted to Meta for approval';
+        addToast(
+          failed.length
+            ? `${ok} templates ${verb}, ${failed.length} failed: ${failed[0].error || 'unknown error'}`
+            : `${ok} templates ${verb}`,
+          failed.length ? 'warning' : 'success'
+        );
+      }
       await fetchTemplates();
     } catch (err) {
       addToast(err.response?.data?.error || 'Failed to generate templates', 'error');
