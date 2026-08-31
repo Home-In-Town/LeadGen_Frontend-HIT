@@ -9,6 +9,10 @@ import {
   getCommentReplyStats,
   getMetaSocialPages,
   createSocialPost,
+  listSocialPosts,
+  deleteSocialPost,
+  publishSocialPostNow,
+  getFacebookScheduledPosts,
   getCommentReplyConfig,
   updateCommentReplyConfig,
   testCommentReplyPrompt,
@@ -401,9 +405,62 @@ function ComposeTab({ connection, addToast }) {
   );
 }
 
+const PAGE_SIZE = 12;
+
+function ScheduledRow({ post, onPublishNow, onCancel, busy }) {
+  const when = post.scheduledAt ? new Date(post.scheduledAt) : null;
+  const thumb = post.mediaUrls?.[0];
+  const isFbNative = post.source === 'facebook-native';
+
+  return (
+    <div className="flex items-center gap-3 rounded-xl bg-white dark:bg-slate-900/60 border border-slate-200/70 dark:border-white/10 p-3">
+      {thumb
+        ? <img src={thumb} alt="" className="h-12 w-12 rounded-lg object-cover shrink-0" />
+        : <div className="h-12 w-12 rounded-lg bg-slate-100 dark:bg-slate-800 shrink-0 grid place-items-center">
+            <span className="material-symbols-outlined text-[16px] text-slate-400">schedule</span>
+          </div>}
+
+      <div className="min-w-0 flex-1">
+        <p className="text-xs text-slate-700 dark:text-slate-300 line-clamp-1">{post.message || '(no caption)'}</p>
+        <div className="mt-1 flex items-center gap-2 text-[10px] text-slate-500">
+          {when && <span className="font-bold">{when.toLocaleString()}</span>}
+          {(post.platforms || []).map(p => (
+            <span key={p} className={`uppercase font-bold ${p === 'instagram' ? 'text-pink-500' : 'text-blue-500'}`}>{p}</span>
+          ))}
+          {isFbNative && <span className="rounded bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5">on Facebook</span>}
+        </div>
+      </div>
+
+      {!isFbNative && (
+        <div className="flex items-center gap-1.5 shrink-0">
+          <button
+            onClick={() => onPublishNow(post)}
+            disabled={busy}
+            className="rounded-lg border border-slate-200 dark:border-white/10 px-2.5 py-1.5 text-[10px] font-bold text-slate-600 dark:text-slate-300 disabled:opacity-50"
+          >
+            Post now
+          </button>
+          <button
+            onClick={() => onCancel(post)}
+            disabled={busy}
+            className="rounded-lg border border-red-200 dark:border-red-500/20 px-2.5 py-1.5 text-[10px] font-bold text-red-600 disabled:opacity-50"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function PostsTab({ connection, addToast }) {
   const [posts, setPosts] = useState([]);
+  const [scheduled, setScheduled] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [busyId, setBusyId] = useState(null);
+  const [visible, setVisible] = useState(PAGE_SIZE);
+  const [errors, setErrors] = useState([]);
   const [selectedPageId, setSelectedPageId] = useState('');
   const pages = connection?.pages || [];
 
@@ -415,58 +472,214 @@ function PostsTab({ connection, addToast }) {
     }
   }, [pages]);
 
-  useEffect(() => {
-    const pageId = selectedPageId;
+  const load = async (pageId) => {
     if (!pageId) { setLoading(false); return; }
+
+    // Published posts from the platforms, our own scheduled queue, and anything
+    // scheduled natively on Facebook — fetched together so one failure can't
+    // hide the rest.
+    const [platform, ours, fbNative] = await Promise.allSettled([
+      getAllPlatformPosts({ pageId, limit: 50 }),
+      listSocialPosts({ status: 'scheduled', limit: 50 }),
+      getFacebookScheduledPosts({ pageId, limit: 50 }),
+    ]);
+
+    const problems = [];
+
+    if (platform.status === 'fulfilled') {
+      setPosts(platform.value.data?.posts || []);
+      // getAllPosts always returns success:true, reporting per-platform
+      // failures in fbError / igError. Surfacing them matters: a expired token
+      // or missing permission otherwise looks identical to "no posts yet".
+      const { fbError, igError } = platform.value.data || {};
+      if (fbError) problems.push(`Facebook: ${fbError}`);
+      if (igError) problems.push(`Instagram: ${igError}`);
+    } else {
+      setPosts([]);
+      problems.push(platform.reason?.response?.data?.error || 'Could not load published posts');
+    }
+
+    const ourScheduled = ours.status === 'fulfilled' ? (ours.value.data?.posts || []) : [];
+    const nativeScheduled = fbNative.status === 'fulfilled'
+      ? (fbNative.value.data?.posts || []).map(p => ({
+          postId: p.id,
+          message: p.message,
+          scheduledAt: p.scheduled_publish_time ? new Date(p.scheduled_publish_time * 1000) : null,
+          platforms: ['facebook'],
+          mediaUrls: p.full_picture ? [p.full_picture] : [],
+          source: 'facebook-native',
+        }))
+      : [];
+
+    setScheduled(
+      [...ourScheduled, ...nativeScheduled].sort(
+        (a, b) => new Date(a.scheduledAt || 0) - new Date(b.scheduledAt || 0)
+      )
+    );
+    setErrors(problems);
+  };
+
+  useEffect(() => {
     setLoading(true);
-    getAllPlatformPosts({ pageId, limit: 50 }).then(res => {
-      setPosts(res.data?.posts || []);
-    }).catch(() => {}).finally(() => setLoading(false));
+    setVisible(PAGE_SIZE);
+    load(selectedPageId).finally(() => setLoading(false));
   }, [selectedPageId]);
+
+  const refresh = async () => {
+    setRefreshing(true);
+    await load(selectedPageId);
+    setRefreshing(false);
+  };
+
+  const handlePublishNow = async (post) => {
+    setBusyId(post.postId);
+    try {
+      await publishSocialPostNow(post.postId);
+      addToast('Publishing now', 'success');
+      await load(selectedPageId);
+    } catch (err) {
+      addToast(err.response?.data?.error || 'Could not publish', 'error');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const handleCancel = async (post) => {
+    setBusyId(post.postId);
+    try {
+      await deleteSocialPost(post.postId);
+      addToast('Scheduled post cancelled', 'success');
+      await load(selectedPageId);
+    } catch (err) {
+      addToast(err.response?.data?.error || 'Could not cancel', 'error');
+    } finally {
+      setBusyId(null);
+    }
+  };
 
   if (loading) return <div className="flex justify-center p-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>;
 
+  const shown = posts.slice(0, visible);
+
   return (
     <div className="space-y-4">
-      {/* Page selector */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-sm font-bold text-slate-900 dark:text-white">Posts ({posts.length})</h2>
-        <select
-          value={selectedPageId}
-          onChange={e => setSelectedPageId(e.target.value)}
-          className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 text-xs font-bold bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300"
-        >
-          {pages.map(p => (
-            <option key={p.pageId} value={p.pageId}>{p.pageName} {p.igAccountId ? '(+IG)' : ''}</option>
-          ))}
-        </select>
-      </div>
-      {posts.length === 0 ? (
-        <div className="rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200/70 dark:border-white/10 p-8 text-center">
-          <p className="text-sm text-slate-500">No posts found. Connect your pages and start posting!</p>
+      {/* Page selector + refresh */}
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-sm font-bold text-slate-900 dark:text-white">Posts</h2>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={refresh}
+            disabled={refreshing}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-white/10 px-2.5 py-1.5 text-xs font-bold text-slate-600 dark:text-slate-300 disabled:opacity-50"
+          >
+            <span className={`material-symbols-outlined text-[14px] ${refreshing ? 'animate-spin' : ''}`}>refresh</span>
+            {refreshing ? 'Refreshing…' : 'Refresh'}
+          </button>
+          {pages.length > 1 && (
+            <select
+              value={selectedPageId}
+              onChange={e => setSelectedPageId(e.target.value)}
+              className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 text-xs font-bold bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300"
+            >
+              {pages.map(p => (
+                <option key={p.pageId} value={p.pageId}>{p.pageName} {p.igAccountId ? '(+IG)' : ''}</option>
+              ))}
+            </select>
+          )}
         </div>
-      ) : (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {posts.slice(0, 12).map((post, i) => (
-            <div key={post.id || i} className="rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200/70 dark:border-white/10 overflow-hidden">
-              {post.full_picture || post.media_url ? (
-                <img src={post.full_picture || post.media_url} alt="" className="w-full h-40 object-cover" />
-              ) : (
-                <div className="h-20 bg-gradient-to-br from-slate-100 to-slate-50 dark:from-slate-800 dark:to-slate-900" />
-              )}
-              <div className="p-3">
-                <p className="text-xs text-slate-700 dark:text-slate-300 line-clamp-2">{post.message || post.caption || '(no caption)'}</p>
-                <div className="flex items-center gap-3 mt-2 text-[10px] text-slate-500">
-                  <span className="flex items-center gap-0.5"><span className="material-symbols-outlined text-[11px]">favorite</span> {post.likes_count || 0}</span>
-                  <span className="flex items-center gap-0.5"><span className="material-symbols-outlined text-[11px]">chat_bubble</span> {post.comments_count || 0}</span>
-                  {post.shares_count > 0 && <span className="flex items-center gap-0.5"><span className="material-symbols-outlined text-[11px]">share</span> {post.shares_count}</span>}
-                  <span className={`ml-auto uppercase font-bold ${post.platform === 'instagram' ? 'text-pink-500' : 'text-blue-500'}`}>{post.platform}</span>
-                </div>
-              </div>
-            </div>
-          ))}
+      </div>
+
+      {/* Real errors, instead of a misleading "no posts" empty state */}
+      {errors.length > 0 && (
+        <div className="rounded-xl border border-amber-200 dark:border-amber-500/20 bg-amber-50 dark:bg-amber-500/10 p-3">
+          <p className="text-xs font-bold text-amber-900 dark:text-amber-200">Some posts could not be loaded</p>
+          <ul className="mt-1 space-y-0.5">
+            {errors.map((e, i) => (
+              <li key={i} className="text-[11px] text-amber-800 dark:text-amber-300">{e}</li>
+            ))}
+          </ul>
+          <p className="mt-1.5 text-[11px] text-amber-800 dark:text-amber-300">
+            If this mentions an expired or invalid token, reconnect from the Overview tab.
+          </p>
         </div>
       )}
+
+      {/* Scheduled queue — what is going out next */}
+      {scheduled.length > 0 && (
+        <div className="space-y-2">
+          <h3 className="text-xs font-bold uppercase tracking-wide text-slate-500">
+            Scheduled ({scheduled.length})
+          </h3>
+          <div className="space-y-2">
+            {scheduled.map(p => (
+              <ScheduledRow
+                key={p.postId}
+                post={p}
+                busy={busyId === p.postId}
+                onPublishNow={handlePublishNow}
+                onCancel={handleCancel}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Published */}
+      <div className="space-y-2">
+        <h3 className="text-xs font-bold uppercase tracking-wide text-slate-500">
+          Published ({posts.length})
+        </h3>
+
+        {posts.length === 0 ? (
+          <div className="rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200/70 dark:border-white/10 p-8 text-center">
+            <p className="text-sm text-slate-500">
+              {errors.length > 0
+                ? 'No posts could be loaded — see the message above.'
+                : 'No posts yet. Create one from the Create Post tab.'}
+            </p>
+          </div>
+        ) : (
+          <>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {shown.map((post, i) => (
+                <a
+                  key={post.id || i}
+                  href={post.permalink_url || post.permalink || undefined}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200/70 dark:border-white/10 overflow-hidden hover:border-slate-300 dark:hover:border-white/20 transition-colors"
+                >
+                  {post.full_picture || post.media_url || post.thumbnail_url ? (
+                    <img src={post.full_picture || post.thumbnail_url || post.media_url} alt="" className="w-full h-40 object-cover" />
+                  ) : (
+                    <div className="h-20 bg-gradient-to-br from-slate-100 to-slate-50 dark:from-slate-800 dark:to-slate-900" />
+                  )}
+                  <div className="p-3">
+                    <p className="text-xs text-slate-700 dark:text-slate-300 line-clamp-2">{post.message || post.caption || '(no caption)'}</p>
+                    <div className="flex items-center gap-3 mt-2 text-[10px] text-slate-500">
+                      <span className="flex items-center gap-0.5"><span className="material-symbols-outlined text-[11px]">favorite</span> {post.likes_count || 0}</span>
+                      <span className="flex items-center gap-0.5"><span className="material-symbols-outlined text-[11px]">chat_bubble</span> {post.comments_count || 0}</span>
+                      {post.shares_count > 0 && <span className="flex items-center gap-0.5"><span className="material-symbols-outlined text-[11px]">share</span> {post.shares_count}</span>}
+                      <span className={`ml-auto uppercase font-bold ${post.platform === 'instagram' ? 'text-pink-500' : 'text-blue-500'}`}>{post.platform}</span>
+                    </div>
+                  </div>
+                </a>
+              ))}
+            </div>
+
+            {visible < posts.length && (
+              <div className="flex justify-center pt-1">
+                <button
+                  onClick={() => setVisible(v => v + PAGE_SIZE)}
+                  className="rounded-xl border border-slate-200 dark:border-white/10 px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-300"
+                >
+                  Load more ({posts.length - visible} left)
+                </button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 }
