@@ -17,6 +17,11 @@ import {
   updateCommentReplyConfig,
   testCommentReplyPrompt,
   getDmReplyStats,
+  getFBPageInsights,
+  getIGAccountInsights,
+  getAdAccounts,
+  getAdPerformance,
+  getAdCampaigns,
   getMetaConversations,
   getFBConversationMessages,
   sendFBMessageReply,
@@ -1118,22 +1123,345 @@ function MessagesTab({ connection, addToast }) {
   );
 }
 
-function AnalyticsTab({ connection }) {
+// ── Analytics ────────────────────────────────────────────────────────────────
+
+const PERIODS = [
+  { key: 'day',     label: 'Daily' },
+  { key: 'week',    label: 'Weekly' },
+  { key: 'days_28', label: '28 days' },
+];
+
+/** Sum a Meta insights series — Meta returns one data point per period. */
+function seriesTotal(metric) {
+  if (!metric?.values?.length) return 0;
+  return metric.values.reduce((sum, v) => sum + (Number(v.value) || 0), 0);
+}
+
+/** Latest point — right for running-total metrics like follower count. */
+function seriesLatest(metric) {
+  if (!metric?.values?.length) return 0;
+  return Number(metric.values[metric.values.length - 1]?.value) || 0;
+}
+
+function StatCard({ label, value, hint, tone = 'slate' }) {
+  const tones = {
+    slate: 'bg-slate-50 dark:bg-white/5 text-slate-700 dark:text-slate-200',
+    blue: 'bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300',
+    pink: 'bg-pink-50 dark:bg-pink-500/10 text-pink-700 dark:text-pink-300',
+    emerald: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
+    amber: 'bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300',
+  };
   return (
-    <div className="rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200/70 dark:border-white/10 p-8 text-center">
-      <span className="material-symbols-outlined text-5xl text-purple-500/40 mb-4 block">monitoring</span>
-      <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Social Analytics</h2>
-      <p className="text-sm text-slate-500 dark:text-slate-400">Page insights, post performance, follower growth — coming in next update.</p>
+    <div className={`rounded-xl p-3 ${tones[tone]}`}>
+      <p className="text-xl font-black leading-tight">{value}</p>
+      <p className="text-[10px] font-bold uppercase opacity-70 mt-0.5">{label}</p>
+      {hint && <p className="text-[9px] opacity-60 mt-0.5">{hint}</p>}
     </div>
   );
 }
 
-function AdLauncherTab({ connection, addToast }) {
+function AnalyticsTab({ connection }) {
+  const [period, setPeriod] = useState('day');
+  const [loading, setLoading] = useState(true);
+  const [fb, setFb] = useState(null);
+  const [ig, setIg] = useState(null);
+  const [overview, setOverview] = useState(null);
+  const [notes, setNotes] = useState([]);
+  const [selectedPageId, setSelectedPageId] = useState('');
+
+  const pages = connection?.pages || [];
+  const activePage = pages.find(p => p.pageId === selectedPageId);
+
+  useEffect(() => {
+    if (!selectedPageId && pages.length) {
+      const igPage = pages.find(p => p.igAccountId);
+      setSelectedPageId(connection?.activePageId || igPage?.pageId || pages[0].pageId);
+    }
+  }, [pages, connection?.activePageId]);
+
+  useEffect(() => {
+    if (!selectedPageId) { setLoading(false); return; }
+    setLoading(true);
+
+    const params = { pageId: selectedPageId, period };
+    Promise.allSettled([
+      getFBPageInsights(params),
+      activePage?.igAccountId ? getIGAccountInsights(params) : Promise.resolve(null),
+      getSocialOverview({ pageId: selectedPageId }),
+    ]).then(([fbRes, igRes, ovRes]) => {
+      const problems = [];
+
+      if (fbRes.status === 'fulfilled') {
+        setFb(fbRes.value.data);
+        if (!fbRes.value.data?.success) problems.push(`Facebook: ${fbRes.value.data?.error || 'unavailable'}`);
+        // Meta retires insight metrics regularly. The backend reports which ones
+        // it could not fetch rather than failing the whole request, so show them.
+        if (fbRes.value.data?.unavailableMetrics?.length) {
+          problems.push(`Facebook metrics Meta no longer provides: ${fbRes.value.data.unavailableMetrics.join(', ')}`);
+        }
+      } else {
+        setFb(null);
+        problems.push('Could not load Facebook insights');
+      }
+
+      if (igRes?.status === 'fulfilled' && igRes.value) {
+        setIg(igRes.value.data);
+        if (!igRes.value.data?.success) problems.push(`Instagram: ${igRes.value.data?.error || 'unavailable'}`);
+        if (igRes.value.data?.unavailableMetrics?.length) {
+          problems.push(`Instagram metrics Meta no longer provides: ${igRes.value.data.unavailableMetrics.join(', ')}`);
+        }
+      } else {
+        setIg(null);
+      }
+
+      if (ovRes.status === 'fulfilled') setOverview(ovRes.value.data?.overview || null);
+
+      setNotes(problems);
+    }).finally(() => setLoading(false));
+  }, [selectedPageId, period, activePage?.igAccountId]);
+
+  if (loading) return <div className="flex justify-center p-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>;
+
+  const f = fb?.insights || {};
+  const i = ig?.insights || {};
+
   return (
-    <div className="rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200/70 dark:border-white/10 p-8 text-center">
-      <span className="material-symbols-outlined text-5xl text-orange-500/40 mb-4 block">rocket_launch</span>
-      <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Ad Campaign Launcher</h2>
-      <p className="text-sm text-slate-500 dark:text-slate-400">Create and launch Meta ad campaigns with targeting wizard — coming in next update.</p>
+    <div className="space-y-5">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <h2 className="text-sm font-bold text-slate-900 dark:text-white">Analytics</h2>
+        <div className="flex items-center gap-2">
+          <div className="flex rounded-lg border border-slate-200 dark:border-white/10 overflow-hidden">
+            {PERIODS.map(p => (
+              <button key={p.key} onClick={() => setPeriod(p.key)}
+                className={`px-3 py-1.5 text-[10px] font-bold transition-colors ${period === p.key ? 'bg-primary text-white' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5'}`}>
+                {p.label}
+              </button>
+            ))}
+          </div>
+          {pages.length > 1 && (
+            <select value={selectedPageId} onChange={e => setSelectedPageId(e.target.value)}
+              className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 text-xs font-bold bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300">
+              {pages.map(p => <option key={p.pageId} value={p.pageId}>{p.pageName}</option>)}
+            </select>
+          )}
+        </div>
+      </div>
+
+      {notes.length > 0 && (
+        <div className="rounded-xl border border-amber-200 dark:border-amber-500/20 bg-amber-50 dark:bg-amber-500/10 p-3 space-y-0.5">
+          {notes.map((n, k) => <p key={k} className="text-[11px] text-amber-800 dark:text-amber-300">{n}</p>)}
+        </div>
+      )}
+
+      {overview && (
+        <div>
+          <h3 className="text-xs font-bold uppercase tracking-wide text-slate-500 mb-2">Audience</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <StatCard tone="blue" label="FB followers" value={overview.facebook?.followers ?? '—'} hint={overview.facebook?.name} />
+            <StatCard tone="pink" label="IG followers" value={overview.instagram?.followers ?? '—'} hint={overview.instagram?.username ? `@${overview.instagram.username}` : undefined} />
+            <StatCard tone="pink" label="IG posts" value={overview.instagram?.posts ?? '—'} />
+            <StatCard tone="slate" label="IG following" value={overview.instagram?.following ?? '—'} />
+          </div>
+        </div>
+      )}
+
+      <div>
+        <h3 className="text-xs font-bold uppercase tracking-wide text-slate-500 mb-2">Facebook Page</h3>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <StatCard tone="blue" label="Views" value={seriesTotal(f.page_media_view).toLocaleString()} />
+          <StatCard tone="blue" label="Reach" value={seriesTotal(f.page_total_media_view_unique).toLocaleString()} hint="unique people" />
+          <StatCard tone="blue" label="Engagements" value={seriesTotal(f.page_post_engagements).toLocaleString()} />
+          <StatCard tone="blue" label="Page views" value={seriesTotal(f.page_views_total).toLocaleString()} />
+          <StatCard tone="emerald" label="Followers" value={seriesLatest(f.page_follows).toLocaleString()} hint="current total" />
+          <StatCard tone="emerald" label="New follows" value={seriesTotal(f.page_daily_follows_unique).toLocaleString()} />
+          <StatCard tone="slate" label="Unfollows" value={seriesTotal(f.page_daily_unfollows_unique).toLocaleString()} />
+        </div>
+      </div>
+
+      {activePage?.igAccountId && (
+        <div>
+          <h3 className="text-xs font-bold uppercase tracking-wide text-slate-500 mb-2">Instagram</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <StatCard tone="pink" label="Views" value={seriesTotal(i.views).toLocaleString()} />
+            <StatCard tone="pink" label="Reach" value={seriesTotal(i.reach).toLocaleString()} />
+            <StatCard tone="pink" label="Profile views" value={seriesTotal(i.profile_views).toLocaleString()} />
+            <StatCard tone="emerald" label="Follower change" value={seriesTotal(i.follower_count).toLocaleString()} hint="in this window" />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Ads ──────────────────────────────────────────────────────────────────────
+
+const DATE_PRESETS = [
+  { key: 'last_7d',  label: '7 days' },
+  { key: 'last_30d', label: '30 days' },
+  { key: 'last_90d', label: '90 days' },
+  { key: 'maximum',  label: 'All time' },
+];
+
+const money = (n, currency = 'INR') => {
+  const v = Number(n) || 0;
+  try {
+    return new Intl.NumberFormat('en-IN', { style: 'currency', currency, maximumFractionDigits: 0 }).format(v);
+  } catch {
+    return v.toFixed(0);
+  }
+};
+
+const STATUS_TONE = {
+  ACTIVE: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300',
+  PAUSED: 'bg-slate-100 text-slate-600 dark:bg-white/10 dark:text-slate-300',
+  IN_PROCESS: 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300',
+};
+
+function AdLauncherTab({ connection, addToast }) {
+  const [datePreset, setDatePreset] = useState('last_30d');
+  const [adAccounts, setAdAccounts] = useState([]);
+  const [adAccountId, setAdAccountId] = useState('');
+  const [summary, setSummary] = useState(null);
+  const [byCampaign, setByCampaign] = useState([]);
+  const [campaigns, setCampaigns] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  const currency = adAccounts.find(a => a.id === adAccountId)?.currency || 'INR';
+
+  useEffect(() => {
+    getAdAccounts()
+      .then(res => {
+        const list = res.data?.adAccounts || [];
+        setAdAccounts(list);
+        setAdAccountId(connection?.adAccountId || list[0]?.id || '');
+      })
+      .catch(err => setError(err.response?.data?.error || 'Could not load ad accounts'))
+      .finally(() => setLoading(false));
+  }, [connection?.adAccountId]);
+
+  useEffect(() => {
+    if (!adAccountId) return;
+    setLoading(true);
+    setError('');
+
+    Promise.allSettled([
+      getAdPerformance({ adAccountId, datePreset }),
+      getAdCampaigns({ adAccountId }),
+    ]).then(([perf, camp]) => {
+      if (perf.status === 'fulfilled' && perf.value.data?.success) {
+        setSummary(perf.value.data.summary);
+        setByCampaign(perf.value.data.campaigns || []);
+      } else {
+        setSummary(null);
+        setByCampaign([]);
+        setError(perf.reason?.response?.data?.error || perf.value?.data?.error || 'Could not load ad performance');
+      }
+
+      if (camp.status === 'fulfilled' && camp.value.data?.success) {
+        setCampaigns(camp.value.data.campaigns || []);
+      }
+    }).finally(() => setLoading(false));
+  }, [adAccountId, datePreset]);
+
+  // Spend for a campaign comes from the insights breakdown, which is a separate
+  // call from the campaign list, so join them by id.
+  const spendFor = (campaignId) => byCampaign.find(r => r.campaignId === campaignId);
+
+  if (loading && !summary) {
+    return <div className="flex justify-center p-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>;
+  }
+
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <h2 className="text-sm font-bold text-slate-900 dark:text-white">Ads</h2>
+        <div className="flex items-center gap-2">
+          <div className="flex rounded-lg border border-slate-200 dark:border-white/10 overflow-hidden">
+            {DATE_PRESETS.map(p => (
+              <button key={p.key} onClick={() => setDatePreset(p.key)}
+                className={`px-2.5 py-1.5 text-[10px] font-bold transition-colors ${datePreset === p.key ? 'bg-primary text-white' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5'}`}>
+                {p.label}
+              </button>
+            ))}
+          </div>
+          {adAccounts.length > 1 && (
+            <select value={adAccountId} onChange={e => setAdAccountId(e.target.value)}
+              className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 text-xs font-bold bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 max-w-[220px]">
+              {adAccounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+            </select>
+          )}
+        </div>
+      </div>
+
+      {error && (
+        <div className="rounded-xl border border-amber-200 dark:border-amber-500/20 bg-amber-50 dark:bg-amber-500/10 p-3">
+          <p className="text-[11px] text-amber-800 dark:text-amber-300">{error}</p>
+        </div>
+      )}
+
+      {summary && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <StatCard tone="amber" label="Spend" value={money(summary.spend, currency)} />
+          <StatCard tone="emerald" label="Leads" value={(summary.leads || 0).toLocaleString()} />
+          <StatCard tone="emerald" label="Cost / lead" value={summary.leads ? money(summary.costPerLead, currency) : '—'} />
+          <StatCard tone="blue" label="Reach" value={(summary.reach || 0).toLocaleString()} />
+          <StatCard tone="blue" label="Impressions" value={(summary.impressions || 0).toLocaleString()} />
+          <StatCard tone="blue" label="Clicks" value={(summary.clicks || 0).toLocaleString()} hint={`CTR ${(summary.ctr || 0).toFixed(2)}%`} />
+          <StatCard tone="slate" label="Cost / click" value={summary.clicks ? money(summary.cpc, currency) : '—'} />
+          <StatCard tone="pink" label="Chats started" value={(summary.messagingStarted || 0).toLocaleString()} />
+        </div>
+      )}
+
+      <div>
+        <h3 className="text-xs font-bold uppercase tracking-wide text-slate-500 mb-2">
+          Campaigns ({campaigns.length})
+        </h3>
+
+        {campaigns.length === 0 ? (
+          <div className="rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200/70 dark:border-white/10 p-8 text-center">
+            <span className="material-symbols-outlined text-4xl text-orange-500/40 mb-2 block">rocket_launch</span>
+            <p className="text-sm text-slate-500">No campaigns on this ad account yet.</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {campaigns.map(c => {
+              const s = spendFor(c.id);
+              return (
+                <div key={c.id} className="rounded-xl bg-white dark:bg-slate-900/60 border border-slate-200/70 dark:border-white/10 p-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-slate-800 dark:text-white truncate">{c.name}</p>
+                      <p className="text-[10px] text-slate-500 mt-0.5">
+                        {c.objective?.replace('OUTCOME_', '')}
+                        {c.dailyBudget ? ` · ${money(c.dailyBudget, currency)}/day` : ''}
+                        {c.lifetimeBudget ? ` · ${money(c.lifetimeBudget, currency)} total` : ''}
+                      </p>
+                    </div>
+                    <span className={`shrink-0 text-[9px] font-bold uppercase px-2 py-0.5 rounded-full ${STATUS_TONE[c.effectiveStatus] || STATUS_TONE.PAUSED}`}>
+                      {c.effectiveStatus || c.status}
+                    </span>
+                  </div>
+
+                  {s && (
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 pt-2 border-t border-slate-100 dark:border-white/5 text-[10px] text-slate-600 dark:text-slate-300">
+                      <span><strong>{money(s.spend, currency)}</strong> spent</span>
+                      <span><strong>{s.leads}</strong> leads</span>
+                      {s.leads > 0 && <span><strong>{money(s.costPerLead, currency)}</strong> / lead</span>}
+                      <span>{s.reach.toLocaleString()} reach</span>
+                      <span>{s.clicks.toLocaleString()} clicks</span>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      <p className="text-[10px] text-slate-500">
+        Campaigns are created and launched from the ad builder. This view reports what they are doing.
+      </p>
     </div>
   );
 }

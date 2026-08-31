@@ -366,6 +366,10 @@ export const searchAdInterests         = (q) => adLauncherApi.get('/targeting/in
 export const searchAdLocations         = (q) => adLauncherApi.get('/targeting/locations', { params: { q } });
 export const getAdAccounts             = () => adLauncherApi.get('/ad-accounts');
 export const getAdLeadForms            = (pageId) => adLauncherApi.get('/lead-forms', { params: { pageId } });
+// Reporting — params: { adAccountId, datePreset | since+until }
+export const getAdPerformance          = (params) => adLauncherApi.get('/performance', { params });
+export const getAdCampaigns            = (params) => adLauncherApi.get('/campaigns', { params });
+export const getAdObjectInsights       = (objectId, params) => adLauncherApi.get(`/insights/${objectId}`, { params });
 
 // ====== META SOCIAL MESSAGING (FB Messenger + IG DMs) ======
 const messagingApi = createApiInstance('/meta-social/messages');
