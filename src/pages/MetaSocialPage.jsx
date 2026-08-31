@@ -980,6 +980,7 @@ function MessagesTab({ connection, addToast }) {
   const [msgLoading, setMsgLoading] = useState(false);
   const [replyText, setReplyText] = useState('');
   const [sending, setSending] = useState(false);
+  const [issues, setIssues] = useState([]);
 
   const pages = connection?.pages || [];
   const [selectedPageId, setSelectedPageId] = useState('');
@@ -991,14 +992,29 @@ function MessagesTab({ connection, addToast }) {
     }
   }, [pages]);
 
-  useEffect(() => {
+  const loadConversations = () => {
     if (!selectedPageId) return;
     setLoading(true);
     getMetaConversations({ pageId: selectedPageId, limit: 30 })
-      .then(res => setConversations(res.data?.conversations || []))
-      .catch(() => setConversations([]))
+      .then(res => {
+        const d = res.data || {};
+        setConversations(d.conversations || []);
+        // Messenger and Instagram fail independently and for different reasons.
+        // Swallowing them made a missing permission look like an empty inbox,
+        // which is the single most confusing state in this tab.
+        const problems = [];
+        if (d.fbError) problems.push({ platform: 'Messenger', message: d.fbError });
+        if (d.igError) problems.push({ platform: 'Instagram', message: d.igError });
+        setIssues(problems);
+      })
+      .catch(err => {
+        setConversations([]);
+        setIssues([{ platform: 'Inbox', message: err.response?.data?.error || 'Could not load conversations' }]);
+      })
       .finally(() => setLoading(false));
-  }, [selectedPageId]);
+  };
+
+  useEffect(loadConversations, [selectedPageId]);
 
   const openConversation = async (conv) => {
     setSelectedConv(conv);
@@ -1007,8 +1023,13 @@ function MessagesTab({ connection, addToast }) {
     try {
       const getter = conv.platform === 'instagram' ? getIGConversationMessages : getFBConversationMessages;
       const res = await getter(conv.id, { pageId: selectedPageId, limit: 30 });
+      if (res.data?.success === false) {
+        addToast(res.data.error || 'Failed to load messages', 'error');
+      }
       setMessages(res.data?.messages || []);
-    } catch { addToast('Failed to load messages', 'error'); }
+    } catch (err) {
+      addToast(err.response?.data?.error || 'Failed to load messages', 'error');
+    }
     finally { setMsgLoading(false); }
   };
 
@@ -1031,18 +1052,37 @@ function MessagesTab({ connection, addToast }) {
   if (loading) return <div className="flex justify-center p-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>;
 
   return (
-    <div className="flex gap-4 h-[70vh]">
+    <div className="space-y-3">
+      {/* Per-platform problems. Messenger and Instagram fail separately, so an
+          Instagram permission issue must not read as "you have no messages". */}
+      {issues.length > 0 && (
+        <div className="rounded-xl border border-amber-200 dark:border-amber-500/20 bg-amber-50 dark:bg-amber-500/10 p-3 space-y-1">
+          {issues.map((p, k) => (
+            <p key={k} className="text-[11px] text-amber-800 dark:text-amber-300">
+              <strong>{p.platform}:</strong> {p.message}
+            </p>
+          ))}
+        </div>
+      )}
+
+      <div className="flex gap-4 h-[70vh]">
       {/* Conversations List */}
       <div className="w-80 flex-shrink-0 rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200/70 dark:border-white/10 overflow-hidden flex flex-col">
-        <div className="p-3 border-b border-slate-100 dark:border-white/5">
+        <div className="p-3 border-b border-slate-100 dark:border-white/5 flex items-center gap-2">
           <select value={selectedPageId} onChange={e => { setSelectedPageId(e.target.value); setSelectedConv(null); }}
-            className="w-full px-2 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 text-[10px] font-bold bg-white dark:bg-slate-900">
+            className="flex-1 min-w-0 px-2 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 text-[10px] font-bold bg-white dark:bg-slate-900">
             {pages.map(p => <option key={p.pageId} value={p.pageId}>{p.pageName}</option>)}
           </select>
+          <button onClick={loadConversations} title="Refresh"
+            className="shrink-0 rounded-lg border border-slate-200 dark:border-white/10 p-1.5 text-slate-500 hover:text-slate-700 dark:hover:text-slate-200">
+            <span className="material-symbols-outlined text-[14px]">refresh</span>
+          </button>
         </div>
         <div className="flex-1 overflow-y-auto">
           {conversations.length === 0 ? (
-            <div className="p-6 text-center text-xs text-slate-400">No conversations yet</div>
+            <div className="p-6 text-center text-xs text-slate-400">
+              {issues.length > 0 ? 'Inbox could not load — see the note above.' : 'No conversations yet'}
+            </div>
           ) : conversations.map(conv => (
             <button key={conv.id} onClick={() => openConversation(conv)}
               className={`w-full text-left px-4 py-3 border-b border-slate-50 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors ${selectedConv?.id === conv.id ? 'bg-primary/5' : ''}`}>
@@ -1118,6 +1158,7 @@ function MessagesTab({ connection, addToast }) {
             </div>
           </>
         )}
+      </div>
       </div>
     </div>
   );
