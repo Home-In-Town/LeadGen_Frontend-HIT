@@ -345,6 +345,10 @@ export const getCommentReplyConfig     = ()     => commentReplyApi.get('/config'
 export const updateCommentReplyConfig  = (data) => commentReplyApi.put('/config', data);
 export const getCommentReplyLogs       = (params) => commentReplyApi.get('/logs', { params });
 export const getCommentReplyStats      = ()     => commentReplyApi.get('/stats');
+// AI DM auto-reply shares the same config document, exposed via /config as `dmReply`
+export const getDmReplyLogs            = (params) => commentReplyApi.get('/dm-logs', { params });
+export const getDmReplyStats           = ()     => commentReplyApi.get('/dm-stats');
+export const setActiveMetaPage         = (pageId) => metaSocialApi.put('/active-page', { pageId });
 export const testCommentReplyPrompt    = (data) => commentReplyApi.post('/test', data);
 export const clearCommentReplyLogs     = ()     => commentReplyApi.delete('/logs', { data: { confirm: 'CLEAR_ALL' } });
 

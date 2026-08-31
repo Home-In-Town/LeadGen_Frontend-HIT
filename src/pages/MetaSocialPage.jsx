@@ -16,6 +16,7 @@ import {
   getCommentReplyConfig,
   updateCommentReplyConfig,
   testCommentReplyPrompt,
+  getDmReplyStats,
   getMetaConversations,
   getFBConversationMessages,
   sendFBMessageReply,
@@ -837,6 +838,131 @@ function CommentsTab({ addToast }) {
           </div>
         )}
       </div>
+
+      <DmReplySettings config={config} setConfig={setConfig} onSave={handleSave} saving={saving} />
+    </div>
+  );
+}
+
+/**
+ * AI auto-reply for private messages. Separate toggles from comments on purpose:
+ * a business often wants instant DM answers while still hand-writing public
+ * comment replies (or the reverse).
+ */
+function DmReplySettings({ config, setConfig, onSave, saving }) {
+  const [stats, setStats] = useState(null);
+  const dm = config?.dmReply || {};
+
+  const loadStats = () => {
+    getDmReplyStats().then(r => setStats(r.data?.stats)).catch(() => {});
+  };
+  useEffect(loadStats, []);
+
+  const patchDm = (patch) => setConfig(prev => ({ ...prev, dmReply: { ...(prev?.dmReply || {}), ...patch } }));
+  const saveDm = (patch) => onSave({ dmReply: { ...dm, ...patch } }).then(loadStats);
+
+  return (
+    <div className="rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200/70 dark:border-white/10 p-5 space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-sm font-bold text-slate-900 dark:text-white">AI DM Reply</h3>
+          <p className="text-[10px] text-slate-500 mt-0.5">
+            AI answers Messenger and Instagram Direct messages automatically
+          </p>
+        </div>
+        <button
+          onClick={() => saveDm({ enabled: !dm.enabled })}
+          className={`relative w-12 h-6 rounded-full transition-colors ${dm.enabled ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600'}`}
+        >
+          <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${dm.enabled ? 'translate-x-6' : 'translate-x-0.5'}`} />
+        </button>
+      </div>
+
+      {stats && (
+        <div className="grid grid-cols-4 gap-2">
+          <div className="rounded-lg bg-emerald-50 dark:bg-emerald-500/10 p-2 text-center">
+            <p className="text-base font-black text-emerald-700 dark:text-emerald-300">{stats.repliedToday}</p>
+            <p className="text-[9px] font-bold text-emerald-600 uppercase">Today</p>
+          </div>
+          <div className="rounded-lg bg-blue-50 dark:bg-blue-500/10 p-2 text-center">
+            <p className="text-base font-black text-blue-700 dark:text-blue-300">{stats.replied}</p>
+            <p className="text-[9px] font-bold text-blue-600 uppercase">Replied</p>
+          </div>
+          <div className="rounded-lg bg-purple-50 dark:bg-purple-500/10 p-2 text-center">
+            <p className="text-base font-black text-purple-700 dark:text-purple-300">{stats.uniqueSenders}</p>
+            <p className="text-[9px] font-bold text-purple-600 uppercase">People</p>
+          </div>
+          <div className="rounded-lg bg-slate-50 dark:bg-white/5 p-2 text-center">
+            <p className="text-base font-black text-slate-700 dark:text-slate-300">{stats.skipped}</p>
+            <p className="text-[9px] font-bold text-slate-500 uppercase">Skipped</p>
+          </div>
+        </div>
+      )}
+
+      <div className="flex gap-3">
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" checked={dm.facebookEnabled !== false}
+            onChange={e => saveDm({ facebookEnabled: e.target.checked })} className="w-4 h-4 rounded" />
+          <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Messenger</span>
+        </label>
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" checked={dm.instagramEnabled !== false}
+            onChange={e => saveDm({ instagramEnabled: e.target.checked })} className="w-4 h-4 rounded" />
+          <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Instagram Direct</span>
+        </label>
+      </div>
+
+      <div>
+        <label className="text-[10px] font-bold text-slate-500 block mb-1">DM Instructions (optional)</label>
+        <textarea
+          value={dm.aiPrompt || ''}
+          onChange={e => patchDm({ aiPrompt: e.target.value })}
+          placeholder="e.g., Always ask which project they are interested in and offer a site visit this weekend."
+          className="w-full p-3 bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 rounded-xl text-sm resize-none h-20 focus:border-primary focus:outline-none"
+        />
+      </div>
+
+      <div className="grid grid-cols-3 gap-3">
+        <div>
+          <label className="text-[10px] font-bold text-slate-500 block mb-1">Delay (sec)</label>
+          <input type="number" min="0" max="120"
+            value={Math.round((dm.replyDelayMs ?? 5000) / 1000)}
+            onChange={e => patchDm({ replyDelayMs: Number(e.target.value) * 1000 })}
+            className="w-full p-2 border border-slate-200 dark:border-white/10 rounded-lg text-sm bg-slate-50 dark:bg-white/[0.04]" />
+        </div>
+        <div>
+          <label className="text-[10px] font-bold text-slate-500 block mb-1">Max / Hour</label>
+          <input type="number" min="1" max="120"
+            value={dm.maxRepliesPerHour ?? 30}
+            onChange={e => patchDm({ maxRepliesPerHour: Number(e.target.value) })}
+            className="w-full p-2 border border-slate-200 dark:border-white/10 rounded-lg text-sm bg-slate-50 dark:bg-white/[0.04]" />
+        </div>
+        <div>
+          <label className="text-[10px] font-bold text-slate-500 block mb-1">Max / Person</label>
+          <input type="number" min="1" max="50"
+            value={dm.maxRepliesPerSender ?? 5}
+            onChange={e => patchDm({ maxRepliesPerSender: Number(e.target.value) })}
+            className="w-full p-2 border border-slate-200 dark:border-white/10 rounded-lg text-sm bg-slate-50 dark:bg-white/[0.04]" />
+        </div>
+      </div>
+
+      <p className="text-[10px] text-slate-500">
+        After <strong>Max / Person</strong> automatic replies the thread is left for a human.
+        Anyone who sends “stop” is never auto-replied to again.
+      </p>
+
+      <button
+        onClick={() => saveDm({
+          aiPrompt: dm.aiPrompt || '',
+          replyDelayMs: dm.replyDelayMs,
+          maxRepliesPerHour: dm.maxRepliesPerHour,
+          maxRepliesPerSender: dm.maxRepliesPerSender,
+        })}
+        disabled={saving}
+        className="px-4 py-2 rounded-lg bg-primary text-xs font-bold text-white disabled:opacity-50"
+      >
+        {saving ? 'Saving…' : 'Save DM Settings'}
+      </button>
     </div>
   );
 }
