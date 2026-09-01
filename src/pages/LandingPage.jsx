@@ -347,7 +347,7 @@ const LandingPage = () => {
                 <ul className="space-y-2">
                   <li><Link to="/privacy-policy" className={`text-[13px] transition-colors ${isDark ? 'text-[#B0B3B8] hover:text-white' : 'text-[#65676B] hover:text-[#1C1E21]'}`}>Privacy</Link></li>
                   <li><Link to="/terms" className={`text-[13px] transition-colors ${isDark ? 'text-[#B0B3B8] hover:text-white' : 'text-[#65676B] hover:text-[#1C1E21]'}`}>Terms</Link></li>
-                  <li><a href="#" className={`text-[13px] transition-colors ${isDark ? 'text-[#B0B3B8] hover:text-white' : 'text-[#65676B] hover:text-[#1C1E21]'}`}>Security</a></li>
+                  <li><Link to="/data-deletion" className={`text-[13px] transition-colors ${isDark ? 'text-[#B0B3B8] hover:text-white' : 'text-[#65676B] hover:text-[#1C1E21]'}`}>Data Deletion</Link></li>
                 </ul>
               </div>
             </div>

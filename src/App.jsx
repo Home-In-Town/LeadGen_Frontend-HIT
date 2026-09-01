@@ -65,6 +65,7 @@ const FacebookIntegrationPage = lazy(() => import('./pages/FacebookIntegrationPa
 const GoogleIntegrationPage = lazy(() => import('./pages/GoogleIntegrationPage'));
 const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage'));
 const TermsOfServicePage = lazy(() => import('./pages/TermsOfServicePage'));
+const DataDeletionPage = lazy(() => import('./pages/DataDeletionPage'));
 const CallLogsPage = lazy(() => import('./pages/CallLogsPage'));
 const CampaignPage = lazy(() => import('./pages/CampaignPage'));
 const WhatsAppSetupPage = lazy(() => import('./pages/WhatsAppSetupPage'));
@@ -128,6 +129,15 @@ function App() {
                 <Route path="/login" element={<AuthPage />} />
                 <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
                 <Route path="/terms-service" element={<TermsOfServicePage />} />
+                {/* Short aliases. These are the URLs registered with Meta, and the
+                    landing page footer already linked to /terms. Because this is a
+                    SPA behind a catch-all rewrite, an unmatched path still returns
+                    200 with an empty shell — so a wrong path here does not 404, it
+                    silently shows a reviewer a blank page. */}
+                <Route path="/privacy" element={<PrivacyPolicyPage />} />
+                <Route path="/terms" element={<TermsOfServicePage />} />
+                {/* Required by Meta for App Review and for going Live. */}
+                <Route path="/data-deletion" element={<DataDeletionPage />} />
               </Route>
 
               {/* Protected Routes with Dashboard Navbar */}
