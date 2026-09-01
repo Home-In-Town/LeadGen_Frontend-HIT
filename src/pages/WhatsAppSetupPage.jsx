@@ -16,8 +16,15 @@ import {
     connectMetaOAuth,
 } from '../api';
 
-const META_APP_ID      = import.meta.env.VITE_META_APP_ID      || '1275388667714234';
-const SIGNUP_CONFIG_ID = import.meta.env.VITE_META_SIGNUP_CONFIG_ID || '1005112248795110';
+// NO FALLBACK VALUES HERE ON PURPOSE. These used to default to the old
+// OneEmployeeWap app id and its signup config id. Vite inlines env vars at build
+// time, so a build missing these silently shipped a customer-facing onboarding
+// flow pointed at an app Meta has restricted from onboarding — which looks like
+// "Embedded Signup is broken" with nothing in the logs. Missing config must be
+// visible instead, so the UI below refuses to launch and says what is missing.
+const META_APP_ID      = import.meta.env.VITE_META_APP_ID || '';
+const SIGNUP_CONFIG_ID = import.meta.env.VITE_META_SIGNUP_CONFIG_ID || '';
+const SIGNUP_CONFIGURED = Boolean(META_APP_ID && SIGNUP_CONFIG_ID);
 // Use the correct backend URL from env for register endpoint (needs raw axios for the one non-standard call)
 import axios from 'axios';
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://lead-filteration-backend-vvsvqafcoa-el.a.run.app';
@@ -136,6 +143,10 @@ export default function WhatsAppSetupPage() {
     };
 
     const launchEmbeddedSignup = () => {
+        if (!SIGNUP_CONFIGURED) {
+            addToast('WhatsApp onboarding is not configured on this build (VITE_META_APP_ID / VITE_META_SIGNUP_CONFIG_ID). Use manual entry, or ask the team to redeploy.', 'error');
+            return;
+        }
         if (!window.FB) {
             addToast('Meta SDK not loaded yet. Please wait a moment and try again.', 'error');
             return;
@@ -365,9 +376,18 @@ export default function WhatsAppSetupPage() {
                 {step === 'select' && (
                     <div className={`${cardClass} mb-6 p-6 md:p-8`}>
                         <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 mb-5">Choose connection method</h2>
+                        {!SIGNUP_CONFIGURED && (
+                            <div className="mb-4 rounded-2xl border border-amber-200 dark:border-amber-500/20 bg-amber-50 dark:bg-amber-500/10 p-4">
+                                <p className="text-xs font-bold text-amber-900 dark:text-amber-200">Embedded Signup is not configured on this build</p>
+                                <p className="mt-1 text-[11px] text-amber-800 dark:text-amber-300">
+                                    VITE_META_APP_ID and VITE_META_SIGNUP_CONFIG_ID are missing, so the one-click flow
+                                    cannot start. Manual credential entry below still works.
+                                </p>
+                            </div>
+                        )}
                         <div className="space-y-3">
                             <OptionCard selected={selectedOption === 'embedded'} onClick={() => setSelectedOption('embedded')}
-                                icon="login" title="Connect via Meta Embedded Signup" badge="Recommended"
+                                icon="login" title="Connect via Meta Embedded Signup" badge={SIGNUP_CONFIGURED ? 'Recommended' : 'Unavailable'}
                                 description="Connect your WhatsApp Business Account directly through Meta's secure in-page flow. No redirects." />
                             <OptionCard selected={selectedOption === 'existing'} onClick={() => setSelectedOption('existing')}
                                 icon="phone_forwarded" title="Use an existing WhatsApp Business number"
