@@ -84,6 +84,8 @@ export default function WhatsAppSetupPage() {
     const [step, setStep] = useState('select');
     const [saving, setSaving] = useState(false);
     const [connecting, setConnecting] = useState(false);
+    // True only after FB.init() has actually run — window.FB being present is not enough.
+    const [sdkReady, setSdkReady] = useState(false);
     const [phoneNumbers, setPhoneNumbers] = useState([]);
     const [connected, setConnected] = useState(null);
     const [manual, setManual] = useState({ phoneNumberId: '', wabaId: '', accessToken: '', label: '' });
@@ -107,19 +109,68 @@ export default function WhatsAppSetupPage() {
             .catch(() => setConnected(false));
     }, []);
 
+    // Load + initialise the Facebook JS SDK.
+    //
+    // The previous version only assigned window.fbAsyncInit and appended the
+    // script when the tag was absent. fbAsyncInit is a ONE-SHOT callback the SDK
+    // fires when it finishes loading — so on a remount, or if any other page had
+    // already loaded the SDK, the tag exists, the callback had already fired, and
+    // FB.init() never ran. window.FB was then present but uninitialised, which is
+    // exactly the "FB.login() called before FB.init()" error.
+    //
+    // So: track readiness explicitly, and init directly when FB is already there.
     useEffect(() => {
-        if (!META_APP_ID) return;
-        window.fbAsyncInit = function () {
-            window.FB?.init({ appId: META_APP_ID, version: 'v20.0', xfbml: false, cookie: false });
+        if (!SIGNUP_CONFIGURED) return;
+
+        let cancelled = false;
+        let poll = null;
+
+        const init = () => {
+            if (cancelled || !window.FB) return;
+            try {
+                window.FB.init({ appId: META_APP_ID, version: 'v20.0', xfbml: false, cookie: false });
+                setSdkReady(true);
+            } catch (err) {
+                console.error('[WhatsAppSetup] FB.init failed', err);
+            }
         };
-        if (!document.getElementById('fb-sdk')) {
+
+        // SDK already loaded (remount / another page) — fbAsyncInit will not fire again.
+        if (window.FB) {
+            init();
+            return;
+        }
+
+        window.fbAsyncInit = init;
+
+        const existing = document.getElementById('fb-sdk');
+        if (!existing) {
             const script = document.createElement('script');
             script.id = 'fb-sdk';
             script.src = 'https://connect.facebook.net/en_US/sdk.js';
             script.async = true;
             script.defer = true;
+            script.onerror = () => {
+                if (!cancelled) addToast('Could not load the Meta SDK. Check your connection or any ad blocker.', 'error');
+            };
             document.body.appendChild(script);
+        } else {
+            // Tag is in the DOM but FB is not ready yet and fbAsyncInit may have
+            // already fired — wait for the global to appear.
+            poll = setInterval(() => {
+                if (window.FB) {
+                    clearInterval(poll);
+                    poll = null;
+                    init();
+                }
+            }, 200);
+            setTimeout(() => { if (poll) { clearInterval(poll); poll = null; } }, 10000);
         }
+
+        return () => {
+            cancelled = true;
+            if (poll) clearInterval(poll);
+        };
     }, []);
 
     const reloadPhoneNumbers = async () => {
@@ -147,8 +198,10 @@ export default function WhatsAppSetupPage() {
             addToast('WhatsApp onboarding is not configured on this build (VITE_META_APP_ID / VITE_META_SIGNUP_CONFIG_ID). Use manual entry, or ask the team to redeploy.', 'error');
             return;
         }
-        if (!window.FB) {
-            addToast('Meta SDK not loaded yet. Please wait a moment and try again.', 'error');
+        // Must check INITIALISED, not merely present. window.FB exists as soon as
+        // the script runs, but calling FB.login() before FB.init() throws.
+        if (!sdkReady) {
+            addToast('Meta SDK is still loading. Give it a second and try again.', 'error');
             return;
         }
         setConnecting(true);
