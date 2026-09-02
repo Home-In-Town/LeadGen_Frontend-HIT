@@ -536,7 +536,7 @@ export default function AuthPage() {
                                     <div className="relative group">
                                         <i className="absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-primary dark:text-slate-500"><PhoneIcon /></i>
                                         <input type="tel" autoComplete="tel" inputMode="numeric" maxLength={10}
-                                            placeholder="Mobile number (optional)"
+                                            placeholder="Mobile number — add it to log in with mobile"
                                             value={mobile} onChange={(e) => setMobile(e.target.value.replace(/\D/g, '').slice(0, 10))}
                                             className={inputBase} />
                                     </div>
