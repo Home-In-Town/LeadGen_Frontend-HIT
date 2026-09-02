@@ -22,9 +22,43 @@ import {
 // flow pointed at an app Meta has restricted from onboarding — which looks like
 // "Embedded Signup is broken" with nothing in the logs. Missing config must be
 // visible instead, so the UI below refuses to launch and says what is missing.
-const META_APP_ID      = import.meta.env.VITE_META_APP_ID || '';
-const SIGNUP_CONFIG_ID = import.meta.env.VITE_META_SIGNUP_CONFIG_ID || '';
-const SIGNUP_CONFIGURED = Boolean(META_APP_ID && SIGNUP_CONFIG_ID);
+/**
+ * Sanitise an id coming from an env var.
+ *
+ * Vite inlines these at build time, so whatever is stored in the hosting provider
+ * is baked verbatim into the bundle. VITE_META_APP_ID was stored as
+ * `1425989586052018\r\n` — with a LITERAL backslash-r-backslash-n on the end — and
+ * that single invisible artefact broke Embedded Signup completely:
+ *
+ *   FB.init() validates the app id against /^[0-9]{1,21}$/ and, when it fails,
+ *   logs "Invalid App Id" and returns WITHOUT calling setClientID and WITHOUT
+ *   throwing. So init appears to succeed, and every later FB.login() bails out
+ *   with "FB.login() called before FB.init()" — an error that points at the
+ *   wrong thing entirely.
+ *
+ * Stripping quotes and escape artefacts keeps a paste mistake from taking the
+ * feature down, and the warning makes the bad value visible so it gets fixed at
+ * the source rather than silently tolerated.
+ */
+const cleanEnvId = (raw, name) => {
+    const original = String(raw ?? '');
+    const cleaned = original
+        .trim()
+        .replace(/^["']|["']$/g, '')   // stray quotes from a copy/paste
+        .replace(/\\[rnt]/g, '')       // literal \r \n \t written as text
+        .trim();
+    if (cleaned !== original && original !== '') {
+        console.warn(`[WhatsAppSetup] ${name} contained unexpected characters and was cleaned. Fix the value in the hosting env — got ${JSON.stringify(original)}, using ${JSON.stringify(cleaned)}.`);
+    }
+    return cleaned;
+};
+
+const META_APP_ID      = cleanEnvId(import.meta.env.VITE_META_APP_ID, 'VITE_META_APP_ID');
+const SIGNUP_CONFIG_ID = cleanEnvId(import.meta.env.VITE_META_SIGNUP_CONFIG_ID, 'VITE_META_SIGNUP_CONFIG_ID');
+// Match the SDK's own rule, so a malformed id is caught here with a clear message
+// instead of disappearing inside FB.init().
+const NUMERIC_ID_RE = /^\d{1,21}$/;
+const SIGNUP_CONFIGURED = NUMERIC_ID_RE.test(META_APP_ID) && NUMERIC_ID_RE.test(SIGNUP_CONFIG_ID);
 
 const FB_SDK_URL = 'https://connect.facebook.net/en_US/sdk.js';
 const FB_SDK_TIMEOUT_MS = 15000;
@@ -222,7 +256,11 @@ export default function WhatsAppSetupPage() {
 
     const launchEmbeddedSignup = async () => {
         if (!SIGNUP_CONFIGURED) {
-            addToast('WhatsApp onboarding is not configured on this build (VITE_META_APP_ID / VITE_META_SIGNUP_CONFIG_ID). Use manual entry, or ask the team to redeploy.', 'error');
+            const which = [
+                NUMERIC_ID_RE.test(META_APP_ID) ? null : `VITE_META_APP_ID=${JSON.stringify(META_APP_ID)}`,
+                NUMERIC_ID_RE.test(SIGNUP_CONFIG_ID) ? null : `VITE_META_SIGNUP_CONFIG_ID=${JSON.stringify(SIGNUP_CONFIG_ID)}`,
+            ].filter(Boolean).join(', ');
+            addToast(`WhatsApp onboarding is not configured correctly on this build (${which}). Both must be plain numeric ids. Use manual entry, or ask the team to fix the env and redeploy.`, 'error');
             return;
         }
         setConnecting(true);
