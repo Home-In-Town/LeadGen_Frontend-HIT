@@ -62,6 +62,10 @@ const SIGNUP_CONFIGURED = NUMERIC_ID_RE.test(META_APP_ID) && NUMERIC_ID_RE.test(
 
 const FB_SDK_URL = 'https://connect.facebook.net/en_US/sdk.js';
 const FB_SDK_TIMEOUT_MS = 15000;
+// Generous on purpose: the user fills in business details inside Meta's popup, which
+// legitimately takes minutes. This only exists so the button cannot stay stuck if no
+// signal ever comes back.
+const SIGNUP_TIMEOUT_MS = 5 * 60 * 1000;
 
 /**
  * Module-level singleton for loading + initialising the Facebook JS SDK.
@@ -99,7 +103,22 @@ function loadFacebookSdk(appId) {
         window.fbAsyncInit = () => {
             if (settled) return;
             try {
-                window.FB.init({ appId, version: 'v20.0', xfbml: false, cookie: false });
+                window.FB.init({
+                    appId,
+                    version: 'v20.0',
+                    xfbml: false,
+                    cookie: false,
+                    // Force the popup flow. Left on, the SDK tries FedCM
+                    // (navigator.credentials.get) first, and when that fails it
+                    // logs "Error retrieving a token." and falls back to the
+                    // legacy /dialog/oauth?client_id=... dialog instead of the
+                    // versioned /vXX/dialog/oauth?app_id=...&config_id=...
+                    // Embedded Signup dialog. The legacy dialog is not the flow
+                    // config_id belongs to and it fails with "Can't load URL",
+                    // which reads as an App Domains problem even when the domains
+                    // are correct.
+                    fedCM: false,
+                });
                 settled = true;
                 clearTimeout(timer);
                 resolve(window.FB);
@@ -223,40 +242,30 @@ export default function WhatsAppSetupPage() {
     }, []);
 
     /**
-     * Recover the button when FB.login's callback never fires.
+     * Last-resort release of the button if FB.login's callback never fires.
      *
-     * FB.login talks to its popup over a cross-domain channel. If the popup leaves
-     * facebook.com the channel dies and the callback is never invoked — which is
-     * exactly what happens when Meta rejects the app domain: the popup redirects to
-     * OUR origin with ?error_code=..., so the SDK can no longer see it. `connecting`
-     * then stays true and the button sits on "Connecting..." with no way back except
-     * a page reload.
+     * FB.login talks to its popup over a cross-domain channel; if the popup leaves
+     * facebook.com that channel dies and the callback never runs, leaving
+     * `connecting` stuck true forever.
      *
-     * Regaining focus means the popup is no longer in front of the user, so if no
-     * callback has landed by then the attempt is over. A short grace period lets a
-     * genuinely in-flight callback win the race. If the popup is in fact still open
-     * and the user merely clicked back to this tab, resetting is harmless: the
-     * callback still works if they go on to finish, and the button is usable again.
+     * This deliberately waits a long time. An earlier version released the button as
+     * soon as this window regained focus, which was wrong: signup legitimately takes
+     * minutes and the user switches back and forth while reading. Releasing early let
+     * them press Continue again while the first popup was still open, producing two
+     * concurrent FB.login calls — visible as "Only one navigator.credentials.get
+     * request may be outstanding at one time" and a failed dialog. The message
+     * listener below is the real cancel signal; this is only a safety net for the
+     * case where no signal ever arrives.
      */
     useEffect(() => {
         if (!connecting) return;
-
-        let graceTimer = null;
-        const onFocus = () => {
+        const timer = setTimeout(() => {
             if (signupSettledRef.current) return;
-            graceTimer = setTimeout(() => {
-                if (signupSettledRef.current) return;
-                signupSettledRef.current = true;
-                setConnecting(false);
-                addToast('The Meta window closed before finishing. Tap Continue to try again.', 'warning', 'Signup not completed');
-            }, 1500);
-        };
-
-        window.addEventListener('focus', onFocus);
-        return () => {
-            window.removeEventListener('focus', onFocus);
-            if (graceTimer) clearTimeout(graceTimer);
-        };
+            signupSettledRef.current = true;
+            setConnecting(false);
+            addToast('No response from the Meta window. If it is closed, tap Continue to try again.', 'warning', 'Signup timed out');
+        }, SIGNUP_TIMEOUT_MS);
+        return () => clearTimeout(timer);
     }, [connecting, addToast]);
 
     /**
@@ -335,6 +344,15 @@ export default function WhatsAppSetupPage() {
             addToast(`WhatsApp onboarding is not configured correctly on this build (${which}). Both must be plain numeric ids. Use manual entry, or ask the team to fix the env and redeploy.`, 'error');
             return;
         }
+        // A second concurrent FB.login aborts the first: the SDK rejects overlapping
+        // navigator.credentials.get calls and the dialog fails. The button is also
+        // disabled while connecting, but guard here too since the timeout above can
+        // release it while a popup is still open.
+        if (!signupSettledRef.current) {
+            addToast('A Meta signup window is already open. Finish or close it first.', 'warning');
+            return;
+        }
+
         setConnecting(true);
         signupSettledRef.current = false;
 
