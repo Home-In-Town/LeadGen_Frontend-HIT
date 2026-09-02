@@ -4,7 +4,7 @@
  * No external redirects — everything managed in-page.
  * Requirements: 1.1–1.8, 2.2, 13.1–13.7
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useNotifications } from '../context/NotificationContext';
 import {
@@ -201,6 +201,9 @@ export default function WhatsAppSetupPage() {
     const [manual, setManual] = useState({ phoneNumberId: '', wabaId: '', accessToken: '', label: '' });
     const [showToken, setShowToken] = useState(false);
     const [errors, setErrors] = useState({});
+    // Set false while a signup popup is outstanding, true once FB.login's callback
+    // has run. See the watchdog effect below for why this is needed.
+    const signupSettledRef = useRef(true);
 
     const cardClass = 'bg-white/75 dark:bg-white/[0.04] backdrop-blur-xl border border-slate-200/80 dark:border-white/10 rounded-[24px] shadow-sm';
     const inputClass = 'w-full rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#1e293b] px-4 py-3.5 text-sm font-semibold text-slate-900 dark:text-slate-300 outline-none transition-all focus:border-[#25D366] focus:bg-white dark:focus:bg-[#1e293b]';
@@ -218,6 +221,75 @@ export default function WhatsAppSetupPage() {
             })
             .catch(() => setConnected(false));
     }, []);
+
+    /**
+     * Recover the button when FB.login's callback never fires.
+     *
+     * FB.login talks to its popup over a cross-domain channel. If the popup leaves
+     * facebook.com the channel dies and the callback is never invoked — which is
+     * exactly what happens when Meta rejects the app domain: the popup redirects to
+     * OUR origin with ?error_code=..., so the SDK can no longer see it. `connecting`
+     * then stays true and the button sits on "Connecting..." with no way back except
+     * a page reload.
+     *
+     * Regaining focus means the popup is no longer in front of the user, so if no
+     * callback has landed by then the attempt is over. A short grace period lets a
+     * genuinely in-flight callback win the race. If the popup is in fact still open
+     * and the user merely clicked back to this tab, resetting is harmless: the
+     * callback still works if they go on to finish, and the button is usable again.
+     */
+    useEffect(() => {
+        if (!connecting) return;
+
+        let graceTimer = null;
+        const onFocus = () => {
+            if (signupSettledRef.current) return;
+            graceTimer = setTimeout(() => {
+                if (signupSettledRef.current) return;
+                signupSettledRef.current = true;
+                setConnecting(false);
+                addToast('The Meta window closed before finishing. Tap Continue to try again.', 'warning', 'Signup not completed');
+            }, 1500);
+        };
+
+        window.addEventListener('focus', onFocus);
+        return () => {
+            window.removeEventListener('focus', onFocus);
+            if (graceTimer) clearTimeout(graceTimer);
+        };
+    }, [connecting, addToast]);
+
+    /**
+     * Meta posts the Embedded Signup outcome to the opener as a `message`. Reading it
+     * gives a definite cancel/error signal instead of relying on the focus heuristic,
+     * and surfaces Meta's own error text rather than a silent stall.
+     */
+    useEffect(() => {
+        const onMessage = (event) => {
+            if (!/facebook\.com$/.test(new URL(event.origin).hostname)) return;
+            let data = event.data;
+            if (typeof data === 'string') {
+                try { data = JSON.parse(data); } catch { return; }
+            }
+            if (data?.type !== 'WA_EMBEDDED_SIGNUP') return;
+
+            // event === 'FINISH' is handled by FB.login's callback, which carries the
+            // code we actually need. Only the terminal non-success cases matter here.
+            if (data.event === 'CANCEL' || data.event === 'ERROR') {
+                if (signupSettledRef.current) return;
+                signupSettledRef.current = true;
+                setConnecting(false);
+                const detail = data.data?.error_message || data.data?.current_step;
+                addToast(
+                    detail ? `Meta stopped the signup: ${detail}` : 'Meta signup was cancelled before finishing.',
+                    'warning',
+                    'Signup not completed'
+                );
+            }
+        };
+        window.addEventListener('message', onMessage);
+        return () => window.removeEventListener('message', onMessage);
+    }, [addToast]);
 
     // Start loading the SDK on mount so it is usually ready by the time the user
     // clicks. Readiness only drives the button label — launchEmbeddedSignup awaits
@@ -264,6 +336,7 @@ export default function WhatsAppSetupPage() {
             return;
         }
         setConnecting(true);
+        signupSettledRef.current = false;
 
         // Wait for the SDK rather than rejecting an early click. Awaiting the shared
         // promise also guarantees FB.init() has actually run, which a boolean set
@@ -273,6 +346,7 @@ export default function WhatsAppSetupPage() {
             FB = await loadFacebookSdk(META_APP_ID);
         } catch (err) {
             addToast(err.message, 'error');
+            signupSettledRef.current = true;
             setConnecting(false);
             return;
         }
@@ -282,6 +356,8 @@ export default function WhatsAppSetupPage() {
         // button sits on "Connecting..." forever with nothing shown to the user.
         try {
             FB.login((response) => {
+                // The callback arrived, so the watchdog above must stand down.
+                signupSettledRef.current = true;
                 if (response?.authResponse?.code) {
                     connectMetaOAuth(response.authResponse.code)
                         .then(res => {
@@ -313,6 +389,7 @@ export default function WhatsAppSetupPage() {
         } catch (err) {
             console.error('[WhatsAppSetup] FB.login threw', err);
             addToast(err?.message || 'Could not open the Meta signup window. Please retry.', 'error');
+            signupSettledRef.current = true;
             setConnecting(false);
         }
     };
