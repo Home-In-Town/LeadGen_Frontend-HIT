@@ -25,6 +25,82 @@ import {
 const META_APP_ID      = import.meta.env.VITE_META_APP_ID || '';
 const SIGNUP_CONFIG_ID = import.meta.env.VITE_META_SIGNUP_CONFIG_ID || '';
 const SIGNUP_CONFIGURED = Boolean(META_APP_ID && SIGNUP_CONFIG_ID);
+
+const FB_SDK_URL = 'https://connect.facebook.net/en_US/sdk.js';
+const FB_SDK_TIMEOUT_MS = 15000;
+
+/**
+ * Module-level singleton for loading + initialising the Facebook JS SDK.
+ *
+ * Presence of window.FB must NOT be treated as readiness. The URL above is a
+ * LOADER: it defines window.FB and then fetches the real implementation from
+ * connect.facebook.net/en_US/bundle/sdk.js/sdk.js. Calling FB.init() during that
+ * gap neither throws nor sticks, so anything that polls for window.FB and then
+ * calls init() will believe it succeeded while the SDK still considers itself
+ * uninitialised — which surfaces later as "FB.login() called before FB.init()".
+ *
+ * fbAsyncInit is the only hook the SDK guarantees to invoke AFTER the real
+ * implementation is in place, so init() happens there and nowhere else.
+ *
+ * Being module-level (not per-mount) also removes the remount race: the second
+ * mount reuses the same promise instead of racing a half-loaded script tag.
+ *
+ * @returns {Promise<object>} resolves with the initialised window.FB
+ */
+let fbSdkPromise = null;
+
+function loadFacebookSdk(appId) {
+    if (fbSdkPromise) return fbSdkPromise;
+
+    fbSdkPromise = new Promise((resolve, reject) => {
+        let settled = false;
+        const timer = setTimeout(() => {
+            if (settled) return;
+            settled = true;
+            // Let a later attempt retry rather than caching the failure forever.
+            fbSdkPromise = null;
+            reject(new Error('Meta SDK did not finish loading. An ad blocker or network policy may be blocking connect.facebook.net.'));
+        }, FB_SDK_TIMEOUT_MS);
+
+        window.fbAsyncInit = () => {
+            if (settled) return;
+            try {
+                window.FB.init({ appId, version: 'v20.0', xfbml: false, cookie: false });
+                settled = true;
+                clearTimeout(timer);
+                resolve(window.FB);
+            } catch (err) {
+                settled = true;
+                clearTimeout(timer);
+                fbSdkPromise = null;
+                reject(err);
+            }
+        };
+
+        if (!document.getElementById('fb-sdk')) {
+            const script = document.createElement('script');
+            script.id = 'fb-sdk';
+            script.src = FB_SDK_URL;
+            script.async = true;
+            script.defer = true;
+            script.crossOrigin = 'anonymous';
+            script.onerror = () => {
+                if (settled) return;
+                settled = true;
+                clearTimeout(timer);
+                fbSdkPromise = null;
+                reject(new Error('Could not load the Meta SDK. Check your connection or any ad blocker.'));
+            };
+            document.body.appendChild(script);
+        }
+        // If the tag is already there, fbAsyncInit above is now registered and the
+        // SDK will call it when it finishes. The timeout covers the one case this
+        // cannot recover from: the tag exists and fbAsyncInit already fired before
+        // this module was evaluated.
+    });
+
+    return fbSdkPromise;
+}
 // Use the correct backend URL from env for register endpoint (needs raw axios for the one non-standard call)
 import axios from 'axios';
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://lead-filteration-backend-vvsvqafcoa-el.a.run.app';
@@ -109,69 +185,20 @@ export default function WhatsAppSetupPage() {
             .catch(() => setConnected(false));
     }, []);
 
-    // Load + initialise the Facebook JS SDK.
-    //
-    // The previous version only assigned window.fbAsyncInit and appended the
-    // script when the tag was absent. fbAsyncInit is a ONE-SHOT callback the SDK
-    // fires when it finishes loading — so on a remount, or if any other page had
-    // already loaded the SDK, the tag exists, the callback had already fired, and
-    // FB.init() never ran. window.FB was then present but uninitialised, which is
-    // exactly the "FB.login() called before FB.init()" error.
-    //
-    // So: track readiness explicitly, and init directly when FB is already there.
+    // Start loading the SDK on mount so it is usually ready by the time the user
+    // clicks. Readiness only drives the button label — launchEmbeddedSignup awaits
+    // the same promise, so clicking before this resolves waits rather than failing.
     useEffect(() => {
         if (!SIGNUP_CONFIGURED) return;
-
         let cancelled = false;
-        let poll = null;
-
-        const init = () => {
-            if (cancelled || !window.FB) return;
-            try {
-                window.FB.init({ appId: META_APP_ID, version: 'v20.0', xfbml: false, cookie: false });
-                setSdkReady(true);
-            } catch (err) {
-                console.error('[WhatsAppSetup] FB.init failed', err);
-            }
-        };
-
-        // SDK already loaded (remount / another page) — fbAsyncInit will not fire again.
-        if (window.FB) {
-            init();
-            return;
-        }
-
-        window.fbAsyncInit = init;
-
-        const existing = document.getElementById('fb-sdk');
-        if (!existing) {
-            const script = document.createElement('script');
-            script.id = 'fb-sdk';
-            script.src = 'https://connect.facebook.net/en_US/sdk.js';
-            script.async = true;
-            script.defer = true;
-            script.onerror = () => {
-                if (!cancelled) addToast('Could not load the Meta SDK. Check your connection or any ad blocker.', 'error');
-            };
-            document.body.appendChild(script);
-        } else {
-            // Tag is in the DOM but FB is not ready yet and fbAsyncInit may have
-            // already fired — wait for the global to appear.
-            poll = setInterval(() => {
-                if (window.FB) {
-                    clearInterval(poll);
-                    poll = null;
-                    init();
-                }
-            }, 200);
-            setTimeout(() => { if (poll) { clearInterval(poll); poll = null; } }, 10000);
-        }
-
-        return () => {
-            cancelled = true;
-            if (poll) clearInterval(poll);
-        };
-    }, []);
+        loadFacebookSdk(META_APP_ID)
+            .then(() => { if (!cancelled) setSdkReady(true); })
+            .catch((err) => {
+                console.error('[WhatsAppSetup] Meta SDK load failed', err);
+                if (!cancelled) addToast(err.message, 'error');
+            });
+        return () => { cancelled = true; };
+    }, [addToast]);
 
     const reloadPhoneNumbers = async () => {
         try {
@@ -193,48 +220,63 @@ export default function WhatsAppSetupPage() {
         }
     };
 
-    const launchEmbeddedSignup = () => {
+    const launchEmbeddedSignup = async () => {
         if (!SIGNUP_CONFIGURED) {
             addToast('WhatsApp onboarding is not configured on this build (VITE_META_APP_ID / VITE_META_SIGNUP_CONFIG_ID). Use manual entry, or ask the team to redeploy.', 'error');
             return;
         }
-        // Must check INITIALISED, not merely present. window.FB exists as soon as
-        // the script runs, but calling FB.login() before FB.init() throws.
-        if (!sdkReady) {
-            addToast('Meta SDK is still loading. Give it a second and try again.', 'error');
+        setConnecting(true);
+
+        // Wait for the SDK rather than rejecting an early click. Awaiting the shared
+        // promise also guarantees FB.init() has actually run, which a boolean set
+        // from a polled window.FB could not.
+        let FB;
+        try {
+            FB = await loadFacebookSdk(META_APP_ID);
+        } catch (err) {
+            addToast(err.message, 'error');
+            setConnecting(false);
             return;
         }
-        setConnecting(true);
-        // FB.login does NOT support async callbacks — use .then() chain instead
-        window.FB.login((response) => {
-            if (response?.authResponse?.code) {
-                connectMetaOAuth(response.authResponse.code)
-                    .then(res => {
-                        if (res.data.success) {
-                            addToast(`Connected ${res.data.data.addedPhoneNumbers?.length || 0} number(s) successfully!`, 'success');
-                            setConnected(true);
-                            setStep('connected');
-                            reloadPhoneNumbers();
-                        } else {
-                            addToast(res.data.error || 'Connection failed', 'error');
-                        }
-                    })
-                    .catch(err => {
-                        addToast(err.response?.data?.error || 'OAuth exchange failed', 'error');
-                    })
-                    .finally(() => {
-                        setConnecting(false);
-                    });
-            } else {
-                addToast('Meta Embedded Signup was cancelled.', 'warning');
-                setConnecting(false);
-            }
-        }, {
-            config_id: SIGNUP_CONFIG_ID,
-            response_type: 'code',
-            override_default_response_type: true,
-            extras: { setup: {}, featureType: '', sessionInfoVersion: '2' }
-        });
+
+        // FB.login takes a callback, not a promise. Anything it throws synchronously
+        // must be caught here — otherwise `connecting` is never cleared and the
+        // button sits on "Connecting..." forever with nothing shown to the user.
+        try {
+            FB.login((response) => {
+                if (response?.authResponse?.code) {
+                    connectMetaOAuth(response.authResponse.code)
+                        .then(res => {
+                            if (res.data.success) {
+                                addToast(`Connected ${res.data.data.addedPhoneNumbers?.length || 0} number(s) successfully!`, 'success');
+                                setConnected(true);
+                                setStep('connected');
+                                reloadPhoneNumbers();
+                            } else {
+                                addToast(res.data.error || 'Connection failed', 'error');
+                            }
+                        })
+                        .catch(err => {
+                            addToast(err.response?.data?.error || 'OAuth exchange failed', 'error');
+                        })
+                        .finally(() => {
+                            setConnecting(false);
+                        });
+                } else {
+                    addToast('Meta Embedded Signup was cancelled.', 'warning');
+                    setConnecting(false);
+                }
+            }, {
+                config_id: SIGNUP_CONFIG_ID,
+                response_type: 'code',
+                override_default_response_type: true,
+                extras: { setup: {}, featureType: '', sessionInfoVersion: '2' }
+            });
+        } catch (err) {
+            console.error('[WhatsAppSetup] FB.login threw', err);
+            addToast(err?.message || 'Could not open the Meta signup window. Please retry.', 'error');
+            setConnecting(false);
+        }
     };
 
     const validateManual = () => {
@@ -290,7 +332,7 @@ export default function WhatsAppSetupPage() {
         try {
             // First try individual remove (works for array entries)
             await removeWAPhoneNumber(phoneNumberId);
-        } catch (err) {
+        } catch {
             // If individual remove fails (e.g. legacy-only number), use disconnect-all
             try {
                 await disconnectAllWA();
@@ -452,7 +494,7 @@ export default function WhatsAppSetupPage() {
                         <button type="button" onClick={handleProceed} disabled={!selectedOption || connecting}
                             className="mt-6 w-full flex items-center justify-center gap-2 rounded-2xl bg-[#25D366] px-6 py-4 text-[10px] font-black uppercase tracking-[0.25em] text-white shadow-md hover:bg-[#20b858] disabled:opacity-50 disabled:cursor-not-allowed transition-all">
                             {connecting
-                                ? <><span className="animate-spin w-4 h-4 border-2 border-white/50 border-t-white rounded-full" /> Connecting…</>
+                                ? <><span className="animate-spin w-4 h-4 border-2 border-white/50 border-t-white rounded-full" /> {sdkReady ? 'Connecting…' : 'Preparing Meta…'}</>
                                 : <><span className="material-symbols-outlined text-base">arrow_forward</span> Continue</>}
                         </button>
                     </div>

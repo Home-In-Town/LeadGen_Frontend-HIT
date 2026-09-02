@@ -220,7 +220,10 @@ export default function AuthPage() {
         'register':     { title: 'Create account',           subtitle: 'Start automating leads in minutes.' },
         'register-otp': { title: 'Enter verification code',  subtitle: `We sent a code to ${email}` },
         'pin-setup':    { title: 'Set your 6-digit PIN',     subtitle: 'You\'ll use this PIN to log in every time.' },
-        'forgot-pin':   { title: 'Reset your PIN',           subtitle: 'Enter your email or mobile number to receive a reset code.' },
+        // Email only — the reset code is delivered by email, and the backend's
+        // /forgot-pin looks the account up by email. Offering "or mobile number"
+        // here just produced "enter a valid email address" for anyone who tried it.
+        'forgot-pin':   { title: 'Reset your PIN',           subtitle: 'Enter your email address to receive a reset code.' },
         'reset-otp':    { title: 'Enter verification code',  subtitle: `We sent a reset code to ${email}` },
         'pin-reset':    { title: 'Set new PIN',              subtitle: 'Choose a new 6-digit PIN for your account.' },
     };
@@ -246,6 +249,18 @@ export default function AuthPage() {
             addToast(`Welcome back${res.data?.user?.name ? ', ' + res.data.user.name : ''}!`, 'success', 'Login Successful');
         } catch (err) {
             setError(err?.response?.data?.error || 'Invalid credentials. Please try again.');
+            // The account exists but has no PIN yet (e.g. provisioned by the CRM
+            // bridge). Registering with the same email fills the PIN in on that same
+            // record, so send them there instead of leaving them retrying login.
+            if (err?.response?.data?.needsPinSetup) {
+                const identifier = email.trim();
+                setTimeout(() => {
+                    clearMsg();
+                    setPin(''); setConfirmPin('');
+                    if (isValidEmail(identifier)) setEmail(identifier.toLowerCase());
+                    setScreen('register');
+                }, 2500);
+            }
         } finally {
             setLoading(false);
         }
@@ -328,10 +343,21 @@ export default function AuthPage() {
         setLoading(true);
         try {
             const cleanMobile = mobile ? mobile.replace(/\D/g, '').slice(-10) : '';
-            await authApi.setupPin(tempToken, pin, name.trim(), cleanMobile || undefined);
+            const res = await authApi.setupPin(tempToken, pin, name.trim(), cleanMobile || undefined);
             await checkAuth();
             playChime();
-            addToast('Account created! Welcome aboard.', 'success', 'Registration Successful');
+            // The server saves the account without the mobile number if that number is
+            // already tied to someone else. Say so, otherwise the user only finds out
+            // when mobile login silently fails later.
+            if (res.data?.mobileDropped) {
+                addToast(
+                    res.data.warning || 'Account created, but your mobile number could not be saved. Please log in with your email.',
+                    'warning',
+                    'Mobile number not saved'
+                );
+            } else {
+                addToast('Account created! Welcome aboard.', 'success', 'Registration Successful');
+            }
         } catch (err) {
             setError(err?.response?.data?.error || 'Failed to set PIN. Please try again.');
         } finally {
@@ -510,7 +536,9 @@ export default function AuthPage() {
                                             : <>Login <ArrowRightIcon /></>}
                                     </button>
                                     <div className="flex items-center justify-center pt-1">
-                                        <button type="button" onClick={() => { clearMsg(); setEmail(''); setScreen('forgot-pin'); }}
+                                        {/* Carry a typed email across so it does not have to be retyped.
+                                            A mobile number is cleared, since reset is email-only. */}
+                                        <button type="button" onClick={() => { clearMsg(); setPin(''); setEmail(isValidEmail(email) ? email.toLowerCase().trim() : ''); setScreen('forgot-pin'); }}
                                             className={backLink}>
                                             Forgot PIN?
                                         </button>

@@ -12,6 +12,13 @@ const TYPE_CONFIG = {
     message:          { icon: 'forum',               accent: 'text-primary',     bg: 'bg-primary/10' },
     LEAD_REJECTED:    { icon: 'not_interested',     accent: 'text-red-500',     bg: 'bg-red-500/10' },
     LEAD_INTERESTED:  { icon: 'favorite',           accent: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+    // addToast() is also called with these generic levels (see NotificationContext).
+    // Without entries here they fell through to the LINK_OPENED bolt icon, so a
+    // warning was indistinguishable from a success.
+    success:          { icon: 'check_circle',       accent: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+    warning:          { icon: 'warning',            accent: 'text-amber-500',   bg: 'bg-amber-500/10' },
+    error:            { icon: 'error',              accent: 'text-red-500',     bg: 'bg-red-500/10' },
+    info:             { icon: 'info',               accent: 'text-blue-500',    bg: 'bg-blue-500/10' },
 };
 
 const TOAST_DURATION_MS = 4500;
