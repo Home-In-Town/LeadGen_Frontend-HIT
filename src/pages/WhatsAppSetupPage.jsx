@@ -217,7 +217,7 @@ export default function WhatsAppSetupPage() {
     const [sdkReady, setSdkReady] = useState(false);
     const [phoneNumbers, setPhoneNumbers] = useState([]);
     const [connected, setConnected] = useState(null);
-    const [manual, setManual] = useState({ phoneNumberId: '', wabaId: '', accessToken: '', label: '' });
+    const [manual, setManual] = useState({ phoneNumberId: '', wabaId: '', accessToken: '', label: '', pin: '' });
     const [showToken, setShowToken] = useState(false);
     const [errors, setErrors] = useState({});
     // Set false while a signup popup is outstanding, true once FB.login's callback
@@ -430,7 +430,8 @@ export default function WhatsAppSetupPage() {
                 phoneNumberId: manual.phoneNumberId.trim(),
                 wabaId: manual.wabaId.trim(),
                 accessToken: manual.accessToken.trim(),
-                label: manual.label.trim() || undefined
+                label: manual.label.trim() || undefined,
+                pin: manual.pin.trim() || undefined,
             });
             if (res.data.success) {
                 addToast('WhatsApp number connected successfully!', 'success');
@@ -667,6 +668,14 @@ export default function WhatsAppSetupPage() {
                                 <label className="mb-2 block text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">Label (optional)</label>
                                 <input type="text" value={manual.label} onChange={e => setManual(m => ({ ...m, label: e.target.value }))}
                                     placeholder="e.g. Main Sales Number" className={inputClass} />
+                            </div>
+                            <div>
+                                <label className="mb-2 block text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">
+                                    Two-step verification PIN <span className="normal-case tracking-normal font-medium text-slate-400">(only if enabled on this number)</span>
+                                </label>
+                                <input type="password" inputMode="numeric" maxLength={6} value={manual.pin}
+                                    onChange={e => setManual(m => ({ ...m, pin: e.target.value.replace(/\D/g, '').slice(0, 6) }))}
+                                    placeholder="6-digit PIN — leave blank if not set" className={inputClass} autoComplete="off" />
                             </div>
                             <div className="flex gap-3 pt-1">
                                 <button type="submit" disabled={saving}
