@@ -434,7 +434,11 @@ export default function WhatsAppSetupPage() {
                 pin: manual.pin.trim() || undefined,
             });
             if (res.data.success) {
-                addToast('WhatsApp number connected successfully!', 'success');
+                if (res.data.wabaSubscribedWarning) {
+                    addToast(res.data.wabaSubscribedWarning, 'warning', 'Check incoming messages');
+                } else {
+                    addToast('WhatsApp number connected successfully!', 'success');
+                }
                 setConnected(true);
                 setStep('connected');
                 await reloadPhoneNumbers();
