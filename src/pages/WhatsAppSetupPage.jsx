@@ -14,6 +14,8 @@ import {
     disconnectAllWA,
     setDefaultWAPhone,
     connectMetaOAuth,
+    resubscribeWAWebhooks,
+    registerWAPhoneNumber,
 } from '../api';
 
 // NO FALLBACK VALUES HERE ON PURPOSE. These used to default to the old
@@ -154,9 +156,7 @@ function loadFacebookSdk(appId) {
 
     return fbSdkPromise;
 }
-// Use the correct backend URL from env for register endpoint (needs raw axios for the one non-standard call)
-import axios from 'axios';
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://lead-filteration-backend-vvsvqafcoa-el.a.run.app';
+// eslint-disable-next-line no-unused-vars -- API_BASE_URL retained for potential direct calls
 
 function StatusBadge({ connected, pending }) {
     if (connected === null) return null;
@@ -494,6 +494,27 @@ export default function WhatsAppSetupPage() {
         }
     };
 
+    /**
+     * Re-subscribe all connected WABAs to the current Meta app's webhooks.
+     * Needed after a Meta app migration so incoming messages resume without
+     * the owner having to disconnect and re-onboard.
+     */
+    const handleResubscribe = async () => {
+        try {
+            const res = await resubscribeWAWebhooks();
+            const results = res.data?.results || [];
+            const ok = results.filter(r => r.success).length;
+            const fail = results.filter(r => !r.success).length;
+            if (fail === 0) {
+                addToast(`Webhooks re-subscribed for ${ok} WABA(s). Incoming messages should resume shortly.`, 'success', 'Done');
+            } else {
+                addToast(`${ok} WABA(s) re-subscribed, ${fail} failed — your token may have expired. Try reconnecting your number.`, 'warning', 'Partial');
+            }
+        } catch (err) {
+            addToast(err.response?.data?.error || 'Resubscribe failed. Try reconnecting your number.', 'error');
+        }
+    };
+
     const handleSetDefault = async (phoneNumberId) => {
         try {
             await setDefaultWAPhone(phoneNumberId);
@@ -564,11 +585,7 @@ export default function WhatsAppSetupPage() {
                                     </div>
                                     <button onClick={async () => {
                                         try {
-                                            await axios.post(
-                                                `${API_BASE_URL}/api/whatsapp/phone-numbers/${num.id || num.phoneNumberId}/register`,
-                                                {},
-                                                { withCredentials: true }
-                                            );
+                                            await registerWAPhoneNumber(num.id || num.phoneNumberId);
                                             addToast('Phone number registered for messaging successfully!', 'success');
                                         } catch (e) {
                                             addToast('Registration failed: ' + (e.response?.data?.error || e.message), 'error');
@@ -600,6 +617,12 @@ export default function WhatsAppSetupPage() {
                                 className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-wider text-red-500 hover:text-red-600 transition-colors">
                                 <span className="material-symbols-outlined text-sm">delete_sweep</span>
                                 Clear All &amp; Reset
+                            </button>
+                            <button onClick={handleResubscribe}
+                                title="Re-point your WhatsApp number at the current Meta app's webhooks. Use this if incoming messages stopped after a Meta app migration."
+                                className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-wider text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300 transition-colors">
+                                <span className="material-symbols-outlined text-sm">sync</span>
+                                Resubscribe Webhooks
                             </button>
                         </div>
                     </div>

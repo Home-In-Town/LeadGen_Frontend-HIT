@@ -234,6 +234,8 @@ export const removeWAPhoneNumber  = (id)   => whatsappApi.delete(`/phone-numbers
 export const disconnectAllWA      = ()     => whatsappApi.delete('/phone-numbers/disconnect-all');
 export const setDefaultWAPhone    = (id)   => whatsappApi.patch(`/phone-numbers/${id}/default`);
 export const connectMetaOAuth     = (code) => whatsappApi.post('/connect/meta-oauth', { code });
+export const resubscribeWAWebhooks = ()     => whatsappApi.post('/resubscribe');
+export const registerWAPhoneNumber = (id, pin) => whatsappApi.post(`/phone-numbers/${id}/register`, pin ? { pin } : {});
 
 // Template management
 export const listWATemplates      = ()          => whatsappApi.get('/templates');
