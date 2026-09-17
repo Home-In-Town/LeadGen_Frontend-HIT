@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { APP_NAME, APP_DOMAIN } from '../config/phase';
 
 const TermsOfServicePage = () => {
   const navigate = useNavigate();
@@ -54,7 +55,7 @@ const TermsOfServicePage = () => {
 
             <div>
               <p className="text-[10px] font-black uppercase tracking-[0.35em] text-primary">
-                OneEmployee®
+                {APP_NAME}®
               </p>
 
               <p className="mt-1 text-[11px] font-medium text-slate-500 dark:text-white/40">
@@ -134,8 +135,8 @@ const TermsOfServicePage = () => {
                   "
                 >
                   Operational policies, infrastructure usage standards, and
-                  platform compliance protocols governing the OneEmployee
-                  ecosystem.
+                  platform compliance protocols governing the {APP_NAME}
+                  {' '}ecosystem.
                 </p>
               </div>
 
@@ -222,7 +223,7 @@ const TermsOfServicePage = () => {
 
             <div className="space-y-5 text-sm leading-relaxed text-slate-600 dark:text-white/60">
               <p>
-                By initializing the OneEmployee® System, you agree to bound by
+                By initializing the {APP_NAME}® System, you agree to bound by
                 these industrial-grade service terms. Our platform provides
                 high-volume lead filtration infrastructure. You acknowledge that
                 unauthorized tampering with core filtration logic is strictly
@@ -336,7 +337,7 @@ const TermsOfServicePage = () => {
             <div className="text-sm leading-relaxed text-slate-600 dark:text-white/60">
               <p>
                 Data ingested via 3rd party integrations (Facebook, Google)
-                remains the property of the tenant. However, OneEmployee®
+                remains the property of the tenant. However, {APP_NAME}®
                 retains rights to utilize anonymized behavioral patterns to
                 optimize global filtration algorithms.
               </p>
@@ -391,7 +392,7 @@ const TermsOfServicePage = () => {
                 </p>
 
                 <p className="mt-2 text-sm font-semibold text-primary">
-                  legal@oneemployee.infra
+                  legal@{APP_DOMAIN}
                 </p>
               </div>
             </div>

@@ -32,6 +32,33 @@ VITE_META_APP_ID=          # Meta WhatsApp App ID (production)
 VITE_META_SIGNUP_CONFIG_ID= # Meta Embedded Signup config (production)
 ```
 
+> ⚠️ Do NOT commit a `.env.local`. `vercel link` downloads one automatically from the
+> "development" environment — if it holds a stale value it silently poisons local and
+> deploy builds. Delete it after linking. (This exact bug shipped a broken
+> `VITE_META_APP_ID="1425989586052018\r\n"` to production once.)
+
+---
+
+## Meta / WhatsApp env (production — set on Vercel)
+
+Vite inlines these **at build time** into the lazy-loaded `WhatsAppSetupPage` chunk
+(not `index.js` — search the WhatsAppSetupPage chunk to verify a deploy).
+
+| Var | Value | Notes |
+|---|---|---|
+| `VITE_META_APP_ID` | `2370296780444026` | WebMagnetMediaWpa app (the active app). Must be plain numeric — no quotes, no `\r\n`. |
+| `VITE_META_SIGNUP_CONFIG_ID` | `1557838202747155` | Embedded Signup config. Its Login variation **must be "WhatsApp Embedded Signup"**, else onboarding fails with `"<id> isn't a valid Business ID"`. |
+| `VITE_FB_APP_ID` | `1949735323089600` | Facebook Lead Ads app — separate from the WhatsApp app. |
+| `VITE_API_BASE_URL` | `https://lead-filteration-backend-624770114041.asia-south1.run.app` | |
+
+Deploy note: a local `vercel --prod` builds on your machine and does **not** inject
+Vercel-stored env vars — trigger a **git-based** deploy (push to `main`, or a
+server-side deploy from the git source) so the stored env vars are baked in.
+
+`src/pages/WhatsAppSetupPage.jsx` sanitises these via `cleanEnvId` (strips quotes and
+literal `\r\n`) and refuses to launch Embedded Signup unless both are plain numeric ids —
+missing config surfaces a visible error instead of a silent failure.
+
 ---
 
 ## Features

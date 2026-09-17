@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { APP_NAME, APP_DOMAIN } from '../config/phase';
 
 const PrivacyPolicyPage = () => {
   const navigate = useNavigate();
@@ -65,7 +66,7 @@ const PrivacyPolicyPage = () => {
 
               <div>
                 <p className="text-[10px] font-black uppercase tracking-[0.35em] text-primary">
-                  OneEmployee®
+                  {APP_NAME}®
                 </p>
 
                 <p className="mt-1 text-[11px] font-medium text-slate-500 dark:text-white/40">
@@ -176,8 +177,8 @@ const PrivacyPolicyPage = () => {
                     "
                   >
                     Transparency, encryption, and responsible data handling are
-                    deeply integrated into every layer of the OneEmployee
-                    ecosystem.
+                    deeply integrated into every layer of the {APP_NAME}
+                    {' '}ecosystem.
                   </p>
                 </div>
 
@@ -444,7 +445,7 @@ const PrivacyPolicyPage = () => {
                   </p>
 
                   <p className="mt-3 text-sm font-semibold text-primary">
-                    security@oneemployee.infra
+                    security@{APP_DOMAIN}
                   </p>
                 </div>
               </div>

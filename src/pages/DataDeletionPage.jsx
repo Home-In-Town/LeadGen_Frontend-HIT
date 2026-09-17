@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { APP_NAME } from '../config/phase';
 
 /**
  * DataDeletionPage
@@ -40,7 +41,7 @@ const DataDeletionPage = () => {
                 <span className="material-symbols-outlined text-[20px]">hub</span>
               </span>
               <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.35em] text-primary">OneEmployee®</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.35em] text-primary">{APP_NAME}®</p>
                 <p className="mt-1 text-[11px] font-medium text-slate-500 dark:text-white/40">Data Deletion</p>
               </div>
             </div>
@@ -63,7 +64,7 @@ const DataDeletionPage = () => {
               Instructions
             </h1>
             <p className="mt-4 max-w-2xl text-sm leading-relaxed text-slate-600 dark:text-white/50">
-              This page explains how to request deletion of data OneEmployee holds about you or
+              This page explains how to request deletion of data {APP_NAME} holds about you or
               your business, including anything obtained through Meta platforms (Facebook,
               Instagram and WhatsApp).
             </p>
