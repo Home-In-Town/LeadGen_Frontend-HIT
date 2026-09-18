@@ -16,7 +16,7 @@ import { getDirection } from './utils/messageGrouping';
 import DeliveryStatusIcon from './DeliveryStatusIcon';
 
 const MessageBubble = ({ message, showTail = false, onMediaClick }) => {
-    const { content, sender, createdAt, deliveryStatus, messageType, mediaUrl, fileName, fileSize, mimeType, templateName } = message;
+    const { content, sender, createdAt, deliveryStatus, deliveryError, messageType, mediaUrl, fileName, fileSize, mimeType, templateName } = message;
 
     const direction = getDirection(sender);
     const isOutbound = direction === 'outbound';
@@ -204,6 +204,17 @@ const MessageBubble = ({ message, showTail = false, onMediaClick }) => {
                         <DeliveryStatusIcon status={deliveryStatus} />
                     )}
                 </div>
+
+                {/* Why a message failed. Without this a failed send is just a red
+                    tick, which makes a billing/window problem look like an app bug. */}
+                {isOutbound && deliveryStatus === 'failed' && deliveryError && (
+                    <div className="mt-1.5 flex items-start gap-1 rounded-lg bg-red-50 dark:bg-red-500/10 border border-red-200/70 dark:border-red-500/20 px-2 py-1.5">
+                        <span className="material-symbols-outlined text-[13px] text-red-500 mt-px">error</span>
+                        <span className="text-[10px] leading-snug text-red-700 dark:text-red-300">
+                            {deliveryError}
+                        </span>
+                    </div>
+                )}
             </div>
         </div>
     );

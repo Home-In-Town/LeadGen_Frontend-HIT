@@ -496,7 +496,9 @@ export default function ChatDashboard() {
             setMessages((prev) =>
                 prev.map((m) =>
                     m.wamid === payload.wamid
-                        ? { ...m, deliveryStatus: payload.deliveryStatus }
+                        // Carry deliveryError too, so a failed send explains itself
+                        // instead of showing only a red tick.
+                        ? { ...m, deliveryStatus: payload.deliveryStatus, deliveryError: payload.deliveryError || m.deliveryError }
                         : m
                 )
             );
