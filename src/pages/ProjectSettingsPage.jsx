@@ -89,22 +89,30 @@ const ProjectSettingsPage = () => {
   const [templatesLoading, setTemplatesLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [syncingTemplates, setSyncingTemplates] = useState(false);
-  // Authoritative connection flag from the templates endpoint itself (requires a
-  // real WABA + usable token — stricter and more accurate than channel-status).
+  // Authoritative WhatsApp state from the templates endpoint itself (stricter and
+  // more accurate than channel-status): connected = WABA + usable token,
+  // ready = number is live on Cloud API (not PENDING / under verification).
   const [waConnectedForTemplates, setWaConnectedForTemplates] = useState(null);
+  const [waReady, setWaReady] = useState(null);
+  const [waStatusInfo, setWaStatusInfo] = useState({ status: null, reason: null, displayNumber: null });
 
   const fetchTemplates = useCallback(async () => {
     try {
       setTemplatesLoading(true);
       const res = await listProjectTemplates(hitProjectId);
-      setWaConnectedForTemplates(res.data?.waConnected ?? null);
+      const d = res.data || {};
+      setWaConnectedForTemplates(d.waConnected ?? null);
+      setWaReady(d.waReady ?? null);
+      setWaStatusInfo({ status: d.waStatus || null, reason: d.waReason || null, displayNumber: d.waDisplayNumber || null });
       // Only show templates once WhatsApp is actually connected. When it isn't,
       // any rows are stale (left over from a previous connection) and must not be
-      // presented as if they are live — the UI shows a "connect first" state.
-      setProjTemplates(res.data?.waConnected ? (res.data?.templates || []) : []);
+      // presented as live — the UI shows a "connect first" state instead.
+      setProjTemplates(d.waConnected ? (d.templates || []) : []);
     } catch {
       setProjTemplates([]);
       setWaConnectedForTemplates(null);
+      setWaReady(null);
+      setWaStatusInfo({ status: null, reason: null, displayNumber: null });
     }
     finally { setTemplatesLoading(false); }
   }, [hitProjectId]);
@@ -550,7 +558,32 @@ const ProjectSettingsPage = () => {
         </div>
       )}
 
-      {tab === 'templates' && waConnectedForTemplates !== false && !(templatesLoading && waConnectedForTemplates === null) && (
+      {/* Connected but number not live yet (PENDING / under verification / token issue) */}
+      {tab === 'templates' && waConnectedForTemplates === true && waReady === false && (
+        <div className={`${cardClass} p-8 text-center max-w-lg mx-auto`}>
+          <span className="material-symbols-outlined text-5xl text-amber-500/80 block mb-3">hourglass_top</span>
+          <h3 className="text-base font-bold text-slate-900 dark:text-white">
+            {waStatusInfo.reason === 'TOKEN_EXPIRED' ? 'Reconnect your WhatsApp number' : 'Your WhatsApp number is under verification'}
+          </h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 max-w-sm mx-auto">
+            {waStatusInfo.reason === 'TOKEN_EXPIRED'
+              ? 'Your WhatsApp access token has expired. Reconnect the number to continue generating templates.'
+              : <>Your number{waStatusInfo.displayNumber ? <> <b className="text-slate-700 dark:text-slate-200">{waStatusInfo.displayNumber}</b></> : ''} is connected but not live on WhatsApp yet{waStatusInfo.status ? <> (status: <b>{waStatusInfo.status}</b>)</> : ''}. Meta needs to finish registering it. Templates can be generated once the number is active — no action needed, just wait for verification to complete.</>}
+          </p>
+          <div className="mt-5 flex items-center justify-center gap-2">
+            <button onClick={() => fetchTemplates()} disabled={templatesLoading} className={btnOutline}>
+              <span className="material-symbols-outlined text-sm">refresh</span>
+              Check again
+            </button>
+            {waStatusInfo.reason === 'TOKEN_EXPIRED' && (
+              <a href="/whatsapp-setup" className={btnPrimary}>Reconnect</a>
+            )}
+          </div>
+          <p className="mt-4 text-[10px] text-slate-400">Number registration usually completes within a few minutes to a few hours.</p>
+        </div>
+      )}
+
+      {tab === 'templates' && waConnectedForTemplates === true && waReady === true && !(templatesLoading && waConnectedForTemplates === null) && (
         <div className="space-y-5">
           {/* Intro + actions */}
           <div className={`${cardClass} p-5`}>
