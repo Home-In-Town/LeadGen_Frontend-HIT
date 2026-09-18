@@ -36,6 +36,17 @@ const TEMPLATE_STATUS_STYLES = {
   rejected: 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300',
   paused:   'bg-slate-100 text-slate-500 dark:bg-slate-700/50 dark:text-slate-300',
   draft:    'bg-slate-100 text-slate-500 dark:bg-slate-700/50 dark:text-slate-300',
+  missing:  'bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-300',
+};
+
+// Human-friendly status labels shown on the badge (Meta's raw words are terse).
+const TEMPLATE_STATUS_LABEL = {
+  approved: 'Approved',
+  pending:  'Under review',
+  rejected: 'Rejected',
+  paused:   'Paused',
+  draft:    'Draft',
+  missing:  'Not on Meta',
 };
 
 const cardClass = 'rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200/70 dark:border-white/10 shadow-sm';
@@ -78,13 +89,23 @@ const ProjectSettingsPage = () => {
   const [templatesLoading, setTemplatesLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [syncingTemplates, setSyncingTemplates] = useState(false);
+  // Authoritative connection flag from the templates endpoint itself (requires a
+  // real WABA + usable token — stricter and more accurate than channel-status).
+  const [waConnectedForTemplates, setWaConnectedForTemplates] = useState(null);
 
   const fetchTemplates = useCallback(async () => {
     try {
       setTemplatesLoading(true);
       const res = await listProjectTemplates(hitProjectId);
-      setProjTemplates(res.data?.templates || []);
-    } catch { setProjTemplates([]); }
+      setWaConnectedForTemplates(res.data?.waConnected ?? null);
+      // Only show templates once WhatsApp is actually connected. When it isn't,
+      // any rows are stale (left over from a previous connection) and must not be
+      // presented as if they are live — the UI shows a "connect first" state.
+      setProjTemplates(res.data?.waConnected ? (res.data?.templates || []) : []);
+    } catch {
+      setProjTemplates([]);
+      setWaConnectedForTemplates(null);
+    }
     finally { setTemplatesLoading(false); }
   }, [hitProjectId]);
 
@@ -510,7 +531,26 @@ const ProjectSettingsPage = () => {
       )}
 
       {/* ═══════ WhatsApp Templates Tab ═══════ */}
-      {tab === 'templates' && (
+      {tab === 'templates' && templatesLoading && waConnectedForTemplates === null && (
+        <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" /></div>
+      )}
+
+      {/* Not connected → single clear call-to-action. No stale template cards. */}
+      {tab === 'templates' && waConnectedForTemplates === false && (
+        <div className={`${cardClass} p-8 text-center max-w-lg mx-auto`}>
+          <span className="material-symbols-outlined text-5xl text-emerald-500/70 block mb-3">chat</span>
+          <h3 className="text-base font-bold text-slate-900 dark:text-white">Connect WhatsApp to use templates</h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 max-w-sm mx-auto">
+            Need-based WhatsApp templates are generated from this project and submitted to Meta on your own WhatsApp Business Account. Connect your WhatsApp number first, then generate and track template approvals here.
+          </p>
+          <a href="/whatsapp-setup" className={`${btnPrimary} mt-5`}>
+            <span className="material-symbols-outlined text-sm">link</span>
+            Connect WhatsApp
+          </a>
+        </div>
+      )}
+
+      {tab === 'templates' && waConnectedForTemplates !== false && !(templatesLoading && waConnectedForTemplates === null) && (
         <div className="space-y-5">
           {/* Intro + actions */}
           <div className={`${cardClass} p-5`}>
@@ -526,27 +566,21 @@ const ProjectSettingsPage = () => {
                   {syncingTemplates && <span className="animate-spin h-3 w-3 border-2 border-slate-400/40 border-t-slate-500 rounded-full" />}
                   {syncingTemplates ? 'Syncing…' : 'Sync Status'}
                 </button>
-                <button onClick={handleGenerateTemplates} disabled={generating || channelStatus.whatsapp === false} className={btnPrimary}>
+                <button onClick={handleGenerateTemplates} disabled={generating} className={btnPrimary}>
                   {generating && <span className="animate-spin h-3.5 w-3.5 border-2 border-white/30 border-t-white rounded-full" />}
                   {generating ? 'Submitting…' : (projTemplates.length ? 'Regenerate & Submit' : 'Generate Templates')}
                 </button>
               </div>
             </div>
 
-            {channelStatus.whatsapp === false && (
-              <div className="mt-3 rounded-lg bg-amber-50 dark:bg-amber-900/10 border border-amber-200/60 dark:border-amber-500/20 px-3 py-2">
-                <p className="text-[10px] text-amber-700 dark:text-amber-400 font-bold">
-                  WhatsApp not connected — <a href="/whatsapp-setup" className="underline hover:no-underline">connect a WABA</a> to generate templates.
-                </p>
-              </div>
-            )}
             {/* ── Submission status summary ─────────────────────────────── */}
             {projTemplates.length > 0 && (() => {
               const total    = projTemplates.length;
               const approved = projTemplates.filter(t => t.status === 'approved').length;
               const pending  = projTemplates.filter(t => t.status === 'pending').length;
               const rejected = projTemplates.filter(t => t.status === 'rejected').length;
-              const other    = total - approved - pending - rejected;
+              const missing  = projTemplates.filter(t => t.status === 'missing').length;
+              const other    = total - approved - pending - rejected - missing;
               const allApproved = total > 0 && approved === total;
               return (
                 <div className="mt-4">
@@ -563,6 +597,11 @@ const ProjectSettingsPage = () => {
                     {rejected > 0 && (
                       <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300">
                         {rejected} rejected
+                      </span>
+                    )}
+                    {missing > 0 && (
+                      <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-300">
+                        {missing} not on Meta
                       </span>
                     )}
                     {other > 0 && (
@@ -628,7 +667,7 @@ const ProjectSettingsPage = () => {
                         </p>
                         <p className="text-[10px] text-slate-500 mt-0.5">{meta.need}</p>
                       </div>
-                      <span className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded-full flex-shrink-0 ${st}`}>{t.status}</span>
+                      <span className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded-full flex-shrink-0 ${st}`}>{TEMPLATE_STATUS_LABEL[t.status] || t.status}</span>
                     </div>
 
                     {hasImage ? (
@@ -653,9 +692,9 @@ const ProjectSettingsPage = () => {
                       </div>
                     )}
 
-                    {t.status === 'rejected' && t.rejectedReason && (
-                      <p className="mt-2 text-[10px] text-red-600 dark:text-red-400 flex items-start gap-1">
-                        <span className="material-symbols-outlined text-xs mt-0.5">error</span>
+                    {(t.status === 'rejected' || t.status === 'missing') && t.rejectedReason && (
+                      <p className={`mt-2 text-[10px] flex items-start gap-1 ${t.status === 'missing' ? 'text-orange-600 dark:text-orange-400' : 'text-red-600 dark:text-red-400'}`}>
+                        <span className="material-symbols-outlined text-xs mt-0.5">{t.status === 'missing' ? 'sync_problem' : 'error'}</span>
                         {t.rejectedReason}
                       </p>
                     )}
@@ -663,10 +702,10 @@ const ProjectSettingsPage = () => {
                     <div className="mt-3 flex justify-between items-center">
                       <span className="text-[9px] text-slate-400 font-mono truncate">{t.templateName}</span>
                       <div className="flex items-center gap-2">
-                        {t.status === 'rejected' && (
+                        {(t.status === 'rejected' || t.status === 'missing') && (
                           <button onClick={() => handleRetryTemplate(t.kind)}
                             className="text-[9px] font-black uppercase tracking-wider text-amber-600 hover:text-amber-700">
-                            Retry
+                            {t.status === 'missing' ? 'Resubmit' : 'Retry'}
                           </button>
                         )}
                         <button onClick={() => handleDeleteTemplate(t.kind)}
