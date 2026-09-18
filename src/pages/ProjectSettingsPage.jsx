@@ -18,17 +18,26 @@ import {
 } from '../api';
 import VoicePicker, { LANGUAGE_OPTIONS, SECTOR_OPTIONS } from '../components/VoicePicker';
 
-// Human labels for each need-based template kind (matches backend ProjectTemplate.kind)
+// The 8 need-based templates. `label` is what the client sees, `need` is the
+// customer question it answers, `when` explains when the system sends it — so the
+// whole nurturing set is self-explanatory in the UI.
 const TEMPLATE_KIND_META = {
-  voice_guide: { label: 'Voice Guide',      need: 'What is this project?' },
-  ecosystem:   { label: 'Area / Ecosystem', need: 'Schools, hospitals nearby?' },
-  progress:    { label: 'Site Progress',    need: 'Will builder deliver on time?' },
-  tour_3d:     { label: '3D Tour',          need: 'How will it look?' },
-  rera:        { label: 'RERA Docs',        need: 'Legal clear? approvals?' },
-  emi:         { label: 'EMI Calculator',   need: 'Price is high / affordable?' },
-  inventory:   { label: 'Live Inventory',   need: 'Which unit is left?' },
-  traffic:     { label: 'Traffic / Commute',need: 'How far from office?' },
+  voice_guide: { label: '1. Project Introduction', need: 'What is this project?',            when: 'Sent first, as soon as the lead comes in' },
+  tour_3d:     { label: '2. 3D Virtual Tour',      need: 'How will it look when ready?',     when: 'Auto-sent on day 5 if the lead is silent' },
+  progress:    { label: '3. Construction Progress',need: 'Will the builder deliver on time?',when: 'Auto-sent on day 15 if the lead is silent' },
+  inventory:   { label: '4. Unit Availability',    need: 'Which units are still available?', when: 'Auto-sent on day 28 if the lead is silent' },
+  emi:         { label: '5. EMI & Affordability',  need: 'Is it affordable? What is the EMI?',when: 'Sent when the lead asks about price or budget' },
+  rera:        { label: '6. RERA & Legal Papers',  need: 'Is it legally approved?',          when: 'Sent when the lead asks about legal or RERA' },
+  ecosystem:   { label: '7. Neighbourhood & Map',  need: 'Schools, hospitals, markets near?',when: 'Sent when the lead asks about the area' },
+  traffic:     { label: '8. Commute & Distance',   need: 'How far is it from my office?',    when: 'Sent when the lead asks about distance' },
 };
+
+// What each {{n}} placeholder is filled with at send time. Shown in the UI so the
+// client understands the templates are personalised per lead automatically.
+const TEMPLATE_VARS = [
+  { token: '{{1}}', meaning: "Customer's first name" },
+  { token: '{{2}}', meaning: 'Project name' },
+];
 
 const TEMPLATE_STATUS_STYLES = {
   approved: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300',
@@ -55,6 +64,15 @@ const TEMPLATE_STATUS_LABEL = {
 // them (even the ones that failed to submit) keeps the nurturing set predictable
 // and makes gaps obvious instead of silently missing from the list.
 const EXPECTED_KINDS = Object.keys(TEMPLATE_KIND_META);
+
+/**
+ * Replace {{1}}/{{2}} with real sample values so the client reads the message the
+ * way their customer will receive it, instead of raw placeholders.
+ */
+const fillTemplateVars = (text, leadName, projectName) =>
+  String(text || '')
+    .replace(/\{\{1\}\}/g, leadName)
+    .replace(/\{\{2\}\}/g, projectName);
 
 const cardClass = 'rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200/70 dark:border-white/10 shadow-sm';
 const inputClass = 'w-full rounded-xl border border-slate-200 dark:border-white/15 bg-white dark:bg-slate-800/60 px-4 py-3 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all';
@@ -705,9 +723,28 @@ const ProjectSettingsPage = () => {
               );
             })()}
 
+            {/* Personalisation legend — explains the {{n}} placeholders */}
+            <div className="mt-3 rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-200/60 dark:border-white/10 px-3 py-2">
+              <p className="text-[10px] font-bold text-slate-600 dark:text-slate-300 flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-xs">auto_awesome</span>
+                Each message is personalised automatically
+              </p>
+              <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1">
+                {TEMPLATE_VARS.map(v => (
+                  <span key={v.token} className="text-[10px] text-slate-500 dark:text-slate-400">
+                    <code className="font-mono text-[9px] px-1 py-0.5 rounded bg-slate-200/70 dark:bg-white/10 text-slate-700 dark:text-slate-200">{v.token}</code>
+                    <span className="mx-1">→</span>{v.meaning}
+                  </span>
+                ))}
+              </div>
+              <p className="mt-1.5 text-[10px] text-slate-500 dark:text-slate-400">
+                Previews below show sample values. The project cover image is used as each template's header photo.
+              </p>
+            </div>
+
             <div className="mt-3 rounded-lg bg-blue-50 dark:bg-blue-900/10 border border-blue-200/60 dark:border-blue-500/20 px-3 py-2">
               <p className="text-[10px] text-blue-700 dark:text-blue-300">
-                Meta approval takes a few minutes to a few hours. Use <b>Sync Status</b> to refresh, or approvals update automatically once your WABA webhook is subscribed. Rejected templates are automatically retried with plainer wording by the hourly job.
+                Meta approval takes a few minutes to a few hours. Use <b>Sync Status</b> to refresh, or approvals update automatically once your WABA webhook is subscribed. If a template is <b>rejected</b>, it is automatically resubmitted with simpler wording — you can also press <b>Retry</b> on that card.
               </p>
             </div>
           </div>
@@ -734,20 +771,36 @@ const ProjectSettingsPage = () => {
                           {isWelcome && <span className="text-[8px] bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300 font-black uppercase px-1.5 py-0.5 rounded-full">Welcome</span>}
                         </p>
                         <p className="text-[10px] text-slate-500 mt-0.5">{meta.need}</p>
+                        {meta.when && (
+                          <p className="text-[9px] text-slate-400 dark:text-slate-500 mt-0.5 flex items-center gap-1">
+                            <span className="material-symbols-outlined text-[11px]">schedule</span>
+                            {meta.when}
+                          </p>
+                        )}
                       </div>
                       <span className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded-full flex-shrink-0 ${st}`}>{TEMPLATE_STATUS_LABEL[t.status] || t.status}</span>
                     </div>
 
                     {hasImage ? (
-                      <img src={t.headerImageUrl} alt="" className="mt-3 w-full h-24 object-cover rounded-lg" onError={e => { e.target.style.display = 'none'; }} />
+                      <div className="relative mt-3">
+                        <img src={t.headerImageUrl} alt={`${meta.label} header`} className="w-full h-24 object-cover rounded-lg" onError={e => { e.target.style.display = 'none'; }} />
+                        <span className="absolute bottom-1 right-1 text-[8px] font-bold uppercase px-1.5 py-0.5 rounded bg-black/60 text-white">Header image</span>
+                      </div>
                     ) : (
-                      <div className="mt-3 w-full h-16 rounded-lg bg-slate-50 dark:bg-white/5 border border-dashed border-slate-200 dark:border-white/10 flex items-center justify-center">
-                        <span className="text-[10px] text-slate-400">No header image — text-only template</span>
+                      <div className="mt-3 w-full rounded-lg bg-slate-50 dark:bg-white/5 border border-dashed border-slate-200 dark:border-white/10 px-3 py-3 text-center">
+                        <span className="material-symbols-outlined text-base text-slate-300 dark:text-slate-600 block">image_not_supported</span>
+                        <span className="text-[10px] text-slate-400 block mt-0.5">
+                          {notCreatedCard
+                            ? 'Project cover image will be used as the header'
+                            : 'Sent as text-only — image could not be attached. Press Retry to add it.'}
+                        </span>
                       </div>
                     )}
 
                     {bodyComp?.text && (
-                      <p className="mt-2 text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed line-clamp-3 whitespace-pre-wrap">{bodyComp.text}</p>
+                      <p className="mt-2 text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed line-clamp-4 whitespace-pre-wrap">
+                        {fillTemplateVars(bodyComp.text, 'Rahul', project?.projectName || 'this project')}
+                      </p>
                     )}
 
                     {btnComp?.buttons?.length > 0 && (
