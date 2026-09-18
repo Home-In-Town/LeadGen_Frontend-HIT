@@ -44,12 +44,27 @@ VITE_META_SIGNUP_CONFIG_ID= # Meta Embedded Signup config (production)
 Vite inlines these **at build time** into the lazy-loaded `WhatsAppSetupPage` chunk
 (not `index.js` — search the WhatsAppSetupPage chunk to verify a deploy).
 
+Values differ per frontend because each domain uses its own Meta app:
+
+**oneemployee.in** (Vercel project `oneemployee`, Phase 2):
 | Var | Value | Notes |
 |---|---|---|
-| `VITE_META_APP_ID` | `2370296780444026` | WebMagnetMediaWpa app (the active app). Must be plain numeric — no quotes, no `\r\n`. |
-| `VITE_META_SIGNUP_CONFIG_ID` | `1557838202747155` | Embedded Signup config. Its Login variation **must be "WhatsApp Embedded Signup"**, else onboarding fails with `"<id> isn't a valid Business ID"`. |
+| `VITE_META_APP_ID` | `1275388667714234` | OneEmployeeWap (restriction lifted — primary live app). Plain numeric — no quotes, no `\r\n`. |
+| `VITE_META_SIGNUP_CONFIG_ID` | `874094975750197` | Embedded Signup config (WhatsApp variation, 60-day token). |
+
+**webmagnetmedia.com** (Vercel project `webmagnetmedia`, Phase 1):
+| Var | Value | Notes |
+|---|---|---|
+| `VITE_META_APP_ID` | `2370296780444026` | WebMagnetMediaWpa. |
+| `VITE_META_SIGNUP_CONFIG_ID` | `1783854052829154` | Embedded Signup config (WhatsApp variation). |
+
+Shared:
+| Var | Value | Notes |
+|---|---|---|
 | `VITE_FB_APP_ID` | `1949735323089600` | Facebook Lead Ads app — separate from the WhatsApp app. |
 | `VITE_API_BASE_URL` | `https://lead-filteration-backend-624770114041.asia-south1.run.app` | |
+
+The signup config's Login variation **must be "WhatsApp Embedded Signup"**, else onboarding fails with `"<id> isn't a valid Business ID"`.
 
 Deploy note: a local `vercel --prod` builds on your machine and does **not** inject
 Vercel-stored env vars — trigger a **git-based** deploy (push to `main`, or a
