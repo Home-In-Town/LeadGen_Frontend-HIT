@@ -37,6 +37,7 @@ const TEMPLATE_STATUS_STYLES = {
   paused:   'bg-slate-100 text-slate-500 dark:bg-slate-700/50 dark:text-slate-300',
   draft:    'bg-slate-100 text-slate-500 dark:bg-slate-700/50 dark:text-slate-300',
   missing:  'bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-300',
+  not_created: 'bg-slate-100 text-slate-500 dark:bg-slate-700/50 dark:text-slate-400',
 };
 
 // Human-friendly status labels shown on the badge (Meta's raw words are terse).
@@ -47,7 +48,13 @@ const TEMPLATE_STATUS_LABEL = {
   paused:   'Paused',
   draft:    'Draft',
   missing:  'Not on Meta',
+  not_created: 'Not created',
 };
+
+// Every project is expected to have exactly these templates. Rendering all of
+// them (even the ones that failed to submit) keeps the nurturing set predictable
+// and makes gaps obvious instead of silently missing from the list.
+const EXPECTED_KINDS = Object.keys(TEMPLATE_KIND_META);
 
 const cardClass = 'rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200/70 dark:border-white/10 shadow-sm';
 const inputClass = 'w-full rounded-xl border border-slate-200 dark:border-white/15 bg-white dark:bg-slate-800/60 px-4 py-3 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all';
@@ -89,6 +96,7 @@ const ProjectSettingsPage = () => {
   const [templatesLoading, setTemplatesLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [syncingTemplates, setSyncingTemplates] = useState(false);
+  const [retryingKind, setRetryingKind] = useState(null);
   // Authoritative WhatsApp state from the templates endpoint itself (stricter and
   // more accurate than channel-status): connected = WABA + usable token,
   // ready = number is live on Cloud API (not PENDING / under verification).
@@ -134,7 +142,13 @@ const ProjectSettingsPage = () => {
         // Meta throttled template creation — some templates were deferred on purpose.
         addToast(`${ok} template(s) submitted. WhatsApp limited further submissions — the rest will go out automatically shortly. Please wait a bit before retrying.`, 'warning');
       } else if (ok === 0 && failed.length) {
-        addToast(`All ${failed.length} templates failed: ${failed[0].error || 'unknown error'}`, 'error');
+        // Surface the distinct reasons rather than just the first one, so the user
+        // knows whether this is a content problem, a cooldown, or a Meta outage.
+        const reasons = [...new Set(failed.map(f => f.error).filter(Boolean))];
+        addToast(
+          `All ${failed.length} templates failed. ${reasons[0] || 'Unknown Meta error'}${reasons.length > 1 ? ` (+${reasons.length - 1} other reason${reasons.length > 2 ? 's' : ''})` : ''}`,
+          'error'
+        );
       } else {
         const verb = isReapply ? 're-submitted' : 'submitted to Meta for approval';
         addToast(
@@ -153,12 +167,25 @@ const ProjectSettingsPage = () => {
   };
 
   const handleRetryTemplate = async (kind) => {
+    const label = TEMPLATE_KIND_META[kind]?.label || kind;
     try {
-      await retryProjectTemplate(hitProjectId, kind);
-      addToast(`Template "${kind}" re-submitted`, 'success');
+      setRetryingKind(kind);
+      const res = await retryProjectTemplate(hitProjectId, kind);
+      const r = res.data?.template;
+      if (res.data?.rateLimited) {
+        addToast(`WhatsApp limited submissions right now — "${label}" will be retried automatically shortly.`, 'warning');
+      } else if (r?.status === 'error') {
+        addToast(`"${label}" could not be submitted: ${r.error || 'Unknown Meta error'}`, 'error');
+      } else if (r) {
+        addToast(`"${label}" submitted to Meta — status: ${r.status || 'pending'}`, 'success');
+      } else {
+        addToast(`"${label}" re-submitted`, 'success');
+      }
       await fetchTemplates();
     } catch (err) {
-      addToast(err.response?.data?.error || 'Retry failed', 'error');
+      addToast(err.response?.data?.error || `Could not submit "${label}"`, 'error');
+    } finally {
+      setRetryingKind(null);
     }
   };
 
@@ -611,18 +638,22 @@ const ProjectSettingsPage = () => {
 
             {/* ── Submission status summary ─────────────────────────────── */}
             {projTemplates.length > 0 && (() => {
-              const total    = projTemplates.length;
+              // Denominator is the FULL expected set, so "3/8 ready" is honest even
+              // when some templates failed to submit and have no row yet.
+              const total    = EXPECTED_KINDS.length;
+              const created  = projTemplates.length;
               const approved = projTemplates.filter(t => t.status === 'approved').length;
               const pending  = projTemplates.filter(t => t.status === 'pending').length;
               const rejected = projTemplates.filter(t => t.status === 'rejected').length;
               const missing  = projTemplates.filter(t => t.status === 'missing').length;
-              const other    = total - approved - pending - rejected - missing;
-              const allApproved = total > 0 && approved === total;
+              const notCreated = Math.max(0, total - created);
+              const other    = created - approved - pending - rejected - missing;
+              const allApproved = approved === total;
               return (
                 <div className="mt-4">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300">
-                      {total} submitted
+                      {created} of {total} created
                     </span>
                     <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300">
                       {approved} approved
@@ -638,6 +669,11 @@ const ProjectSettingsPage = () => {
                     {missing > 0 && (
                       <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-300">
                         {missing} not on Meta
+                      </span>
+                    )}
+                    {notCreated > 0 && (
+                      <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-slate-100 text-slate-500 dark:bg-slate-700/50 dark:text-slate-400">
+                        {notCreated} not created
                       </span>
                     )}
                     {other > 0 && (
@@ -679,15 +715,11 @@ const ProjectSettingsPage = () => {
           {/* Template list */}
           {templatesLoading ? (
             <div className="flex justify-center py-8"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" /></div>
-          ) : projTemplates.length === 0 ? (
-            <div className={`${cardClass} p-8 text-center`}>
-              <span className="material-symbols-outlined text-4xl text-slate-300 dark:text-slate-600 block mb-2">chat_add_on</span>
-              <p className="text-sm text-slate-500">No templates yet. Click "Generate Templates" to create them from this project.</p>
-            </div>
           ) : (
             <div className="grid gap-3 sm:grid-cols-2">
-              {projTemplates.map(t => {
+              {EXPECTED_KINDS.map(k => projTemplates.find(r => r.kind === k) || { kind: k, status: 'not_created', components: [], templateName: '' }).map(t => {
                 const meta = TEMPLATE_KIND_META[t.kind] || { label: t.kind, need: '' };
+                const notCreatedCard = t.status === 'not_created';
                 const st = TEMPLATE_STATUS_STYLES[t.status] || TEMPLATE_STATUS_STYLES.draft;
                 const bodyComp = Array.isArray(t.components) ? t.components.find(c => c.type === 'BODY') : null;
                 const btnComp = Array.isArray(t.components) ? t.components.find(c => c.type === 'BUTTONS') : null;
@@ -735,19 +767,28 @@ const ProjectSettingsPage = () => {
                       </p>
                     )}
 
+                    {notCreatedCard && (
+                      <p className="mt-2 text-[10px] text-slate-500 dark:text-slate-400 flex items-start gap-1">
+                        <span className="material-symbols-outlined text-xs mt-0.5">info</span>
+                        Not submitted yet. Use Create to submit this template to Meta.
+                      </p>
+                    )}
+
                     <div className="mt-3 flex justify-between items-center">
-                      <span className="text-[9px] text-slate-400 font-mono truncate">{t.templateName}</span>
+                      <span className="text-[9px] text-slate-400 font-mono truncate">{t.templateName || '—'}</span>
                       <div className="flex items-center gap-2">
-                        {(t.status === 'rejected' || t.status === 'missing') && (
-                          <button onClick={() => handleRetryTemplate(t.kind)}
-                            className="text-[9px] font-black uppercase tracking-wider text-amber-600 hover:text-amber-700">
-                            {t.status === 'missing' ? 'Resubmit' : 'Retry'}
+                        {(t.status === 'rejected' || t.status === 'missing' || notCreatedCard) && (
+                          <button onClick={() => handleRetryTemplate(t.kind)} disabled={retryingKind === t.kind}
+                            className="text-[9px] font-black uppercase tracking-wider text-amber-600 hover:text-amber-700 disabled:opacity-40">
+                            {retryingKind === t.kind ? 'Working…' : (notCreatedCard ? 'Create' : (t.status === 'missing' ? 'Resubmit' : 'Retry'))}
                           </button>
                         )}
-                        <button onClick={() => handleDeleteTemplate(t.kind)}
-                          className="text-[9px] font-black uppercase tracking-wider text-red-500 hover:text-red-600">
-                          Delete
-                        </button>
+                        {!notCreatedCard && (
+                          <button onClick={() => handleDeleteTemplate(t.kind)}
+                            className="text-[9px] font-black uppercase tracking-wider text-red-500 hover:text-red-600">
+                            Delete
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
