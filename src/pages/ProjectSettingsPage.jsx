@@ -130,7 +130,10 @@ const ProjectSettingsPage = () => {
       const failed = results.filter(r => r.status === 'error');
       const ok = results.length - failed.length;
 
-      if (ok === 0 && failed.length) {
+      if (res.data?.rateLimited) {
+        // Meta throttled template creation — some templates were deferred on purpose.
+        addToast(`${ok} template(s) submitted. WhatsApp limited further submissions — the rest will go out automatically shortly. Please wait a bit before retrying.`, 'warning');
+      } else if (ok === 0 && failed.length) {
         addToast(`All ${failed.length} templates failed: ${failed[0].error || 'unknown error'}`, 'error');
       } else {
         const verb = isReapply ? 're-submitted' : 'submitted to Meta for approval';
