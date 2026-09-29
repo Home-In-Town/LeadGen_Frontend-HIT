@@ -66,6 +66,20 @@ const TEMPLATE_STATUS_LABEL = {
 const EXPECTED_KINDS = Object.keys(TEMPLATE_KIND_META);
 
 /**
+ * Turn a raw Meta template name (proj_<slug>_<kind>_v33) into the friendly label
+ * the client understands ("8. Commute & Distance"). Falls back to the raw name
+ * for anything that isn't one of our per-project templates.
+ */
+const friendlyTemplateName = (rawName) => {
+  if (!rawName) return rawName;
+  // Strip trailing _vNN and leading proj_<slug>_ to isolate the kind.
+  const withoutVersion = rawName.replace(/_v\d+$/i, '');
+  const kind = EXPECTED_KINDS.find(k => withoutVersion.endsWith(`_${k}`) || withoutVersion === k);
+  if (kind && TEMPLATE_KIND_META[kind]) return TEMPLATE_KIND_META[kind].label;
+  return rawName;
+};
+
+/**
  * Replace {{1}}/{{2}} with real sample values so the client reads the message the
  * way their customer will receive it, instead of raw placeholders.
  */
@@ -553,7 +567,7 @@ const ProjectSettingsPage = () => {
               >
                 <option value="">— No template (skip WA message) —</option>
                 {Array.isArray(waTemplates) && waTemplates.map(t => (
-                  <option key={t.name || t.id} value={t.name}>{t.name} ({t.status || 'APPROVED'})</option>
+                  <option key={t.name || t.id} value={t.name}>{friendlyTemplateName(t.name)} ({t.status || 'APPROVED'})</option>
                 ))}
               </select>
             </div>
@@ -828,7 +842,9 @@ const ProjectSettingsPage = () => {
                     )}
 
                     <div className="mt-3 flex justify-between items-center">
-                      <span className="text-[9px] text-slate-400 font-mono truncate">{t.templateName || '—'}</span>
+                      <span className="text-[9px] text-slate-400 font-mono truncate" title={`Meta template ID: ${t.templateName || 'not created yet'}`}>
+                        {t.templateName ? `ID: ${t.templateName}` : '—'}
+                      </span>
                       <div className="flex items-center gap-2">
                         {(t.status === 'rejected' || t.status === 'missing' || notCreatedCard) && (
                           <button onClick={() => handleRetryTemplate(t.kind)} disabled={retryingKind === t.kind}

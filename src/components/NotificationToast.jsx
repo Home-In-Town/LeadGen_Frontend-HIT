@@ -12,6 +12,10 @@ const TYPE_CONFIG = {
     message:          { icon: 'forum',               accent: 'text-primary',     bg: 'bg-primary/10' },
     LEAD_REJECTED:    { icon: 'not_interested',     accent: 'text-red-500',     bg: 'bg-red-500/10' },
     LEAD_INTERESTED:  { icon: 'favorite',           accent: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+    TEMPLATE_STATUS:  { icon: 'fact_check',         accent: 'text-indigo-500',  bg: 'bg-indigo-500/10' },
+    WA_TOKEN_EXPIRED: { icon: 'link_off',           accent: 'text-red-500',     bg: 'bg-red-500/10' },
+    CAMPAIGN_NO_PROJECT:{ icon: 'folder_off',       accent: 'text-amber-500',   bg: 'bg-amber-500/10' },
+    DEAD_LETTER:      { icon: 'report',             accent: 'text-red-500',     bg: 'bg-red-500/10' },
     // addToast() is also called with these generic levels (see NotificationContext).
     // Without entries here they fell through to the LINK_OPENED bolt icon, so a
     // warning was indistinguishable from a success.

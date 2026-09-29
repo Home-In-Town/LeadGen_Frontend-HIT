@@ -45,6 +45,26 @@ const NOTIFICATION_ICONS = {
         iconClass:
             'bg-red-500/10 text-red-500 ring-1 ring-red-500/20',
     },
+    TEMPLATE_STATUS: {
+        icon: 'fact_check',
+        iconClass:
+            'bg-indigo-500/10 text-indigo-500 ring-1 ring-indigo-500/20',
+    },
+    WA_TOKEN_EXPIRED: {
+        icon: 'link_off',
+        iconClass:
+            'bg-red-500/10 text-red-500 ring-1 ring-red-500/20',
+    },
+    CAMPAIGN_NO_PROJECT: {
+        icon: 'folder_off',
+        iconClass:
+            'bg-amber-500/10 text-amber-500 ring-1 ring-amber-500/20',
+    },
+    DEAD_LETTER: {
+        icon: 'report',
+        iconClass:
+            'bg-red-500/10 text-red-500 ring-1 ring-red-500/20',
+    },
     DEFAULT: {
         icon: 'notifications',
         iconClass:

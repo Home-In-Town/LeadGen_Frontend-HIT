@@ -27,6 +27,33 @@ const STATUS_STYLES = {
   PAUSED:   'bg-slate-100  text-slate-600  dark:bg-slate-800     dark:text-slate-400',
 };
 
+// Friendly labels for the auto-generated per-project templates so the raw
+// proj_<slug>_<kind>_vNN name isn't the only thing the client sees.
+const PROJECT_KIND_LABEL = {
+  voice_guide: 'Project Introduction',
+  tour_3d:     '3D Virtual Tour',
+  progress:    'Construction Progress',
+  inventory:   'Unit Availability',
+  emi:         'EMI & Affordability',
+  rera:        'RERA & Legal Papers',
+  ecosystem:   'Neighbourhood & Map',
+  traffic:     'Commute & Distance',
+};
+
+/** Detect a per-project template and return { isProject, label, projectSlug }. */
+function describeTemplate(rawName) {
+  const m = String(rawName || '').match(/^proj_(.+?)_([a-z_0-9]+?)(?:_v\d+)?$/i);
+  if (!m) return { isProject: false, label: rawName, projectSlug: null };
+  // The kind is the last known kind token; match against known kinds.
+  const kind = Object.keys(PROJECT_KIND_LABEL).find(k => m[2] === k || rawName.replace(/_v\d+$/i, '').endsWith(`_${k}`));
+  const slug = m[1];
+  return {
+    isProject: true,
+    label: kind ? PROJECT_KIND_LABEL[kind] : rawName,
+    projectSlug: slug ? slug.replace(/_/g, ' ') : null,
+  };
+}
+
 const BLANK_FORM = {
   name: '', category: 'MARKETING', language: 'en',
   headerType: 'NONE', headerText: '', headerMediaUrl: '',
@@ -287,10 +314,24 @@ function TemplateCard({ t, onDelete, deleting }) {
       {/* Card header */}
       <button onClick={() => setExpanded(v => !v)} className="w-full flex items-start justify-between gap-3 p-5 text-left hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors">
         <div className="min-w-0 flex-1">
+          {(() => { const info = describeTemplate(t.name); return (
+          <>
           <div className="flex items-center gap-2 flex-wrap mb-1">
-            <p className="text-sm font-black text-slate-900 dark:text-white font-mono">{t.name}</p>
+            <p className="text-sm font-black text-slate-900 dark:text-white">
+              {info.isProject ? info.label : t.name}
+            </p>
             <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${STATUS_STYLES[t.status] || STATUS_STYLES.PAUSED}`}>{t.status}</span>
+            {info.isProject && (
+              <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300" title="Auto-managed from Projects > WhatsApp Templates">
+                Project{info.projectSlug ? `: ${info.projectSlug}` : ''}
+              </span>
+            )}
           </div>
+          {info.isProject && (
+            <p className="text-[9px] text-slate-400 font-mono mb-1" title="Meta template ID">ID: {t.name}</p>
+          )}
+          </>
+          ); })()}
           <div className="flex items-center gap-2 text-[10px] text-slate-500 flex-wrap">
             <span className="font-bold uppercase tracking-wider">{t.category}</span>
             <span>·</span>
