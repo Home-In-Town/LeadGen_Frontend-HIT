@@ -42,6 +42,8 @@ const LeadAutomationPage = () => {
     projectId: '',
   });
 
+  const [nurtureBusy, setNurtureBusy] = useState(false);
+
   /* ---------------------------------- */
   /* THEME */
   /* ---------------------------------- */
@@ -331,6 +333,86 @@ const LeadAutomationPage = () => {
   /* ACTIONS */
   /* ---------------------------------- */
 
+  const handleEnrollNurture = async () => {
+    if (!lead?.id || nurtureBusy) return;
+
+    try {
+      setNurtureBusy(true);
+
+      const res = await api.enrollLeadNurture(lead.id);
+
+      if (res?.data?.success) {
+        const count = res.data.scheduled ?? res.data.data?.length ?? 0;
+
+        addToast?.(
+          'success',
+          'Nurturing Started',
+          count
+            ? `${count} follow-up message${count === 1 ? '' : 's'} scheduled for this lead.`
+            : 'Nurturing ladder enrolled for this lead.'
+        );
+
+        await fetchData();
+      } else {
+        addToast?.(
+          'error',
+          'Could Not Enroll',
+          res?.data?.message || 'Unable to start nurturing for this lead.'
+        );
+      }
+    } catch (err) {
+      console.error(err);
+
+      addToast?.(
+        'error',
+        'Could Not Enroll',
+        err?.response?.data?.message || 'Unable to start nurturing for this lead.'
+      );
+    } finally {
+      setNurtureBusy(false);
+    }
+  };
+
+  const handleCancelNurture = async () => {
+    if (!lead?.id || nurtureBusy) return;
+
+    try {
+      setNurtureBusy(true);
+
+      const res = await api.cancelLeadNurture(lead.id);
+
+      if (res?.data?.success) {
+        const count = res.data.removed ?? 0;
+
+        addToast?.(
+          'info',
+          'Nurturing Stopped',
+          count
+            ? `${count} pending follow-up${count === 1 ? '' : 's'} cancelled.`
+            : 'Pending nurturing follow-ups cancelled.'
+        );
+
+        await fetchData();
+      } else {
+        addToast?.(
+          'error',
+          'Could Not Stop',
+          res?.data?.message || 'Unable to stop nurturing for this lead.'
+        );
+      }
+    } catch (err) {
+      console.error(err);
+
+      addToast?.(
+        'error',
+        'Could Not Stop',
+        err?.response?.data?.message || 'Unable to stop nurturing for this lead.'
+      );
+    } finally {
+      setNurtureBusy(false);
+    }
+  };
+
   const openScheduleModal = (date) => {
     setSelectedDate(date);
 
@@ -544,12 +626,36 @@ const LeadAutomationPage = () => {
                 </p>
 
                 {lead && (
-                  <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-2">
-                    <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+                  <div className="mt-4 flex flex-wrap items-center gap-3">
+                    <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-2">
+                      <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
 
-                    <span className="text-[10px] font-black uppercase tracking-[0.25em] text-primary">
-                      {lead.first_name} {lead.last_name}
-                    </span>
+                      <span className="text-[10px] font-black uppercase tracking-[0.25em] text-primary">
+                        {lead.first_name} {lead.last_name}
+                      </span>
+                    </div>
+
+                    <button
+                      onClick={handleEnrollNurture}
+                      disabled={nurtureBusy}
+                      className={`${buttonPrimary} inline-flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed`}
+                    >
+                      <span className="material-symbols-outlined text-[14px]">
+                        {nurtureBusy ? 'hourglass_top' : 'rocket_launch'}
+                      </span>
+                      Enroll in Nurturing
+                    </button>
+
+                    <button
+                      onClick={handleCancelNurture}
+                      disabled={nurtureBusy}
+                      className={`${buttonSecondary} inline-flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed`}
+                    >
+                      <span className="material-symbols-outlined text-[14px]">
+                        stop_circle
+                      </span>
+                      Stop Nurturing
+                    </button>
                   </div>
                 )}
               </div>

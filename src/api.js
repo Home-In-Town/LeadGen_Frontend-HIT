@@ -91,6 +91,10 @@ export const getLeadAutomations = (leadId) => automationApi.get(`/lead/${leadId}
 export const getCreatorAutomations = (userId) => automationApi.get(`/creator/${userId}`);
 export const createLeadAutomation = (data) => automationApi.post('', data);
 export const deleteLeadAutomation = (id) => automationApi.delete(`/${id}`);
+// Per-lead nurturing control (Phase 2 need-engine ladder)
+export const enrollLeadNurture   = (leadId) => automationApi.post(`/nurture/${leadId}`);
+export const cancelLeadNurture   = (leadId) => automationApi.post(`/cancel-nurture/${leadId}`);
+export const sendTemplateNowToLead = (leadId, kind) => automationApi.post(`/send-now/${leadId}`, { kind });
 
 // ====== GOOGLE INTEGRATION ======
 export const getGoogleMappings = () => googleApi.get('/mapping');
