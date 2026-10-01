@@ -8,6 +8,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useNotifications } from '../context/NotificationContext';
 import { listWATemplates, createWATemplate, deleteWATemplate } from '../api';
+import { describeTemplate } from '../utils/templateNames';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const STATUSES   = ['ALL', 'APPROVED', 'PENDING', 'REJECTED', 'PAUSED'];
@@ -27,32 +28,8 @@ const STATUS_STYLES = {
   PAUSED:   'bg-slate-100  text-slate-600  dark:bg-slate-800     dark:text-slate-400',
 };
 
-// Friendly labels for the auto-generated per-project templates so the raw
-// proj_<slug>_<kind>_vNN name isn't the only thing the client sees.
-const PROJECT_KIND_LABEL = {
-  voice_guide: 'Project Introduction',
-  tour_3d:     '3D Virtual Tour',
-  progress:    'Construction Progress',
-  inventory:   'Unit Availability',
-  emi:         'EMI & Affordability',
-  rera:        'RERA & Legal Papers',
-  ecosystem:   'Neighbourhood & Map',
-  traffic:     'Commute & Distance',
-};
-
-/** Detect a per-project template and return { isProject, label, projectSlug }. */
-function describeTemplate(rawName) {
-  const m = String(rawName || '').match(/^proj_(.+?)_([a-z_0-9]+?)(?:_v\d+)?$/i);
-  if (!m) return { isProject: false, label: rawName, projectSlug: null };
-  // The kind is the last known kind token; match against known kinds.
-  const kind = Object.keys(PROJECT_KIND_LABEL).find(k => m[2] === k || rawName.replace(/_v\d+$/i, '').endsWith(`_${k}`));
-  const slug = m[1];
-  return {
-    isProject: true,
-    label: kind ? PROJECT_KIND_LABEL[kind] : rawName,
-    projectSlug: slug ? slug.replace(/_/g, ' ') : null,
-  };
-}
+// Per-project template labels + describeTemplate() now come from the shared
+// src/utils/templateNames.js so every screen shows the SAME friendly name.
 
 const BLANK_FORM = {
   name: '', category: 'MARKETING', language: 'en',

@@ -17,19 +17,23 @@ import {
   deleteProjectTemplate,
 } from '../api';
 import VoicePicker, { LANGUAGE_OPTIONS, SECTOR_OPTIONS } from '../components/VoicePicker';
+import { KIND_LABEL, friendlyTemplateName as sharedFriendlyName } from '../utils/templateNames';
 
 // The 8 need-based templates. `label` is what the client sees, `need` is the
 // customer question it answers, `when` explains when the system sends it — so the
 // whole nurturing set is self-explanatory in the UI.
+// `label` is sourced from the shared canonical KIND_LABEL so this page matches
+// the Automation + global Templates pages exactly. `need`/`when` are extra
+// context shown only here. Order follows the alternate-day nurturing sequence.
 const TEMPLATE_KIND_META = {
-  voice_guide: { label: '1. Project Introduction', need: 'What is this project?',            when: 'Sent first, as soon as the lead comes in' },
-  tour_3d:     { label: '2. 3D Virtual Tour',      need: 'How will it look when ready?',     when: 'Auto-sent on day 5 if the lead is silent' },
-  progress:    { label: '3. Construction Progress',need: 'Will the builder deliver on time?',when: 'Auto-sent on day 15 if the lead is silent' },
-  inventory:   { label: '4. Unit Availability',    need: 'Which units are still available?', when: 'Auto-sent on day 28 if the lead is silent' },
-  emi:         { label: '5. EMI & Affordability',  need: 'Is it affordable? What is the EMI?',when: 'Sent when the lead asks about price or budget' },
-  rera:        { label: '6. RERA & Legal Papers',  need: 'Is it legally approved?',          when: 'Sent when the lead asks about legal or RERA' },
-  ecosystem:   { label: '7. Neighbourhood & Map',  need: 'Schools, hospitals, markets near?',when: 'Sent when the lead asks about the area' },
-  traffic:     { label: '8. Commute & Distance',   need: 'How far is it from my office?',    when: 'Sent when the lead asks about distance' },
+  voice_guide: { label: KIND_LABEL.voice_guide, need: 'What is this project?',            when: 'Sent first, as soon as the lead comes in' },
+  ecosystem:   { label: KIND_LABEL.ecosystem,   need: 'Schools, hospitals, markets near?',when: 'Auto-sent on day 3 if the lead is silent' },
+  tour_3d:     { label: KIND_LABEL.tour_3d,      need: 'How will it look when ready?',     when: 'Auto-sent on day 5 if the lead is silent' },
+  progress:    { label: KIND_LABEL.progress,     need: 'Will the builder deliver on time?',when: 'Auto-sent on day 7 if the lead is silent' },
+  rera:        { label: KIND_LABEL.rera,         need: 'Is it legally approved?',          when: 'Auto-sent on day 9 if the lead is silent' },
+  emi:         { label: KIND_LABEL.emi,          need: 'Is it affordable? What is the EMI?',when: 'Auto-sent on day 11 if the lead is silent' },
+  inventory:   { label: KIND_LABEL.inventory,    need: 'Which units are still available?', when: 'Auto-sent on day 13 if the lead is silent' },
+  traffic:     { label: KIND_LABEL.traffic,      need: 'How far is it from my office?',    when: 'Auto-sent on day 15 if the lead is silent' },
 };
 
 // What each {{n}} placeholder is filled with at send time. Shown in the UI so the
@@ -70,14 +74,7 @@ const EXPECTED_KINDS = Object.keys(TEMPLATE_KIND_META);
  * the client understands ("8. Commute & Distance"). Falls back to the raw name
  * for anything that isn't one of our per-project templates.
  */
-const friendlyTemplateName = (rawName) => {
-  if (!rawName) return rawName;
-  // Strip trailing _vNN and leading proj_<slug>_ to isolate the kind.
-  const withoutVersion = rawName.replace(/_v\d+$/i, '');
-  const kind = EXPECTED_KINDS.find(k => withoutVersion.endsWith(`_${k}`) || withoutVersion === k);
-  if (kind && TEMPLATE_KIND_META[kind]) return TEMPLATE_KIND_META[kind].label;
-  return rawName;
-};
+const friendlyTemplateName = (rawName) => sharedFriendlyName(rawName);
 
 /**
  * Replace {{1}}/{{2}} with real sample values so the client reads the message the

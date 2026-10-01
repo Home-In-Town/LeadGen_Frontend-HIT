@@ -19,6 +19,7 @@ import {
     getChannelStatus,
 } from '../api';
 import { useNotifications } from '../context/NotificationContext';
+import { friendlyTemplateName } from '../utils/templateNames';
 
 const cardClass =
     'bg-white/75 dark:bg-white/[0.04] backdrop-blur-xl border border-slate-200/80 dark:border-white/10 rounded-[24px] shadow-sm';
@@ -267,10 +268,10 @@ const CampaignConfigModal = ({ campaign, onClose, onSaved }) => {
                                     className={`w-full rounded-2xl border px-4 py-3 text-sm outline-none transition-all ${waLocked ? 'border-slate-200/50 bg-slate-100 dark:bg-slate-800/50 text-slate-400 cursor-not-allowed' : 'border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:border-blue-500'}`}
                                 >
                                     <option value="">— Use default template —</option>
-                                    {waTemplates.map(t => <option key={t.name || t.id} value={t.name}>{t.name}</option>)}
+                                    {waTemplates.map(t => <option key={t.name || t.id} value={t.name}>{friendlyTemplateName(t.name)}</option>)}
                                 </select>
                                 {!waLocked && waTemplateName && (
-                                    <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1 font-bold">✓ &quot;{waTemplateName}&quot; will be sent for leads from this campaign.</p>
+                                    <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1 font-bold">✓ &quot;{friendlyTemplateName(waTemplateName)}&quot; will be sent for leads from this campaign.</p>
                                 )}
                             </div>
                         </div>

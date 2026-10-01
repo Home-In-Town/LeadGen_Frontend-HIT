@@ -23,6 +23,7 @@ import {
     listWAPhoneNumbers,
 } from '../api';
 import leadsApi from '../api';
+import { API_ORIGIN } from '../utils/env';
 
 import { useNotifications } from '../context/NotificationContext';
 import { useAuth } from '../context/AuthContext';
@@ -130,9 +131,7 @@ export default function ChatDashboard() {
     const handleAddNote = useCallback(async (noteText) => {
         if (!activeLeadId || !noteText.trim()) return;
         try {
-            const API_BASE =
-                import.meta.env.VITE_API_BASE_URL ||
-                'https://lead-filteration-backend-624770114041.asia-south1.run.app';
+            const API_BASE = API_ORIGIN;
             const res = await fetch(`${API_BASE}/api/chat/${activeLeadId}/note`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -391,9 +390,7 @@ export default function ChatDashboard() {
         async (file) => {
             if (!file || !activeLeadId) return;
 
-            const API_BASE =
-                import.meta.env.VITE_API_BASE_URL ||
-                'https://lead-filteration-backend-624770114041.asia-south1.run.app';
+            const API_BASE = API_ORIGIN;
 
             const formData = new FormData();
             formData.append('file', file);
@@ -608,9 +605,7 @@ export default function ChatDashboard() {
     const handleBulkSendTemplate = useCallback(async (templateName) => {
         if (!templateName || selectedLeadIds.size === 0) return;
         try {
-            const API_BASE =
-                import.meta.env.VITE_API_BASE_URL ||
-                'https://lead-filteration-backend-624770114041.asia-south1.run.app';
+            const API_BASE = API_ORIGIN;
             const res = await fetch(`${API_BASE}/api/chat/bulk-send`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },

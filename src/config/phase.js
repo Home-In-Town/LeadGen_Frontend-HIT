@@ -8,7 +8,8 @@
  * Default: Phase 2 (backward compatible)
  */
 
-const PHASE = Number(import.meta.env.VITE_PHASE) || 2;
+// parseInt tolerates a trailing newline/space a hosting env may add ("1\r\n").
+const PHASE = parseInt(String(import.meta.env.VITE_PHASE ?? '').trim(), 10) || 2;
 
 export const IS_PHASE_1 = PHASE === 1;
 export const IS_PHASE_2 = PHASE === 2;

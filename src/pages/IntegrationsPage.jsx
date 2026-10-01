@@ -3,10 +3,9 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useNotifications } from '../context/NotificationContext';
 import { listWAPhoneNumbers, removeWAPhoneNumber } from '../api';
+import { API_ORIGIN } from '../utils/env';
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ||
-  'https://lead-filteration-backend-vvsvqafcoa-el.a.run.app';
+const API_BASE_URL = API_ORIGIN;
 
 const ownersApi = axios.create({
   baseURL: `${API_BASE_URL}/api/owners`,

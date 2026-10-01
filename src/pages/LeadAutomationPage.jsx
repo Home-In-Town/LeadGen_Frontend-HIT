@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import * as api from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
+import { friendlyTemplateName } from '../utils/templateNames';
 
 const LeadAutomationPage = () => {
   const { leadId } = useParams();
@@ -166,7 +167,9 @@ const LeadAutomationPage = () => {
       if (templatesRes?.data?.success) {
         const metaTemplates = (templatesRes.data.data || [])
           .filter(t => t.status === 'APPROVED')
-          .map(t => ({ id: t.name, label: t.name.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) }));
+          // Use the ONE canonical friendly name so per-project templates read the
+          // same here as on the Project / Templates pages (not "Proj X Emi V2").
+          .map(t => ({ id: t.name, label: friendlyTemplateName(t.name) }));
         setTemplates(metaTemplates.length > 0 ? metaTemplates : []);
       }
 

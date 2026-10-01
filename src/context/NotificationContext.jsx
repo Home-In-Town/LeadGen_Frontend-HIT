@@ -2,10 +2,12 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { io } from 'socket.io-client';
 import { getNotifications, markNotificationRead, markAllNotificationsRead } from '../api';
 import { useAuth } from './AuthContext';
+import { API_ORIGIN } from '../utils/env';
 
 const NotificationContext = createContext();
 
-const SOCKET_URL = import.meta.env.VITE_API_BASE_URL || 'https://lead-filteration-backend-624770114041.asia-south1.run.app';
+// Sanitized origin — a stray newline here breaks the Socket.IO connection.
+const SOCKET_URL = API_ORIGIN;
 
 export const NotificationProvider = ({ children }) => {
     const { user } = useAuth();

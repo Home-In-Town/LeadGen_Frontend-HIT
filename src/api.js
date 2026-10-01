@@ -1,6 +1,9 @@
 import axios from 'axios';
+import { API_ORIGIN } from './utils/env';
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://lead-filteration-backend-vvsvqafcoa-el.a.run.app';
+// Sanitized backend origin (strips any stray \r\n/quotes a hosting env may add,
+// which previously produced a malformed baseURL and broke every API call).
+const BASE_URL = API_ORIGIN;
 
 // Helper to create an axios instance with shared interceptors
 const createApiInstance = (path) => {

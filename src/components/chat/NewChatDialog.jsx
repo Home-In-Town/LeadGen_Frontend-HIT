@@ -20,6 +20,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { listWATemplates } from '../../api';
+import { API_ORIGIN } from '../../utils/env';
 
 const COUNTRY_CODES = [
     { code: '91', label: '🇮🇳 +91', country: 'India' },
@@ -34,7 +35,7 @@ const COUNTRY_CODES = [
     { code: '86', label: '🇨🇳 +86', country: 'China' },
 ];
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://lead-filteration-backend-624770114041.asia-south1.run.app';
+const API_BASE_URL = API_ORIGIN;
 
 const NewChatDialog = ({ open, onClose, onSuccess }) => {
     const [phoneNumber, setPhoneNumber] = useState('');
