@@ -160,8 +160,14 @@ const LeadAutomationPage = () => {
         api.getCreatorAutomations(user.id),
       ]);
 
-      const fetchedUsers = usersRes?.data || [];
-      setUsers(fetchedUsers);
+      // GET /users returns { users, total, page, totalPages } — an OBJECT, not an
+      // array. Reading usersRes.data directly made `users` an object, so the later
+      // `users.map(...)` threw "P.map is not a function" and white-screened the
+      // whole Automation page. Always normalise to an array.
+      const fetchedUsers = Array.isArray(usersRes?.data)
+        ? usersRes.data
+        : (usersRes?.data?.users || []);
+      setUsers(Array.isArray(fetchedUsers) ? fetchedUsers : []);
 
       // Map Meta templates to { id, label } format for the dropdown
       if (templatesRes?.data?.success) {

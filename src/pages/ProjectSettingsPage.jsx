@@ -16,7 +16,6 @@ import {
   retryProjectTemplate,
   deleteProjectTemplate,
 } from '../api';
-import VoicePicker, { LANGUAGE_OPTIONS, SECTOR_OPTIONS } from '../components/VoicePicker';
 import { KIND_LABEL, friendlyTemplateName as sharedFriendlyName } from '../utils/templateNames';
 
 // The 8 need-based templates. `label` is what the client sees, `need` is the
@@ -490,66 +489,21 @@ const ProjectSettingsPage = () => {
             <p className="text-[10px] text-slate-400 mt-1 text-right">{(config?.voiceSettings?.aiPrompt || '').length}/5000</p>
           </div>
 
-          {/* Voice Selection (per-project override) */}
-          <div className={`${cardClass} p-5`}>
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-1">Voice</h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
-              Pick a voice for this project's calls, or inherit your account default. Overrides the account voice only for leads in this project.
-            </p>
-            <VoicePicker
-              value={config?.voiceSettings?.selectedVoice || ''}
-              onChange={(v) => updateConfig('voiceSettings.selectedVoice', v)}
-              allowInherit
-            />
-          </div>
-
-          {/* Greeting + Language + Sector */}
-          <div className={`${cardClass} p-5 space-y-4`}>
-            <div>
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-1">Greeting Line</h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
-                First line the AI speaks. Leave blank to use your account default greeting. Supports {'{customerName}'}, {'{agentName}'}, {'{companyName}'}.
+          {/* Voice, greeting, language, sector are ACCOUNT-level settings — they're
+              configured once on the Voice Agent page and every project inherits
+              them. We don't duplicate the whole voice studio per project; the only
+              per-project voice knob that matters is the AI Voice Prompt above. */}
+          <div className={`${cardClass} p-4 flex items-start gap-3`}>
+            <span className="material-symbols-outlined text-base text-primary mt-0.5">info</span>
+            <div className="min-w-0">
+              <p className="text-xs font-bold text-slate-700 dark:text-slate-200">
+                Voice, greeting, language &amp; sector come from your account defaults
               </p>
-              <input
-                type="text"
-                value={config?.voiceSettings?.greetingLine || ''}
-                onChange={(e) => updateConfig('voiceSettings.greetingLine', e.target.value)}
-                className={inputClass}
-                placeholder="Namaste {customerName} ji, main {agentName} bol rahi hu {companyName} se."
-                maxLength={500}
-              />
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              {/* Language */}
-              <div>
-                <label className="block text-xs font-bold text-slate-900 dark:text-white mb-2">Language</label>
-                <select
-                  value={config?.voiceSettings?.language || ''}
-                  onChange={(e) => updateConfig('voiceSettings.language', e.target.value)}
-                  className={inputClass}
-                >
-                  <option value="">Inherit account default</option>
-                  {LANGUAGE_OPTIONS.map(o => (
-                    <option key={o.value} value={o.value}>{o.label}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Sector */}
-              <div>
-                <label className="block text-xs font-bold text-slate-900 dark:text-white mb-2">Sector</label>
-                <select
-                  value={config?.voiceSettings?.sector || ''}
-                  onChange={(e) => updateConfig('voiceSettings.sector', e.target.value)}
-                  className={inputClass}
-                >
-                  <option value="">Inherit account default</option>
-                  {SECTOR_OPTIONS.map(o => (
-                    <option key={o.value} value={o.value}>{o.label}</option>
-                  ))}
-                </select>
-              </div>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                This project inherits them automatically. Change the voice, greeting line, language or sector once in{' '}
+                <a href="/call-logs" className="underline hover:no-underline text-primary font-semibold">Voice Calls → Voice Settings</a>{' '}
+                and it applies to every project. Only the <b>AI Voice Prompt</b> above is specific to this project.
+              </p>
             </div>
           </div>
 
