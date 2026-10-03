@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { API_ORIGIN } from '../utils/env';
 import {
   getBuilderProjects,
   getGoogleMappings,
@@ -19,8 +20,10 @@ const GoogleIntegrationPage = () => {
     formName: '',
   });
 
-  const WEBHOOK_URL =
-    'https://lead-filteration-backend-624770114041.asia-south1.run.app/api/google/webhook';
+  // Derived from the canonical backend origin so a backend URL change (or env
+  // override) is reflected here automatically. API_ORIGIN carries the same live
+  // default this was hard-coded to, so the displayed webhook URL is unchanged.
+  const WEBHOOK_URL = `${API_ORIGIN}/api/google/webhook`;
 
   /* ---------------------------------- */
   /* THEME */
