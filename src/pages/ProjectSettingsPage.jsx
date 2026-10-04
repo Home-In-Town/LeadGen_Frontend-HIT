@@ -528,52 +528,7 @@ const ProjectSettingsPage = () => {
           </div>
 
           {/* Advanced — template pickers tucked away; defaults work for most users. */}
-          {(waConnected || emailConnected) && (
-            <div className={`${cardClass} p-0 overflow-hidden transition-opacity ${config?.aiEnabled !== false ? '' : 'opacity-40 pointer-events-none select-none'}`}>
-              <button
-                type="button"
-                onClick={() => setAdvancedOpen(o => !o)}
-                className="w-full flex items-center justify-between px-5 py-4 text-left"
-              >
-                <span className="text-sm font-bold text-slate-900 dark:text-white">Advanced — message templates</span>
-                <span className={`material-symbols-outlined text-slate-400 transition-transform ${advancedOpen ? 'rotate-180' : ''}`}>expand_more</span>
-              </button>
-              {advancedOpen && (
-                <div className="px-5 pb-5 space-y-4 border-t border-slate-200/70 dark:border-white/10 pt-4">
-                  {waConnected && (
-                    <div>
-                      <label className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 block">WhatsApp welcome template</label>
-                      <select
-                        value={config?.waTemplateName || ''}
-                        onChange={(e) => { updateConfig('waTemplateName', e.target.value); updateConfig('waTemplateEnabled', !!e.target.value); }}
-                        className={inputClass}
-                      >
-                        <option value="">— Default welcome —</option>
-                        {Array.isArray(waTemplates) && waTemplates.map(t => (
-                          <option key={t.name || t.id} value={t.name}>{friendlyTemplateName(t.name)} ({t.status || 'APPROVED'})</option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-                  {emailConnected && (
-                    <div>
-                      <label className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 block">Email template</label>
-                      <select
-                        value={config?.emailTemplateName || ''}
-                        onChange={(e) => { updateConfig('emailTemplateName', e.target.value); updateConfig('emailTemplateEnabled', !!e.target.value); }}
-                        className={inputClass}
-                      >
-                        <option value="">— No template (skip email) —</option>
-                        {Array.isArray(emailTemplates) && emailTemplates.map(t => (
-                          <option key={t._id} value={t.name}>{t.name || t.subject}</option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
+          {/* Removed Advanced section — the first approved template is used automatically */}
 
           {/* Save */}
           <div className="flex justify-end">
