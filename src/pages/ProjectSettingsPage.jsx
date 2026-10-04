@@ -103,6 +103,7 @@ const ProjectSettingsPage = () => {
   const [tab, setTab] = useState('settings');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [advancedOpen, setAdvancedOpen] = useState(false); // collapsible WA/email template pickers
   const [project, setProject] = useState(null);
   const [config, setConfig] = useState(null);
   const [dirty, setDirty] = useState(false);
@@ -414,70 +415,103 @@ const ProjectSettingsPage = () => {
       {/* ═══════ Automation Tab ═══════ */}
       {tab === 'settings' && (
         <div className="space-y-5">
-          {/* Automation Toggles with lock */}
-          <div className={`${cardClass} p-5`}>
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-4">Automation Channels</h3>
-            <div className="grid gap-3 sm:grid-cols-3">
-              {/* Voice — always available */}
-              <label className={`flex items-center gap-3 rounded-xl border p-3 cursor-pointer transition-all ${
-                config?.autoCallEnabled ? 'border-blue-200 dark:border-blue-500/30 bg-blue-50/50 dark:bg-blue-500/5' : 'border-slate-200 dark:border-white/10'
-              }`}>
-                <input type="checkbox" checked={config?.autoCallEnabled || false} onChange={(e) => updateConfig('autoCallEnabled', e.target.checked)}
-                  className="rounded border-slate-300 text-primary focus:ring-primary/40" />
-                <span className={`material-symbols-outlined text-base ${config?.autoCallEnabled ? 'text-blue-500' : 'text-slate-400'}`}>call</span>
-                <span className="text-xs font-bold text-slate-700 dark:text-slate-300">AI Voice Call</span>
-              </label>
-
-              {/* WhatsApp — locked if not connected */}
-              <label className={`flex items-center gap-3 rounded-xl border p-3 transition-all ${
-                !waConnected ? 'border-slate-200 dark:border-white/10 opacity-50 cursor-not-allowed' :
-                config?.autoWaEnabled ? 'border-green-200 dark:border-green-500/30 bg-green-50/50 dark:bg-green-500/5 cursor-pointer' : 'border-slate-200 dark:border-white/10 cursor-pointer'
-              }`}>
-                <input type="checkbox" checked={waConnected ? (config?.autoWaEnabled || false) : false}
-                  onChange={(e) => updateConfig('autoWaEnabled', e.target.checked)}
-                  disabled={!waConnected}
-                  className="rounded border-slate-300 text-primary focus:ring-primary/40" />
-                <span className={`material-symbols-outlined text-base ${waConnected && config?.autoWaEnabled ? 'text-green-500' : 'text-slate-400'}`}>chat</span>
-                <div>
-                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300 block">WhatsApp</span>
-                  {!waConnected && <span className="text-[9px] text-amber-600 font-bold">Not connected</span>}
+          {/* ── Master AI switch ──────────────────────────────────────────────
+              One clear control: "is the AI running for this project?" Everything
+              below only applies while this is on. Defaults ON. */}
+          {(() => {
+            const aiOn = config?.aiEnabled !== false;
+            return (
+              <div className={`${cardClass} p-5`}>
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                      <span className="material-symbols-outlined text-base text-primary">smart_toy</span>
+                      AI for this project
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                      When on, the AI calls, messages, and follows up with every lead in this project automatically.
+                      Turn it off to pause all automation for this project.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={aiOn}
+                    onClick={() => updateConfig('aiEnabled', !aiOn)}
+                    className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors ${aiOn ? 'bg-primary' : 'bg-slate-300 dark:bg-white/15'}`}
+                  >
+                    <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${aiOn ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                  </button>
                 </div>
-              </label>
 
-              {/* Email — locked if not connected */}
-              <label className={`flex items-center gap-3 rounded-xl border p-3 transition-all ${
-                !emailConnected ? 'border-slate-200 dark:border-white/10 opacity-50 cursor-not-allowed' :
-                config?.autoEmailEnabled ? 'border-purple-200 dark:border-purple-500/30 bg-purple-50/50 dark:bg-purple-500/5 cursor-pointer' : 'border-slate-200 dark:border-white/10 cursor-pointer'
-              }`}>
-                <input type="checkbox" checked={emailConnected ? (config?.autoEmailEnabled || false) : false}
-                  onChange={(e) => updateConfig('autoEmailEnabled', e.target.checked)}
-                  disabled={!emailConnected}
-                  className="rounded border-slate-300 text-primary focus:ring-primary/40" />
-                <span className={`material-symbols-outlined text-base ${emailConnected && config?.autoEmailEnabled ? 'text-purple-500' : 'text-slate-400'}`}>mail</span>
-                <div>
-                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300 block">Email</span>
-                  {!emailConnected && <span className="text-[9px] text-amber-600 font-bold">Not connected</span>}
+                {/* Channels — compact group, only meaningful while AI is on */}
+                <div className={`mt-4 transition-opacity ${aiOn ? '' : 'opacity-40 pointer-events-none select-none'}`}>
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-2">Channels</p>
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    {/* Voice — always available */}
+                    <label className={`flex items-center gap-2.5 rounded-xl border p-3 cursor-pointer transition-all ${
+                      config?.autoCallEnabled ? 'border-blue-200 dark:border-blue-500/30 bg-blue-50/50 dark:bg-blue-500/5' : 'border-slate-200 dark:border-white/10'
+                    }`}>
+                      <input type="checkbox" checked={config?.autoCallEnabled || false} onChange={(e) => updateConfig('autoCallEnabled', e.target.checked)}
+                        className="rounded border-slate-300 text-primary focus:ring-primary/40" />
+                      <span className={`material-symbols-outlined text-base ${config?.autoCallEnabled ? 'text-blue-500' : 'text-slate-400'}`}>call</span>
+                      <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Voice Call</span>
+                    </label>
+
+                    {/* WhatsApp — locked if not connected */}
+                    <label className={`flex items-center gap-2.5 rounded-xl border p-3 transition-all ${
+                      !waConnected ? 'border-slate-200 dark:border-white/10 opacity-50 cursor-not-allowed' :
+                      config?.autoWaEnabled ? 'border-green-200 dark:border-green-500/30 bg-green-50/50 dark:bg-green-500/5 cursor-pointer' : 'border-slate-200 dark:border-white/10 cursor-pointer'
+                    }`}>
+                      <input type="checkbox" checked={waConnected ? (config?.autoWaEnabled || false) : false}
+                        onChange={(e) => updateConfig('autoWaEnabled', e.target.checked)}
+                        disabled={!waConnected}
+                        className="rounded border-slate-300 text-primary focus:ring-primary/40" />
+                      <span className={`material-symbols-outlined text-base ${waConnected && config?.autoWaEnabled ? 'text-green-500' : 'text-slate-400'}`}>chat</span>
+                      <div>
+                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300 block">WhatsApp</span>
+                        {!waConnected && <span className="text-[9px] text-amber-600 font-bold">Not connected</span>}
+                      </div>
+                    </label>
+
+                    {/* Email — locked if not connected */}
+                    <label className={`flex items-center gap-2.5 rounded-xl border p-3 transition-all ${
+                      !emailConnected ? 'border-slate-200 dark:border-white/10 opacity-50 cursor-not-allowed' :
+                      config?.autoEmailEnabled ? 'border-purple-200 dark:border-purple-500/30 bg-purple-50/50 dark:bg-purple-500/5 cursor-pointer' : 'border-slate-200 dark:border-white/10 cursor-pointer'
+                    }`}>
+                      <input type="checkbox" checked={emailConnected ? (config?.autoEmailEnabled || false) : false}
+                        onChange={(e) => updateConfig('autoEmailEnabled', e.target.checked)}
+                        disabled={!emailConnected}
+                        className="rounded border-slate-300 text-primary focus:ring-primary/40" />
+                      <span className={`material-symbols-outlined text-base ${emailConnected && config?.autoEmailEnabled ? 'text-purple-500' : 'text-slate-400'}`}>mail</span>
+                      <div>
+                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300 block">Email</span>
+                        {!emailConnected && <span className="text-[9px] text-amber-600 font-bold">Not connected</span>}
+                      </div>
+                    </label>
+                  </div>
+
+                  {/* Connection warnings */}
+                  {(!waConnected || !emailConnected) && (
+                    <div className="mt-3 rounded-lg bg-amber-50 dark:bg-amber-900/10 border border-amber-200/60 dark:border-amber-500/20 px-3 py-2">
+                      <p className="text-[10px] text-amber-700 dark:text-amber-400 font-bold">
+                        {!waConnected && !emailConnected ? 'WhatsApp & Email not connected — ' :
+                         !waConnected ? 'WhatsApp not connected — ' : 'Email not connected — '}
+                        <a href="/integrations" className="underline hover:no-underline">Connect in Integrations</a>
+                      </p>
+                    </div>
+                  )}
                 </div>
-              </label>
-            </div>
-
-            {/* Connection warnings */}
-            {(!waConnected || !emailConnected) && (
-              <div className="mt-3 rounded-lg bg-amber-50 dark:bg-amber-900/10 border border-amber-200/60 dark:border-amber-500/20 px-3 py-2">
-                <p className="text-[10px] text-amber-700 dark:text-amber-400 font-bold">
-                  {!waConnected && !emailConnected ? 'WhatsApp & Email not connected — ' :
-                   !waConnected ? 'WhatsApp not connected — ' : 'Email not connected — '}
-                  <a href="/integrations" className="underline hover:no-underline">Connect in Integrations</a>
-                </p>
               </div>
-            )}
-          </div>
+            );
+          })()}
 
-          {/* AI Voice Prompt */}
-          <div className={`${cardClass} p-5`}>
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-1">AI Voice Prompt</h3>
+          {/* AI Pitch — the one per-project knob. Feeds both the voice call and the
+              WhatsApp AI, so it's named "pitch" rather than "voice prompt". */}
+          <div className={`${cardClass} p-5 transition-opacity ${config?.aiEnabled !== false ? '' : 'opacity-40 pointer-events-none select-none'}`}>
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-1">AI Pitch</h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
-              This prompt is added to the base voice settings for all leads in this project. Describe project USPs, pricing, and what action the AI should push for.
+              What should the AI say about this project? Describe the USPs, pricing, and the action to push for (e.g. book a site visit). Used on calls and WhatsApp.
             </p>
             <textarea
               value={config?.voiceSettings?.aiPrompt || ''}
@@ -487,57 +521,57 @@ const ProjectSettingsPage = () => {
               maxLength={5000}
             />
             <p className="text-[10px] text-slate-400 mt-1 text-right">{(config?.voiceSettings?.aiPrompt || '').length}/5000</p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-2 flex items-start gap-1.5">
+              <span className="material-symbols-outlined text-xs mt-0.5 text-primary">info</span>
+              <span>Voice, greeting, language &amp; sector come from your account defaults (set once in <a href="/call-logs" className="underline hover:no-underline text-primary font-semibold">Voice Calls → Voice Settings</a>). Only this pitch is per-project.</span>
+            </p>
           </div>
 
-          {/* Voice, greeting, language, sector are ACCOUNT-level settings — they're
-              configured once on the Voice Agent page and every project inherits
-              them. We don't duplicate the whole voice studio per project; the only
-              per-project voice knob that matters is the AI Voice Prompt above. */}
-          <div className={`${cardClass} p-4 flex items-start gap-3`}>
-            <span className="material-symbols-outlined text-base text-primary mt-0.5">info</span>
-            <div className="min-w-0">
-              <p className="text-xs font-bold text-slate-700 dark:text-slate-200">
-                Voice, greeting, language &amp; sector come from your account defaults
-              </p>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                This project inherits them automatically. Change the voice, greeting line, language or sector once in{' '}
-                <a href="/call-logs" className="underline hover:no-underline text-primary font-semibold">Voice Calls → Voice Settings</a>{' '}
-                and it applies to every project. Only the <b>AI Voice Prompt</b> above is specific to this project.
-              </p>
-            </div>
-          </div>
-
-          {/* WA Template — only show if connected */}
-          {waConnected && (
-            <div className={`${cardClass} p-5`}>
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-3">WhatsApp Template</h3>
-              <select
-                value={config?.waTemplateName || ''}
-                onChange={(e) => { updateConfig('waTemplateName', e.target.value); updateConfig('waTemplateEnabled', !!e.target.value); }}
-                className={inputClass}
+          {/* Advanced — template pickers tucked away; defaults work for most users. */}
+          {(waConnected || emailConnected) && (
+            <div className={`${cardClass} p-0 overflow-hidden transition-opacity ${config?.aiEnabled !== false ? '' : 'opacity-40 pointer-events-none select-none'}`}>
+              <button
+                type="button"
+                onClick={() => setAdvancedOpen(o => !o)}
+                className="w-full flex items-center justify-between px-5 py-4 text-left"
               >
-                <option value="">— No template (skip WA message) —</option>
-                {Array.isArray(waTemplates) && waTemplates.map(t => (
-                  <option key={t.name || t.id} value={t.name}>{friendlyTemplateName(t.name)} ({t.status || 'APPROVED'})</option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {/* Email Template — only show if connected */}
-          {emailConnected && (
-            <div className={`${cardClass} p-5`}>
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-3">Email Template</h3>
-              <select
-                value={config?.emailTemplateName || ''}
-                onChange={(e) => { updateConfig('emailTemplateName', e.target.value); updateConfig('emailTemplateEnabled', !!e.target.value); }}
-                className={inputClass}
-              >
-                <option value="">— No template (skip email) —</option>
-                {Array.isArray(emailTemplates) && emailTemplates.map(t => (
-                  <option key={t._id} value={t.name}>{t.name || t.subject}</option>
-                ))}
-              </select>
+                <span className="text-sm font-bold text-slate-900 dark:text-white">Advanced — message templates</span>
+                <span className={`material-symbols-outlined text-slate-400 transition-transform ${advancedOpen ? 'rotate-180' : ''}`}>expand_more</span>
+              </button>
+              {advancedOpen && (
+                <div className="px-5 pb-5 space-y-4 border-t border-slate-200/70 dark:border-white/10 pt-4">
+                  {waConnected && (
+                    <div>
+                      <label className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 block">WhatsApp welcome template</label>
+                      <select
+                        value={config?.waTemplateName || ''}
+                        onChange={(e) => { updateConfig('waTemplateName', e.target.value); updateConfig('waTemplateEnabled', !!e.target.value); }}
+                        className={inputClass}
+                      >
+                        <option value="">— Default welcome —</option>
+                        {Array.isArray(waTemplates) && waTemplates.map(t => (
+                          <option key={t.name || t.id} value={t.name}>{friendlyTemplateName(t.name)} ({t.status || 'APPROVED'})</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                  {emailConnected && (
+                    <div>
+                      <label className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 block">Email template</label>
+                      <select
+                        value={config?.emailTemplateName || ''}
+                        onChange={(e) => { updateConfig('emailTemplateName', e.target.value); updateConfig('emailTemplateEnabled', !!e.target.value); }}
+                        className={inputClass}
+                      >
+                        <option value="">— No template (skip email) —</option>
+                        {Array.isArray(emailTemplates) && emailTemplates.map(t => (
+                          <option key={t._id} value={t.name}>{t.name || t.subject}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
