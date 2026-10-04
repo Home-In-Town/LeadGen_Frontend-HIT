@@ -143,6 +143,7 @@ const VoiceSettingsPanel = () => {
   const [agentName, setAgentName] = useState('');
   const [language, setLanguage] = useState('default');
   const [sector, setSector] = useState('general');
+  const [smartfloNumber, setSmartfloNumber] = useState(''); // per-client SmartFlo caller number
 
   // Prompt preview state
   const [promptPreview, setPromptPreview] = useState('');
@@ -262,6 +263,7 @@ const VoiceSettingsPanel = () => {
       setAgentName(data.agentName || '');
       setLanguage(data.language || 'default');
       setSector(data.sector || 'general');
+      setSmartfloNumber(data.smartfloNumber || '');
     } catch (err) {
       console.error('Failed to fetch voice settings:', err);
     } finally {
@@ -294,6 +296,7 @@ const VoiceSettingsPanel = () => {
         agentName,
         language,
         sector,
+        smartfloNumber: smartfloNumber.trim(),
       });
       setSuccessMessage('Settings saved successfully!');
     } catch (err) {
@@ -326,6 +329,7 @@ const VoiceSettingsPanel = () => {
       setAgentName('');
       setLanguage('default');
       setSector('general');
+      setSmartfloNumber('');
       setIsPreviewManuallyEdited(false);
       setSuccessMessage('Settings reset to defaults!');
     } catch (err) {
@@ -784,6 +788,31 @@ const VoiceSettingsPanel = () => {
             <p className="mt-1 text-[11px] font-bold text-red-500">{errors.greetingLine}</p>
           )}
         </div>
+      </div>
+
+      {/* SmartFlo Caller Number — the per-client number outbound AI calls show.
+          Leave blank to use the shared default. */}
+      <div className="rounded-[18px] border border-slate-200/70 dark:border-white/10 bg-white/70 dark:bg-white/[0.04] backdrop-blur-xl p-6 shadow-sm">
+        <div className="mb-3 flex items-center gap-2">
+          <span className="material-symbols-outlined text-primary">dialpad</span>
+          <span className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400">
+            Outbound Caller Number (SmartFlo)
+          </span>
+        </div>
+        <input
+          type="tel"
+          inputMode="numeric"
+          value={smartfloNumber}
+          onChange={(e) => setSmartfloNumber(e.target.value)}
+          placeholder="e.g. 919325700804 (leave blank for the shared default)"
+          className="w-full rounded-[14px] border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.04] px-4 py-3 text-sm font-medium text-slate-900 dark:text-white placeholder:text-slate-400 outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10"
+        />
+        <p className="mt-2 text-[10px] font-bold text-slate-400">
+          The number your AI calls show as caller ID. Must be a SmartFlo number assigned to your account (country code + number, digits only). Blank = shared default.
+        </p>
+        {errors.smartfloNumber && (
+          <p className="mt-1 text-[11px] font-bold text-red-500">{errors.smartfloNumber}</p>
+        )}
       </div>
 
       {/* Document Upload */}
