@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import * as api from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { syncIntegrationStatus } from '../api';
+import { useNotifications } from '../context/NotificationContext';
+import { syncIntegrationStatus, getMeetings } from '../api';
 
 /* -- stat card definitions -- */
 const STATS = [
@@ -41,6 +42,7 @@ const DashboardPage = () => {
   const navigate       = useNavigate();
   const { user }       = useAuth();
   const { theme }      = useTheme();
+  const { socket }     = useNotifications();
   const dark           = theme === 'dark';
 
   const [users,         setUsers]         = useState([]);
@@ -49,6 +51,7 @@ const DashboardPage = () => {
   const [conversations, setConversations] = useState([]);
   const [callLogs,      setCallLogs]      = useState([]);
   const [automations,   setAutomations]   = useState([]);
+  const [meetings,      setMeetings]      = useState([]);
   const [loading,       setLoading]       = useState(true);
   const [manualForm,    setManualForm]    = useState({ name: '', phone: '' });
   const [file,          setFile]          = useState(null);
@@ -66,13 +69,14 @@ const DashboardPage = () => {
     setLoading(true);
     const p = { userId: user.id, role: user.role };
     try {
-      const [uR, lR, cR, chR, clR, aR] = await Promise.allSettled([
+      const [uR, lR, cR, chR, clR, aR, mR] = await Promise.allSettled([
         api.getAllUsers(p),
         api.getAllLeads({ ...p, limit: 5 }),
         api.listCampaigns(p),
         api.getChatConversations(),
         api.getCallLogs(p),
         api.getCreatorAutomations(user.id),
+        getMeetings({ scope: 'upcoming', limit: 20 }),
       ]);
       if (uR.status  === 'fulfilled') setUsers(uR.value.data || []);
       if (lR.status  === 'fulfilled') setLeads(lR.value.data || { leads: [], total: 0 });
@@ -83,11 +87,26 @@ const DashboardPage = () => {
       }
       if (clR.status === 'fulfilled') setCallLogs(clR.value.data?.logs || clR.value.data || []);
       if (aR.status  === 'fulfilled') setAutomations(aR.value.data || []);
+      if (mR.status  === 'fulfilled') setMeetings(mR.value.data?.data || []);
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
   }, [user]);
 
   useEffect(() => { fetchDashboardData(); }, [fetchDashboardData]);
+
+  // Live meetings: prepend new ones the AI books, via the shared notification socket.
+  useEffect(() => {
+    if (!socket) return;
+    const onMeeting = (m) => {
+      if (!m) return;
+      setMeetings(prev => {
+        if (prev.some(x => x._id === m._id)) return prev;
+        return [m, ...prev].sort((a, b) => new Date(a.scheduledAt) - new Date(b.scheduledAt));
+      });
+    };
+    socket.on('meeting_scheduled', onMeeting);
+    return () => { socket.off('meeting_scheduled', onMeeting); };
+  }, [socket]);
 
   const handleSync = useCallback(async () => {
     setSyncing(true);
@@ -311,6 +330,81 @@ const DashboardPage = () => {
           );
         })}
       </div>
+
+      {/* -- UPCOMING MEETINGS ----------------------------- */}
+      {(() => {
+        // Near-time (isSoon) pinned to the top, then by soonest scheduledAt.
+        const sortedMeetings = [...meetings].sort((a, b) => {
+          if (!!a.isSoon !== !!b.isSoon) return a.isSoon ? -1 : 1;
+          return new Date(a.scheduledAt) - new Date(b.scheduledAt);
+        });
+        const fmtMeet = (d) => {
+          try {
+            return new Intl.DateTimeFormat('en-IN', {
+              timeZone: 'Asia/Kolkata', weekday: 'short', day: 'numeric', month: 'short',
+              hour: 'numeric', minute: '2-digit', hour12: true,
+            }).format(new Date(d));
+          } catch { return ''; }
+        };
+        const modeLabel = { site_visit: 'Site visit', office_visit: 'Office visit', call: 'Call', video: 'Video', other: 'Meeting' };
+        return (
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <p className="sec-lbl">Upcoming Meetings</p>
+              {sortedMeetings.length > 0 && (
+                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
+                  style={{ background: dark ? '#062A1C' : '#D1FAE5', color: '#10B981' }}>
+                  {sortedMeetings.length}
+                </span>
+              )}
+            </div>
+            <div className="c overflow-hidden" style={{ background: T.cardBg, borderColor: T.cardBorder }}>
+              {loading ? (
+                <div className="p-5 space-y-4">
+                  {[1, 2].map(n => (
+                    <div key={n} className="flex items-center gap-3">
+                      <div className="skeleton w-9 h-9 rounded-full" />
+                      <div className="flex-1 space-y-2"><div className="skeleton h-3 w-40" /><div className="skeleton h-2 w-28" /></div>
+                    </div>
+                  ))}
+                </div>
+              ) : sortedMeetings.length === 0 ? (
+                <div className="py-10 text-center">
+                  <span className="material-symbols-outlined text-4xl mb-3 block" style={{ color: T.text3 }}>event_available</span>
+                  <p className="text-[13px]" style={{ color: T.text2 }}>No upcoming meetings. The AI will book site visits here automatically.</p>
+                </div>
+              ) : sortedMeetings.map((m, idx) => (
+                <div key={m._id} onClick={() => m.leadId && navigate(`/lead/${m.leadId}`)}
+                  className="flex items-center gap-3 px-5 py-4 cursor-pointer transition-colors"
+                  style={{ borderBottom: idx < sortedMeetings.length - 1 ? `1px solid ${T.divider}` : 'none' }}
+                  onMouseEnter={e => e.currentTarget.style.background = T.rowHover}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                  <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+                    style={{ background: m.isSoon ? (dark ? '#2A1E06' : '#FEF3C7') : (dark ? '#062A1C' : '#D1FAE5') }}>
+                    <span className="material-symbols-outlined text-[20px]"
+                      style={{ color: m.isSoon ? '#F59E0B' : '#10B981', fontVariationSettings: "'FILL' 1" }}>
+                      {m.isSoon ? 'notifications_active' : 'event'}
+                    </span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px] font-semibold truncate" style={{ color: T.text }}>
+                      {m.leadName || m.leadPhone || 'Lead'}
+                      {m.hitProjectName ? <span className="font-normal" style={{ color: T.text3 }}> · {m.hitProjectName}</span> : null}
+                    </p>
+                    <p className="text-[11px] truncate" style={{ color: T.text3 }}>
+                      {(modeLabel[m.mode] || 'Meeting')} · {fmtMeet(m.scheduledAt)}
+                    </p>
+                  </div>
+                  {m.isSoon && (
+                    <span className="text-[9px] font-bold uppercase px-2 py-0.5 rounded-full flex-shrink-0"
+                      style={{ background: dark ? '#2A1E06' : '#FEF3C7', color: '#F59E0B' }}>Soon</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* -- RECENT LEADS ---------------------------------- */}
       <div className="hidden sm:block">

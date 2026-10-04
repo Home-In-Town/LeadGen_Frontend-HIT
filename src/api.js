@@ -110,6 +110,12 @@ export const getNotifications = (userId) => notificationApi.get('', { params: { 
 export const markNotificationRead = (id) => notificationApi.patch(`/${id}/read`);
 export const markAllNotificationsRead = (userId) => notificationApi.patch(`/read-all`, { userId });
 
+// ====== MEETING ENDPOINTS ======
+const meetingApi = createApiInstance('/meetings');
+export const getMeetings = (params = {}) => meetingApi.get('', { params });
+export const updateMeeting = (id, data) => meetingApi.patch(`/${id}`, data);
+export const createMeeting = (data) => meetingApi.post('', data);
+
 // ====== SHARED: PROJECT LIST (used by Google & Facebook integration pages) ======
 const projectsApi = createApiInstance('/projects');
 export const getBuilderProjects = () => projectsApi.get('/list');

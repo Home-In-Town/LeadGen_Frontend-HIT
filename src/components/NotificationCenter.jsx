@@ -60,6 +60,11 @@ const NOTIFICATION_ICONS = {
         iconClass:
             'bg-amber-500/10 text-amber-500 ring-1 ring-amber-500/20',
     },
+    MEETING_SCHEDULED: {
+        icon: 'event_available',
+        iconClass:
+            'bg-emerald-500/10 text-emerald-500 ring-1 ring-emerald-500/20',
+    },
     DEAD_LETTER: {
         icon: 'report',
         iconClass:
