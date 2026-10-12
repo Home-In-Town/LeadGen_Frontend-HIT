@@ -107,7 +107,7 @@ function loadFacebookSdk(appId) {
             try {
                 window.FB.init({
                     appId,
-                    version: 'v20.0',
+                    version: 'v21.0',
                     xfbml: false,
                     cookie: false,
                     // Force the popup flow. Left on, the SDK tries FedCM
@@ -402,7 +402,7 @@ export default function WhatsAppSetupPage() {
                 config_id: SIGNUP_CONFIG_ID,
                 response_type: 'code',
                 override_default_response_type: true,
-                extras: { setup: {}, featureType: '', sessionInfoVersion: '2' }
+                extras: { setup: {}, featureType: '', sessionInfoVersion: '4' }
             });
         } catch (err) {
             console.error('[WhatsAppSetup] FB.login threw', err);
