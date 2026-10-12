@@ -200,7 +200,6 @@ export default function AddProjectPage() {
       {/* Footer */}
       <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-t border-slate-200 dark:border-white/10 px-6 py-4">
         <div className="max-w-3xl mx-auto flex items-center justify-end gap-3">
-          <button onClick={() => navigate('/projects')} className="px-6 py-3 rounded-xl border border-slate-200 dark:border-white/10 text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-all">Cancel</button>
           <button onClick={() => handleSubmit('draft')} disabled={saving} className="px-6 py-3 rounded-xl bg-slate-800 dark:bg-slate-700 text-sm font-bold text-white hover:brightness-110 transition-all disabled:opacity-50">{saving ? 'Saving...' : 'Save Draft'}</button>
           <button onClick={() => handleSubmit('published')} disabled={saving} className="px-6 py-3 rounded-xl bg-primary text-sm font-bold text-white hover:brightness-110 transition-all disabled:opacity-50 shadow-lg shadow-primary/25">{saving ? 'Publishing...' : 'Publish'}</button>
         </div>

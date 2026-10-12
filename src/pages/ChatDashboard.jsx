@@ -98,6 +98,29 @@ export default function ChatDashboard() {
     // State: Contact Info Panel
     // -----------------------------------------------------------------------
     const [infoPanelCollapsed, setInfoPanelCollapsed] = useState(false);
+
+    // -----------------------------------------------------------------------
+    // Helper: Calculate if 24-hour window is open
+    // -----------------------------------------------------------------------
+    const isWindowOpen = useCallback(() => {
+        if (!messages.length) return true; // No messages yet, assume open
+        
+        // Find last message from lead (customer)
+        const lastLeadMessage = messages
+            .slice()
+            .reverse()
+            .find(m => m.sender === 'lead');
+        
+        if (!lastLeadMessage) return true; // No customer message yet, assume open
+        
+        const lastMessageTime = new Date(lastLeadMessage.createdAt);
+        const now = new Date();
+        const hoursSince = (now - lastMessageTime) / (1000 * 60 * 60);
+        
+        return hoursSince < 24;
+    }, [messages]);
+
+    const windowOpen = isWindowOpen();
     const [activeLead, setActiveLead] = useState(null);
 
     // Refs for timers and reconnection logic
@@ -751,6 +774,7 @@ export default function ChatDashboard() {
                             onLoadOlderMessages={handleLoadOlderMessages}
                             hasOlderMessages={msgHasMore}
                             loadingOlder={msgLoading}
+                            windowOpen={windowOpen}
                         />
                     </>
                 ) : (

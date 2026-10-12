@@ -38,6 +38,7 @@ const MessagePanel = ({
   onLoadOlderMessages,
   hasOlderMessages = false,
   loadingOlder = false,
+  windowOpen = true, // NEW: 24-hour window status
 }) => {
   const scrollContainerRef = useRef(null);
   const bottomRef = useRef(null);
@@ -148,12 +149,37 @@ const MessagePanel = ({
         <div ref={bottomRef} />
       </div>
 
+      {/* 24-hour window closed banner */}
+      {!windowOpen && leadId && (
+        <div className="bg-amber-50 dark:bg-amber-900/20 border-t border-amber-200 dark:border-amber-800 px-4 py-3">
+          <div className="flex items-center gap-3">
+            <span className="material-symbols-outlined text-amber-600 dark:text-amber-400 text-xl flex-shrink-0">schedule</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">
+                24-hour reply window closed
+              </p>
+              <p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5">
+                Send an approved template to reopen the conversation
+              </p>
+            </div>
+            <button
+              onClick={onSendTemplate}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded-lg transition-colors flex-shrink-0"
+            >
+              <span className="material-symbols-outlined text-sm">description</span>
+              Send Template
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Message input bar */}
       <MessageInputBar
         onSendMessage={onSendMessage}
         onSendMedia={onSendMedia}
         onOpenTemplatePicker={onSendTemplate}
         disabled={!leadId}
+        windowOpen={windowOpen}
       />
 
       {/* Media viewer overlay */}

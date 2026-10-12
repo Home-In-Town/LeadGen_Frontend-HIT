@@ -29,6 +29,7 @@ export default function MessageInputBar({
   onSendMedia,
   onOpenTemplatePicker,
   disabled = false,
+  windowOpen = true, // NEW: 24-hour window status
 }) {
   const [text, setText] = useState('');
   const [showEmojiPanel, setShowEmojiPanel] = useState(false);
@@ -181,18 +182,25 @@ export default function MessageInputBar({
         aria-hidden="true"
       />
 
-      {/* Text input area */}
+      {/* Text input area - disabled when window closed */}
       <div className="flex-1 min-w-0">
         <textarea
           ref={textareaRef}
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Type a message"
-          disabled={disabled}
+          placeholder={windowOpen ? "Type a message" : "24-hour window closed - use template"}
+          disabled={disabled || !windowOpen}
           rows={1}
-          className="w-full resize-none rounded-lg px-4 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-green-500 dark:focus:ring-green-400 disabled:opacity-50 disabled:cursor-not-allowed text-sm leading-5 max-h-[150px] overflow-y-auto"
+          className={`w-full resize-none rounded-lg px-4 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-green-500 dark:focus:ring-green-400 disabled:opacity-50 disabled:cursor-not-allowed text-sm leading-5 max-h-[150px] overflow-y-auto ${
+            !windowOpen ? 'bg-slate-100 dark:bg-slate-800' : ''
+          }`}
         />
+        {!windowOpen && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <span className="material-symbols-outlined text-slate-400 text-2xl opacity-30">lock</span>
+          </div>
+        )}
       </div>
 
       {/* Template button */}
@@ -209,18 +217,20 @@ export default function MessageInputBar({
         </svg>
       </button>
 
-      {/* Send button */}
-      <button
-        type="button"
-        onClick={handleSend}
-        disabled={disabled || !text.trim()}
-        aria-label="Send message"
-        className="flex items-center justify-center w-10 h-10 rounded-full bg-green-500 hover:bg-green-600 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-300 dark:disabled:bg-slate-600"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M12 5l7 7-7 7" />
-        </svg>
-      </button>
+      {/* Send button - hidden when window closed */}
+      {windowOpen && (
+        <button
+          type="button"
+          onClick={handleSend}
+          disabled={disabled || !text.trim()}
+          aria-label="Send message"
+          className="flex items-center justify-center w-10 h-10 rounded-full bg-green-500 hover:bg-green-600 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-300 dark:disabled:bg-slate-600"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M12 5l7 7-7 7" />
+          </svg>
+        </button>
+      )}
     </div>
   );
 }
