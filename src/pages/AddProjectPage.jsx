@@ -127,7 +127,7 @@ export default function AddProjectPage() {
         </button>
         <div>
           <h1 className="text-xl font-bold text-slate-900 dark:text-white">Add New Project</h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400">Create a project — visible on both OneEmployee and homeintown.in</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400">Create a project — visible on both OneEmployee and homeintown.ai</p>
         </div>
       </div>
 

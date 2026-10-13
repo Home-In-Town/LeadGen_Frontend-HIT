@@ -5,7 +5,7 @@ import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { useNotifications } from './context/NotificationContext';
 import NotificationToastContainer from './components/NotificationToast';
-import { FEATURES } from './config/phase';
+import { FEATURES, IS_PHASE_2 } from './config/phase';
 
 // ── Error Boundary — catches unhandled React errors in any page ───────────────
 // Prevents a single page crash from taking down the entire dashboard.
@@ -77,6 +77,7 @@ const AddProjectPage        = lazy(() => import('./pages/AddProjectPage'));
 const EditProjectPage       = lazy(() => import('./pages/EditProjectPage'));
 const ProjectSettingsPage   = lazy(() => import('./pages/ProjectSettingsPage'));
 const MetaSocialPage        = lazy(() => import('./pages/MetaSocialPage'));
+const SalesPage             = lazy(() => import('./pages/SalesPage'));
 
 function PageLoader() {
     return (
@@ -138,6 +139,9 @@ function App() {
                 <Route path="/terms" element={<TermsOfServicePage />} />
                 {/* Required by Meta for App Review and for going Live. */}
                 <Route path="/data-deletion" element={<DataDeletionPage />} />
+                {/* Sales presentation + plans (oneemployee.in, before login) */}
+                {IS_PHASE_2 && <Route path="/sales" element={<SalesPage />} />}
+                {IS_PHASE_2 && <Route path="/pricing" element={<Navigate to={{ pathname: '/sales', hash: '#pricing' }} replace />} />}
               </Route>
 
               {/* Protected Routes with Dashboard Navbar */}

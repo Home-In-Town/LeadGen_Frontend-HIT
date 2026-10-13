@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
-import { APP_NAME, LOGO_PATH, IS_PHASE_1 } from '../../config/phase';
+import { APP_NAME, LOGO_PATH, IS_PHASE_1, IS_PHASE_2 } from '../../config/phase';
 
 const navLinks = [
   { href: '#features', label: 'Features' },
@@ -48,6 +48,16 @@ const LandingNavbar = ({ onLogin }) => {
 
         {/* Right actions */}
         <div className="flex items-center gap-2 sm:gap-3">
+          {IS_PHASE_2 && (
+            <Link
+              to="/sales"
+              className={`hidden md:inline-flex items-center gap-1.5 text-[14px] font-semibold px-4 py-2 rounded-lg border transition-colors ${isDark ? 'border-[#3A3B3C] text-[#E4E6EB] hover:bg-white/10' : 'border-[#E4E6EB] text-[#1C1E21] hover:bg-[#F0F2F5]'}`}
+            >
+              <span className="material-symbols-outlined text-[18px] text-[#0866FF]" aria-hidden="true">co_present</span>
+              Sales Team
+            </Link>
+          )}
+
           <button
             type="button"
             onClick={toggleTheme}
@@ -100,6 +110,16 @@ const LandingNavbar = ({ onLogin }) => {
               </a>
             ))}
             <div className="mt-3 pt-3 border-t border-[#E4E6EB] dark:border-[#3A3B3C] flex flex-col gap-2">
+              {IS_PHASE_2 && (
+                <Link
+                  to="/sales"
+                  onClick={() => setMobileOpen(false)}
+                  className={`w-full py-3 rounded-lg text-[14px] font-semibold border inline-flex items-center justify-center gap-2 ${isDark ? 'border-[#3A3B3C] text-[#E4E6EB]' : 'border-[#E4E6EB] text-[#1C1E21]'}`}
+                >
+                  <span className="material-symbols-outlined text-[18px] text-[#0866FF]" aria-hidden="true">co_present</span>
+                  Sales Team — plans & pricing
+                </Link>
+              )}
               <button onClick={() => { setMobileOpen(false); onLogin(); }}
                 className="w-full py-3 rounded-lg text-[14px] font-semibold bg-[#0866FF] text-white">
                 Get started free

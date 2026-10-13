@@ -296,10 +296,10 @@ const LandingPage = () => {
                   <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
                 </button>
                 <button
-                  onClick={() => navigate('/login')}
+                  onClick={() => navigate(IS_PHASE_1 ? '/login' : '/sales')}
                   className={`px-7 py-3 rounded-lg text-[15px] font-semibold border transition-colors ${isDark ? 'border-[#3A3B3C] text-[#E4E6EB] hover:bg-[#3A3B3C]' : 'border-[#E4E6EB] text-[#1C1E21] hover:bg-white'}`}
                 >
-                  Talk to sales
+                  {IS_PHASE_1 ? 'Talk to sales' : 'See plans & pricing'}
                 </button>
               </div>
             </div>
@@ -330,7 +330,13 @@ const LandingPage = () => {
                 <p className={`text-[11px] font-semibold uppercase tracking-wider mb-3 ${textMuted}`}>Product</p>
                 <ul className="space-y-2">
                   {['Features', 'Integrations', 'Pricing', 'Changelog'].map((l) => (
-                    <li key={l}><a href="#" className={`text-[13px] transition-colors ${isDark ? 'text-[#B0B3B8] hover:text-white' : 'text-[#65676B] hover:text-[#1C1E21]'}`}>{l}</a></li>
+                    <li key={l}>
+                      {l === 'Pricing' && !IS_PHASE_1 ? (
+                        <Link to="/sales#pricing" className={`text-[13px] transition-colors ${isDark ? 'text-[#B0B3B8] hover:text-white' : 'text-[#65676B] hover:text-[#1C1E21]'}`}>{l}</Link>
+                      ) : (
+                        <a href="#" className={`text-[13px] transition-colors ${isDark ? 'text-[#B0B3B8] hover:text-white' : 'text-[#65676B] hover:text-[#1C1E21]'}`}>{l}</a>
+                      )}
+                    </li>
                   ))}
                 </ul>
               </div>
