@@ -18,21 +18,28 @@ import {
 } from '../api';
 import { KIND_LABEL, friendlyTemplateName as sharedFriendlyName } from '../utils/templateNames';
 
-// The 8 need-based templates. `label` is what the client sees, `need` is the
-// customer question it answers, `when` explains when the system sends it — so the
-// whole nurturing set is self-explanatory in the UI.
+// The 15 need-based templates (one-month ladder). `label` is what the client sees,
+// `need` is the customer question it answers, `when` explains when the system
+// sends it — so the whole nurturing set is self-explanatory in the UI.
 // `label` is sourced from the shared canonical KIND_LABEL so this page matches
 // the Automation + global Templates pages exactly. `need`/`when` are extra
 // context shown only here. Order follows the alternate-day nurturing sequence.
 const TEMPLATE_KIND_META = {
-  voice_guide: { label: KIND_LABEL.voice_guide, need: 'What is this project?',            when: 'Sent first, as soon as the lead comes in' },
-  ecosystem:   { label: KIND_LABEL.ecosystem,   need: 'Schools, hospitals, markets near?',when: 'Auto-sent on day 3 if the lead is silent' },
-  tour_3d:     { label: KIND_LABEL.tour_3d,      need: 'How will it look when ready?',     when: 'Auto-sent on day 5 if the lead is silent' },
-  progress:    { label: KIND_LABEL.progress,     need: 'Will the builder deliver on time?',when: 'Auto-sent on day 7 if the lead is silent' },
-  rera:        { label: KIND_LABEL.rera,         need: 'Is it legally approved?',          when: 'Auto-sent on day 9 if the lead is silent' },
-  emi:         { label: KIND_LABEL.emi,          need: 'Is it affordable? What is the EMI?',when: 'Auto-sent on day 11 if the lead is silent' },
-  inventory:   { label: KIND_LABEL.inventory,    need: 'Which units are still available?', when: 'Auto-sent on day 13 if the lead is silent' },
-  traffic:     { label: KIND_LABEL.traffic,      need: 'How far is it from my office?',    when: 'Auto-sent on day 15 if the lead is silent' },
+  voice_guide:  { label: KIND_LABEL.voice_guide,  need: 'What is this project?',             when: 'Sent first, as soon as the lead comes in' },
+  ecosystem:    { label: KIND_LABEL.ecosystem,    need: 'Schools, hospitals, markets near?', when: 'Auto-sent on day 3 if the lead is silent' },
+  tour_3d:      { label: KIND_LABEL.tour_3d,      need: 'How will it look when ready?',      when: 'Auto-sent on day 5 if the lead is silent' },
+  progress:     { label: KIND_LABEL.progress,     need: 'Will the builder deliver on time?', when: 'Auto-sent on day 7 if the lead is silent' },
+  rera:         { label: KIND_LABEL.rera,         need: 'Is it legally approved?',           when: 'Auto-sent on day 9 if the lead is silent' },
+  emi:          { label: KIND_LABEL.emi,          need: 'Is it affordable? What is the EMI?',when: 'Auto-sent on day 11 if the lead is silent' },
+  inventory:    { label: KIND_LABEL.inventory,    need: 'Which units are still available?',  when: 'Auto-sent on day 13 if the lead is silent' },
+  traffic:      { label: KIND_LABEL.traffic,      need: 'How far is it from my office?',     when: 'Auto-sent on day 15 if the lead is silent' },
+  amenities:    { label: KIND_LABEL.amenities,    need: 'What facilities does it have?',     when: 'Auto-sent on day 17 if the lead is silent' },
+  floor_plan:   { label: KIND_LABEL.floor_plan,   need: 'How big are the rooms? Which layout?', when: 'Auto-sent on day 19 if the lead is silent' },
+  street_view:  { label: KIND_LABEL.street_view,  need: 'What do the road and area look like?', when: 'Auto-sent on day 21 if the lead is silent' },
+  ai_assistant: { label: KIND_LABEL.ai_assistant, need: 'I have a question',                 when: 'Auto-sent on day 23 if the lead is silent' },
+  brochure:     { label: KIND_LABEL.brochure,     need: 'Send me all the details',           when: 'Auto-sent on day 25 if the lead is silent' },
+  site_visit:   { label: KIND_LABEL.site_visit,   need: 'How do I reach the site?',          when: 'Auto-sent on day 27 if the lead is silent' },
+  final_check:  { label: KIND_LABEL.final_check,  need: 'Still looking?',                    when: 'Auto-sent on day 29 — last message of the month' },
 };
 
 // What each {{n}} placeholder is filled with at send time. Shown in the UI so the

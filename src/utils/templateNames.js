@@ -9,22 +9,29 @@
  * name → friendly label, so every surface renders the SAME thing.
  *
  * Labels are numbered to match the nurturing (buyer-journey) order the backend
- * sends them in: Day 1 intro → Day 15 commute.
+ * sends them in: Day 1 intro → Day 29 final check-in (one month, 15 touches).
  */
 
 // Canonical friendly label per template kind (matches backend ProjectTemplate kinds).
 export const KIND_LABEL = {
-  voice_guide: '1. Project Introduction',
-  ecosystem:   '2. Neighbourhood & Map',
-  tour_3d:     '3. 3D Virtual Tour',
-  progress:    '4. Construction Progress',
-  rera:        '5. RERA & Legal Papers',
-  emi:         '6. EMI & Affordability',
-  inventory:   '7. Unit Availability',
-  traffic:     '8. Commute & Distance',
+  voice_guide:  '1. Project Introduction',
+  ecosystem:    '2. Neighbourhood & Map',
+  tour_3d:      '3. 3D Virtual Tour',
+  progress:     '4. Construction Progress',
+  rera:         '5. RERA & Legal Papers',
+  emi:          '6. EMI & Affordability',
+  inventory:    '7. Unit Availability',
+  traffic:      '8. Commute & Distance',
+  amenities:    '9. Amenities',
+  floor_plan:   '10. Floor Plan & Sizes',
+  street_view:  '11. Street View',
+  ai_assistant: '12. Ask the AI',
+  brochure:     '13. Brochure & Full Details',
+  site_visit:   '14. Site Visit & Directions',
+  final_check:  '15. Final Check-in',
 };
 
-// The 8 kinds in canonical order.
+// The 15 kinds in canonical order.
 export const TEMPLATE_KINDS = Object.keys(KIND_LABEL);
 
 /**

@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createHitProject } from '../api';
 import { useNotifications } from '../context/NotificationContext';
+import { ProjectMediaPicker } from '../components/ProjectMediaSection';
+import { EMPTY_STAGED_MEDIA, uploadStagedMedia, stagedMediaCount } from '../utils/projectMedia';
 
 const CATEGORIES = ['Residential', 'Commercial', 'Mixed Use'];
 const PROPERTY_TYPES = {
@@ -32,6 +34,8 @@ export default function AddProjectPage() {
   const { addToast } = useNotifications();
   const [saving, setSaving] = useState(false);
   const [showAllAmenities, setShowAllAmenities] = useState(false);
+  const [media, setMedia] = useState(EMPTY_STAGED_MEDIA);   // files chosen from the device
+  const [uploadStatus, setUploadStatus] = useState('');
 
   const [form, setForm] = useState({
     projectName: '', category: '', propertyType: '', city: '', location: '',
@@ -106,12 +110,25 @@ export default function AddProjectPage() {
         status,
       };
 
-      await createHitProject(payload);
+      const res = await createHitProject(payload);
       addToast(`Project "${form.projectName}" ${status === 'published' ? 'published' : 'saved as draft'}!`, 'success');
+
+      // Photos / video / brochure chosen from the device go up once the project exists.
+      const newProjectId = res.data?.project?._id;
+      if (newProjectId && stagedMediaCount(media) > 0) {
+        const { total, failed } = await uploadStagedMedia(newProjectId, media, ({ done, total: n }) =>
+          setUploadStatus(done < n ? `Uploading media ${done + 1}/${n}…` : ''));
+        if (failed.length) {
+          addToast(`${failed.length} of ${total} files could not be uploaded (${failed[0].error}). Add them from Edit Project.`, 'warning');
+        } else {
+          addToast(`${total} media file${total > 1 ? 's' : ''} uploaded`, 'success');
+        }
+      }
       navigate('/projects');
     } catch (err) {
       addToast(err.response?.data?.error || err.response?.data?.details?.join(', ') || 'Failed to create project', 'error');
     } finally {
+      setUploadStatus('');
       setSaving(false);
     }
   };
@@ -142,6 +159,13 @@ export default function AddProjectPage() {
           <div><label className={labelClass}>Location / Area *</label><input type="text" value={form.location} onChange={e => set('location', e.target.value)} className={inputClass} placeholder="e.g., Andheri West" /></div>
           <div><label className={labelClass}>Google Map Link</label><input type="url" value={form.googleMapLink} onChange={e => set('googleMapLink', e.target.value)} className={inputClass} placeholder="https://maps.google.com/..." /></div>
         </div>
+      </div>
+
+      {/* Photos & Media */}
+      <div className={cardClass}>
+        <h2 className="text-sm font-bold text-slate-900 dark:text-white mb-1">Photos & Media</h2>
+        <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">Choose from your phone or PC — uploaded when you save the project.</p>
+        <ProjectMediaPicker value={media} onChange={setMedia} disabled={saving} />
       </div>
 
       {/* Legal & Status */}
@@ -200,6 +224,7 @@ export default function AddProjectPage() {
       {/* Footer */}
       <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-t border-slate-200 dark:border-white/10 px-6 py-4">
         <div className="max-w-3xl mx-auto flex items-center justify-end gap-3">
+          {uploadStatus && <p className="mr-auto text-xs font-bold text-primary" role="status" aria-live="polite">{uploadStatus}</p>}
           <button onClick={() => handleSubmit('draft')} disabled={saving} className="px-6 py-3 rounded-xl bg-slate-800 dark:bg-slate-700 text-sm font-bold text-white hover:brightness-110 transition-all disabled:opacity-50">{saving ? 'Saving...' : 'Save Draft'}</button>
           <button onClick={() => handleSubmit('published')} disabled={saving} className="px-6 py-3 rounded-xl bg-primary text-sm font-bold text-white hover:brightness-110 transition-all disabled:opacity-50 shadow-lg shadow-primary/25">{saving ? 'Publishing...' : 'Publish'}</button>
         </div>

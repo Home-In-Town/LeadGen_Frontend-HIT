@@ -7,7 +7,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useNotifications } from '../context/NotificationContext';
-import { listWATemplates, createWATemplate, deleteWATemplate } from '../api';
+import { listWATemplates, createWATemplate, deleteWATemplate, uploadWATemplateMedia } from '../api';
 import { describeTemplate } from '../utils/templateNames';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -34,9 +34,17 @@ const STATUS_STYLES = {
 const BLANK_FORM = {
   name: '', category: 'MARKETING', language: 'en',
   headerType: 'NONE', headerText: '', headerMediaUrl: '',
+  headerMediaPreview: '', headerMediaName: '',   // local preview + name of a file uploaded from the device
   bodyText: '', bodyExamples: [],
   footerText: '',
   buttons: [],
+};
+
+// Header media WhatsApp accepts (the backend re-checks the real file type).
+const HEADER_MEDIA = {
+  IMAGE:    { accept: 'image/jpeg,image/png', maxMb: 5,  noun: 'image', hint: 'JPG or PNG, up to 5 MB' },
+  VIDEO:    { accept: 'video/mp4',            maxMb: 15, noun: 'video', hint: 'MP4, up to 15 MB' },
+  DOCUMENT: { accept: 'application/pdf',      maxMb: 15, noun: 'PDF',   hint: 'PDF, up to 15 MB' },
 };
 
 // ─── Shared styles ────────────────────────────────────────────────────────────
@@ -169,10 +177,10 @@ function WAPreview({ form }) {
                 {/* Image header */}
                 {form.headerType === 'IMAGE' && (
                   <div className="relative w-full bg-slate-200" style={{ height: '140px' }}>
-                    {form.headerMediaUrl ? (
+                    {(form.headerMediaPreview || form.headerMediaUrl) ? (
                       <img
-                        src={form.headerMediaUrl}
-                        alt="header"
+                        src={form.headerMediaPreview || form.headerMediaUrl}
+                        alt="Template header"
                         className="w-full h-full object-cover"
                         onError={e => { e.target.parentNode.style.background = '#c8d6df'; e.target.style.display = 'none'; }}
                       />
@@ -187,12 +195,15 @@ function WAPreview({ form }) {
 
                 {/* Video header */}
                 {form.headerType === 'VIDEO' && (
-                  <div className="w-full bg-slate-800 flex items-center justify-center" style={{ height: '120px' }}>
-                    <div className="flex flex-col items-center gap-1">
-                      <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
-                        <span className="material-symbols-outlined text-white text-2xl">play_arrow</span>
+                  <div className="relative w-full bg-slate-800 flex items-center justify-center" style={{ height: '140px' }}>
+                    {form.headerMediaPreview && (
+                      <video src={form.headerMediaPreview} className="absolute inset-0 w-full h-full object-cover" muted playsInline preload="metadata" aria-label="Template header video" />
+                    )}
+                    <div className="relative flex flex-col items-center gap-1">
+                      <div className="w-10 h-10 rounded-full bg-black/40 flex items-center justify-center">
+                        <span className="material-symbols-outlined text-white text-2xl" aria-hidden="true">play_arrow</span>
                       </div>
-                      <p className="text-white text-[9px]">Video</p>
+                      {!form.headerMediaPreview && <p className="text-white text-[9px]">Video</p>}
                     </div>
                   </div>
                 )}
@@ -201,9 +212,9 @@ function WAPreview({ form }) {
                 {form.headerType === 'DOCUMENT' && (
                   <div className="flex items-center gap-2 px-3 py-3 bg-slate-50 border-b border-slate-100">
                     <div className="w-8 h-8 rounded bg-red-500 flex items-center justify-center flex-shrink-0">
-                      <span className="material-symbols-outlined text-white text-sm">description</span>
+                      <span className="material-symbols-outlined text-white text-sm" aria-hidden="true">description</span>
                     </div>
-                    <p className="text-xs font-bold text-slate-700 truncate">Document.pdf</p>
+                    <p className="text-xs font-bold text-slate-700 truncate">{form.headerMediaName || 'Document.pdf'}</p>
                   </div>
                 )}
 
@@ -394,8 +405,65 @@ function CreateModal({ onClose, onCreated }) {
   const { addToast } = useNotifications();
   const [form, setForm] = useState({ ...BLANK_FORM });
   const [creating, setCreating] = useState(false);
+  const [uploadPct, setUploadPct] = useState(null);   // null = idle, 0-100 = uploading
+  const previewRef = useRef('');                      // object URL to revoke
 
   const upd = (field, val) => setForm(f => ({ ...f, [field]: val }));
+
+  // Release the local preview URL when the modal closes.
+  useEffect(() => () => { if (previewRef.current) URL.revokeObjectURL(previewRef.current); }, []);
+
+  const setPreview = (url) => {
+    if (previewRef.current && previewRef.current !== url) URL.revokeObjectURL(previewRef.current);
+    previewRef.current = url;
+  };
+
+  const clearHeaderMedia = () => {
+    setPreview('');
+    setForm(f => ({ ...f, headerMediaUrl: '', headerMediaPreview: '', headerMediaName: '' }));
+  };
+
+  const selectHeaderType = (ht) => {
+    if (ht !== form.headerType) clearHeaderMedia();   // a different format needs a different file
+    upd('headerType', ht);
+  };
+
+  // Upload an image / video / PDF from the phone or PC; the returned public link
+  // becomes the header sample (and is attached to every send of this template).
+  const handleHeaderFile = async (file) => {
+    const spec = HEADER_MEDIA[form.headerType];
+    if (!spec || !file) return;
+    if (file.type && !spec.accept.split(',').includes(file.type)) {
+      addToast(`Please choose a ${spec.hint.split(',')[0]} file for a ${spec.noun} header`, 'warning');
+      return;
+    }
+    if (file.size > spec.maxMb * 1024 * 1024) {
+      addToast(`File is too large — max ${spec.maxMb} MB for a ${spec.noun} header`, 'warning');
+      return;
+    }
+    const preview = URL.createObjectURL(file);
+    setUploadPct(0);
+    try {
+      const res = await uploadWATemplateMedia(file, (ev) => {
+        if (ev.total) setUploadPct(Math.round((ev.loaded / ev.total) * 100));
+      });
+      const data = res.data?.data;
+      if (!data?.url) throw new Error('Upload failed');
+      if (data.format !== form.headerType) {
+        URL.revokeObjectURL(preview);
+        addToast(`That file is a ${data.kind}, but the header is set to ${form.headerType.toLowerCase()}`, 'warning');
+        return;
+      }
+      setPreview(preview);
+      setForm(f => ({ ...f, headerMediaUrl: data.url, headerMediaPreview: preview, headerMediaName: data.filename || file.name }));
+      addToast('Header file uploaded', 'success');
+    } catch (err) {
+      URL.revokeObjectURL(preview);
+      addToast(err.response?.data?.error || 'Upload failed. Please try again.', 'error');
+    } finally {
+      setUploadPct(null);
+    }
+  };
 
   const varIndices = extractVarIndices(form.bodyText);
 
@@ -427,6 +495,11 @@ function CreateModal({ onClose, onCreated }) {
     e.preventDefault();
     if (!form.name.trim()) { addToast('Template name is required', 'warning'); return; }
     if (!form.bodyText.trim()) { addToast('Body text is required', 'warning'); return; }
+    if (uploadPct !== null) { addToast('Please wait for the header file to finish uploading', 'warning'); return; }
+    if (HEADER_MEDIA[form.headerType] && !form.headerMediaUrl.trim()) {
+      addToast(`Upload a ${HEADER_MEDIA[form.headerType].noun} or paste its public URL for the header`, 'warning');
+      return;
+    }
 
     const components = buildComponents(form);
     if (!components.some(c => c.type === 'BODY')) { addToast('Body text is required', 'warning'); return; }
@@ -500,7 +573,7 @@ function CreateModal({ onClose, onCreated }) {
                 </div>
                 <div className="flex gap-2 flex-wrap">
                   {['NONE','TEXT','IMAGE','VIDEO','DOCUMENT'].map(ht => (
-                    <button key={ht} type="button" onClick={() => upd('headerType', ht)}
+                    <button key={ht} type="button" onClick={() => selectHeaderType(ht)} aria-pressed={form.headerType === ht}
                       className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all border ${
                         form.headerType === ht
                           ? 'bg-[#25D366] text-white border-[#25D366]'
@@ -514,11 +587,43 @@ function CreateModal({ onClose, onCreated }) {
                   <input value={form.headerText} onChange={e => upd('headerText', e.target.value)}
                     placeholder="Header text (max 60 chars)" maxLength={60} className={inp} />
                 )}
-                {['IMAGE','VIDEO','DOCUMENT'].includes(form.headerType) && (
-                  <div>
-                    <input value={form.headerMediaUrl} onChange={e => upd('headerMediaUrl', e.target.value)}
-                      placeholder={`Public ${form.headerType.toLowerCase()} URL (https://...)`} className={inp} />
-                    <p className="text-[9px] text-slate-400 mt-1">Must be a publicly accessible URL. Meta uses this as the header example during approval.</p>
+                {HEADER_MEDIA[form.headerType] && (
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <label className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold border transition-all focus-within:ring-2 focus-within:ring-[#25D366]/50 ${
+                        uploadPct !== null
+                          ? 'border-slate-200 text-slate-400 cursor-wait'
+                          : 'border-[#25D366] text-[#128C7E] dark:text-[#25D366] hover:bg-[#25D366]/10 cursor-pointer'
+                      }`}>
+                        <span className="material-symbols-outlined text-base" aria-hidden="true">upload</span>
+                        {uploadPct !== null
+                          ? `Uploading… ${uploadPct}%`
+                          : `${form.headerMediaName ? 'Replace' : 'Upload'} ${HEADER_MEDIA[form.headerType].noun} from phone / PC`}
+                        <input type="file" className="sr-only"
+                          accept={HEADER_MEDIA[form.headerType].accept}
+                          disabled={uploadPct !== null}
+                          onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; handleHeaderFile(f); }} />
+                      </label>
+                      {form.headerMediaName && (
+                        <>
+                          <span className="text-[11px] text-slate-600 dark:text-slate-300 truncate max-w-[220px]" title={form.headerMediaName}>
+                            ✓ {form.headerMediaName}
+                          </span>
+                          <button type="button" onClick={clearHeaderMedia}
+                            className="text-[11px] font-bold text-red-500 hover:underline">Remove</button>
+                        </>
+                      )}
+                    </div>
+                    <p className="text-[9px] text-slate-400">
+                      {HEADER_MEDIA[form.headerType].hint}. Meta reviews it with the template, and it is sent with every message.
+                    </p>
+                    <div>
+                      <label htmlFor="wa-header-url" className="text-[9px] text-slate-400">…or paste a public URL</label>
+                      <input id="wa-header-url"
+                        value={form.headerMediaName ? '' : form.headerMediaUrl}
+                        onChange={e => { setPreview(''); setForm(f => ({ ...f, headerMediaUrl: e.target.value, headerMediaPreview: '', headerMediaName: '' })); }}
+                        placeholder={`https://… (public ${HEADER_MEDIA[form.headerType].noun} link)`} className={`${inp} mt-1`} />
+                    </div>
                   </div>
                 )}
               </div>
@@ -637,7 +742,7 @@ function CreateModal({ onClose, onCreated }) {
 
               {/* Submit */}
               <div className="flex gap-3 pt-1">
-                <button type="submit" disabled={creating}
+                <button type="submit" disabled={creating || uploadPct !== null}
                   className="flex-1 flex items-center justify-center gap-2 rounded-2xl bg-[#25D366] py-3.5 text-[10px] font-black uppercase tracking-[0.25em] text-white hover:bg-[#20b858] disabled:opacity-50 transition-all shadow-md shadow-[#25D366]/20">
                   {creating
                     ? <><span className="animate-spin w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full" /> Submitting…</>

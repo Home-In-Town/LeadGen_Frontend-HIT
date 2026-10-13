@@ -254,6 +254,15 @@ export const registerWAPhoneNumber = (id, pin) => whatsappApi.post(`/phone-numbe
 export const listWATemplates      = ()          => whatsappApi.get('/templates');
 export const createWATemplate     = (data)      => whatsappApi.post('/templates', data);
 export const deleteWATemplate     = (name)      => whatsappApi.delete(`/templates/${name}`);
+// Header image / video / PDF from the owner's phone or PC → { url, format, kind, filename, size }
+export const uploadWATemplateMedia = (file, onUploadProgress) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return whatsappApi.post('/templates/media', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        onUploadProgress,
+    });
+};
 
 
 // ====== PROFILE ENDPOINTS ======
@@ -301,6 +310,19 @@ export const deleteProjectTemplate     = (hitProjectId, kind)      => projectApi
 // ====== HIT PROJECT CRUD (create, update, delete) ======
 export const createHitProject         = (data) => projectApi.post('/create', data);
 export const updateHitProject         = (hitProjectId, data) => projectApi.put(`/${hitProjectId}/update`, data);
+// Project photos / layout / video / brochure from the owner's device.
+// type: 'cover' | 'gallery' | 'layout' | 'video' | 'brochure' → { fileUrl, fileKey }
+export const uploadProjectMedia = (hitProjectId, type, file, onUploadProgress) => {
+    const formData = new FormData();
+    formData.append('type', type);
+    formData.append('file', file);
+    return projectApi.post(`/${hitProjectId}/media`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        onUploadProgress,
+    });
+};
+export const deleteProjectMedia = (hitProjectId, type, key) =>
+    projectApi.delete(`/${hitProjectId}/media`, { data: { type, key } });
 export const deleteHitProject         = (hitProjectId) => projectApi.delete(`/${hitProjectId}/delete`);
 export const listHitProjects          = ()     => ownersApi.get('/projects');
 

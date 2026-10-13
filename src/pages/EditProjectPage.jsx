@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getProjectDetails, updateHitProject } from '../api';
 import { useNotifications } from '../context/NotificationContext';
+import { ProjectMediaManager } from '../components/ProjectMediaSection';
 
 const CATEGORIES = ['Residential', 'Commercial', 'Mixed Use'];
 const PROPERTY_TYPES = {
@@ -34,6 +35,7 @@ export default function EditProjectPage() {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showAllAmenities, setShowAllAmenities] = useState(false);
+  const [media, setMedia] = useState(null);   // project.media as loaded (cover, gallery, layout, videos, brochure)
 
   const [form, setForm] = useState({
     projectName: '', category: '', propertyType: '', city: '', location: '',
@@ -80,6 +82,7 @@ export default function EditProjectPage() {
           callNumber: p.cta?.callNumber || '',
           status: p.status || 'draft',
         });
+        setMedia(p.media || {});
       } catch (err) {
         addToast(err.response?.data?.error || 'Failed to load project', 'error');
         navigate('/projects');
@@ -185,6 +188,13 @@ export default function EditProjectPage() {
           <div><label className={labelClass}>Location *</label><input type="text" value={form.location} onChange={e => set('location', e.target.value)} className={inputClass} /></div>
           <div><label className={labelClass}>Google Map Link *</label><input type="url" value={form.googleMapLink} onChange={e => set('googleMapLink', e.target.value)} className={inputClass} /></div>
         </div>
+      </div>
+
+      {/* Photos & Media */}
+      <div className={cardClass}>
+        <h2 className="text-sm font-bold text-slate-900 dark:text-white mb-1">Photos & Media</h2>
+        <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">Upload from your phone or PC.</p>
+        <ProjectMediaManager hitProjectId={hitProjectId} media={media} />
       </div>
 
       {/* Legal */}
