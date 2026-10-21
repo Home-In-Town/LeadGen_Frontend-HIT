@@ -27,7 +27,7 @@ import { KIND_LABEL, friendlyTemplateName as sharedFriendlyName } from '../utils
 const TEMPLATE_KIND_META = {
   voice_guide:  { label: KIND_LABEL.voice_guide,  need: 'What is this project?',             when: 'Sent first, as soon as the lead comes in' },
   ecosystem:    { label: KIND_LABEL.ecosystem,    need: 'Schools, hospitals, markets near?', when: 'Auto-sent on day 3 if the lead is silent' },
-  tour_3d:      { label: KIND_LABEL.tour_3d,      need: 'How will it look when ready?',      when: 'Auto-sent on day 5 if the lead is silent' },
+  tour_3d:      { label: KIND_LABEL.tour_3d,      need: 'How does the site look?',           when: 'Auto-sent on day 5 if the lead is silent' },
   progress:     { label: KIND_LABEL.progress,     need: 'Will the builder deliver on time?', when: 'Auto-sent on day 7 if the lead is silent' },
   rera:         { label: KIND_LABEL.rera,         need: 'Is it legally approved?',           when: 'Auto-sent on day 9 if the lead is silent' },
   emi:          { label: KIND_LABEL.emi,          need: 'Is it affordable? What is the EMI?',when: 'Auto-sent on day 11 if the lead is silent' },
@@ -699,7 +699,7 @@ const ProjectSettingsPage = () => {
                 ))}
               </div>
               <p className="mt-1.5 text-[10px] text-slate-500 dark:text-slate-400">
-                Previews below show sample values. The project cover image is used as each template's header photo.
+                Previews below show sample values. All 15 messages read as one series (a checklist the buyer goes through) and every one carries a project photo as its header — photos rotate so back-to-back messages look different. Use JPG/PNG photos; a default image is used when a project has none.
               </p>
             </div>
 
@@ -752,8 +752,8 @@ const ProjectSettingsPage = () => {
                         <span className="material-symbols-outlined text-base text-slate-300 dark:text-slate-600 block">image_not_supported</span>
                         <span className="text-[10px] text-slate-400 block mt-0.5">
                           {notCreatedCard
-                            ? 'Project cover image will be used as the header'
-                            : 'Sent as text-only — image could not be attached. Press Retry to add it.'}
+                            ? 'A project photo will be used as the header'
+                            : 'Older text-only version — it is replaced with an image version automatically.'}
                         </span>
                       </div>
                     )}
@@ -772,6 +772,13 @@ const ProjectSettingsPage = () => {
                           </span>
                         ))}
                       </div>
+                    )}
+
+                    {t.liveTemplateName && t.status !== 'approved' && (
+                      <p className="mt-2 text-[10px] flex items-start gap-1 text-emerald-700 dark:text-emerald-400">
+                        <span className="material-symbols-outlined text-xs mt-0.5">sync</span>
+                        <span>Updated version is with Meta. Leads keep getting the previous approved version (<span className="font-mono">{t.liveTemplateName}</span>) until this one is approved.</span>
+                      </p>
                     )}
 
                     {(t.status === 'rejected' || t.status === 'missing') && t.rejectedReason && (

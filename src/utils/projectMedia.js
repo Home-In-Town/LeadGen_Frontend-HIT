@@ -8,9 +8,9 @@ const MB = 1024 * 1024;
 const IMAGES = 'image/jpeg,image/png,image/webp';
 
 export const MEDIA_SLOTS = [
-  { type: 'cover',    kind: 'image',    label: 'Cover photo',         accept: IMAGES, multiple: false, maxMb: 10, hint: 'Main photo — also the default WhatsApp template image. JPG/PNG/WebP, up to 10 MB.' },
-  { type: 'gallery',  kind: 'image',    label: 'Gallery photos',      accept: IMAGES, multiple: true,  maxMb: 10, hint: 'Site, sample flat, amenities. The first four also head WhatsApp templates.' },
-  { type: 'layout',   kind: 'image',    label: 'Layout / floor plan', accept: IMAGES, multiple: false, maxMb: 10, hint: 'Master layout or floor plan image.' },
+  { type: 'cover',    kind: 'image',    label: 'Cover photo',         accept: IMAGES, multiple: false, maxMb: 10, hint: 'Main photo — heads the first WhatsApp message. JPG/PNG/WebP, up to 10 MB (WhatsApp headers need JPG/PNG up to 5 MB).' },
+  { type: 'gallery',  kind: 'image',    label: 'Gallery photos',      accept: IMAGES, multiple: true,  maxMb: 10, hint: 'Real site, sample flat, amenities. All photos rotate as WhatsApp template headers — JPG/PNG up to 5 MB work there.' },
+  { type: 'layout',   kind: 'image',    label: 'Layout / floor plan', accept: IMAGES, multiple: false, maxMb: 10, hint: 'Master layout or floor plan image — heads the Size & Layout WhatsApp message.' },
   { type: 'video',    kind: 'video',    label: 'Videos',              accept: 'video/mp4,video/webm', multiple: true, maxMb: 30, hint: 'MP4 or WebM, up to 30 MB each. iPhone .MOV must be exported as MP4.' },
   { type: 'brochure', kind: 'document', label: 'Brochure',            accept: 'application/pdf', multiple: false, maxMb: 20, hint: 'PDF, up to 20 MB.' },
 ];
