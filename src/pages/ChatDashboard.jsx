@@ -528,10 +528,18 @@ export default function ChatDashboard() {
             if (!payload || !payload.wamid) return;
             setMessages((prev) =>
                 prev.map((m) =>
-                    m.wamid === payload.wamid
+                    // A send that timed out (202 unconfirmed) has no wamid yet: the
+                    // webhook confirmation names its ChatMessage _id (messageId).
+                    m.wamid === payload.wamid || (payload.messageId && !m.wamid && m._id === payload.messageId)
                         // Carry deliveryError too, so a failed send explains itself
                         // instead of showing only a red tick.
-                        ? { ...m, deliveryStatus: payload.deliveryStatus, deliveryError: payload.deliveryError || m.deliveryError }
+                        ? {
+                            ...m,
+                            wamid: m.wamid || payload.wamid,
+                            deliveryStatus: payload.deliveryStatus,
+                            deliveryError: payload.deliveryError || m.deliveryError,
+                            ...(payload.messageId ? { sendState: null } : {}),
+                        }
                         : m
                 )
             );
