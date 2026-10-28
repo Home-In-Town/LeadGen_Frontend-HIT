@@ -11,7 +11,8 @@
  * - Template dropdown fetching from GET /api/whatsapp/templates
  * - Submit disabled until both phone and template are selected (Property 8)
  * - Handles Meta error 131030 (test number restriction) with WABA dashboard link
- * - Handles 24-hour window error (131026) — suggests template message
+ * - Handles undeliverable number (131026) — "number can't receive WhatsApp"
+ * - Handles 24-hour window error (131047) — suggests template message
  * - Loading state while sending
  * - Close on backdrop click or Escape key
  *
@@ -138,12 +139,18 @@ const NewChatDialog = ({ open, onClose, onSuccess }) => {
 
             if (!response.ok) {
                 // Handle specific Meta error codes
-                if (data.errorCode === 131030) {
+                const errorCode = Number(data.errorCode);
+                if (errorCode === 131030) {
                     setError({
                         type: 'test_number',
                         message: data.error || 'Recipient is not a verified test number.',
                     });
-                } else if (data.errorCode === 131026) {
+                } else if (errorCode === 131026) {
+                    setError({
+                        type: 'undeliverable',
+                        message: data.error || 'This number is not on WhatsApp or cannot receive messages.',
+                    });
+                } else if (errorCode === 131047) {
                     setError({
                         type: '24hr_window',
                         message: data.error || 'The 24-hour messaging window has expired. A template message is required to re-initiate conversation.',
@@ -291,7 +298,7 @@ const NewChatDialog = ({ open, onClose, onSuccess }) => {
                     {/* Error Display */}
                     {error && (
                         <div className={`p-3 rounded-lg text-sm ${
-                            error.type === 'test_number'
+                            error.type === 'test_number' || error.type === 'undeliverable'
                                 ? 'bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 text-amber-800 dark:text-amber-200'
                                 : error.type === '24hr_window'
                                 ? 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 text-blue-800 dark:text-blue-200'
@@ -299,6 +306,7 @@ const NewChatDialog = ({ open, onClose, onSuccess }) => {
                         }`}>
                             <p className="font-medium mb-1">
                                 {error.type === 'test_number' && '⚠️ Test Number Restriction'}
+                                {error.type === 'undeliverable' && "📵 Number can't receive WhatsApp"}
                                 {error.type === '24hr_window' && 'ℹ️ 24-Hour Window Expired'}
                                 {error.type === 'generic' && '❌ Error'}
                             </p>
@@ -312,6 +320,11 @@ const NewChatDialog = ({ open, onClose, onSuccess }) => {
                                 >
                                     Open WABA Dashboard → Manage phone number list
                                 </a>
+                            )}
+                            {error.type === 'undeliverable' && (
+                                <p className="mt-1 text-xs opacity-80">
+                                    Check the number and country code. The person needs an active WhatsApp account on this number.
+                                </p>
                             )}
                             {error.type === '24hr_window' && (
                                 <p className="mt-1 text-xs opacity-80">
