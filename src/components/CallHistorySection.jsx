@@ -105,34 +105,43 @@ const TranscriptView = ({ transcript }) => {
 
 // ── main component ────────────────────────────────────────────────────────────
 
-// highlightCallId (optional): when passed (null allowed), the matching call is
-// expanded after loading — by callId, else by highlightCallNumber, else the
-// most recent call. Used by the Automation page's "View call result".
+// highlightCallId / highlightCallNumber (optional): when either prop is passed
+// (null allowed), the Automation page's "View call result" asks for one call.
+// That call is expanded after loading (by callId, else by callNumber). When
+// no entry matches, a notice says so; another call is never opened instead.
 const CallHistorySection = ({ leadId, highlightCallId, highlightCallNumber }) => {
   const [calls, setCalls]         = useState([]);
   const [loading, setLoading]     = useState(true);
   const [error, setError]         = useState(null);
   const [expandedCall, setExpanded] = useState(null);
   const [activeTab, setActiveTab] = useState({}); // { [callKey]: 'transcript' | 'summary' }
+  const [highlightMissing, setHighlightMissing] = useState(false);
+
+  const wantsHighlight = highlightCallId !== undefined || highlightCallNumber !== undefined;
 
   useEffect(() => {
     if (!leadId) return;
     setLoading(true);
     setError(null);
+    setHighlightMissing(false);
     getLeadCallHistory(leadId)
       .then(res => {
         const list = res.data?.data || [];
         setCalls(list);
-        if (highlightCallId !== undefined && list.length > 0) {
+        if (wantsHighlight) {
           let idx = highlightCallId ? list.findIndex(c => c.callId === highlightCallId) : -1;
           if (idx < 0 && highlightCallNumber) idx = list.findIndex(c => c.callNumber === highlightCallNumber);
-          if (idx < 0) idx = list.length - 1; // chronological list → most recent call
-          setExpanded(list[idx].callId || idx);
+          if (idx < 0) {
+            setExpanded(null);
+            setHighlightMissing(true);
+          } else {
+            setExpanded(list[idx].callId || idx);
+          }
         }
       })
       .catch(() => setError('Failed to load call history'))
       .finally(() => setLoading(false));
-  }, [leadId, highlightCallId, highlightCallNumber]);
+  }, [leadId, highlightCallId, highlightCallNumber, wantsHighlight]);
 
   const getTab = (key) => activeTab[key] || 'summary';
   const setTab = (key, tab) => setActiveTab(prev => ({ ...prev, [key]: tab }));
@@ -175,6 +184,15 @@ const CallHistorySection = ({ leadId, highlightCallId, highlightCallNumber }) =>
           </p>
         </div>
       </div>
+
+      {highlightMissing && (
+        <p
+          role="status"
+          className="mb-4 rounded-[12px] bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:bg-amber-500/10 dark:text-amber-300"
+        >
+          This call&apos;s result is not in the call history yet.
+        </p>
+      )}
 
       {/* Empty state */}
       {calls.length === 0 ? (

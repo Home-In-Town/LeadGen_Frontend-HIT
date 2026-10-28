@@ -9,6 +9,11 @@ import {
   describeLadder,
   inCallWindowIST,
   newIdempotencyKey,
+  formatIST,
+  formatISTTime,
+  istDateKey,
+  dayKey,
+  istDateTime,
   TONE_CLASSES,
 } from '../utils/automationStatus';
 import CallHistorySection from '../components/CallHistorySection';
@@ -185,8 +190,12 @@ const LeadAutomationPage = () => {
       if (!dateObj) return [];
 
       const target = dateObj.toDateString();
+      const targetKey = dayKey(dateObj);
 
+      // AI calls are planned in IST, so they sit on their IST day; WhatsApp
+      // rows keep the browser's day.
       return automations.filter((auto) => {
+        if (auto.channel === 'voice') return istDateKey(auto.scheduledAt) === targetKey;
         const autoDate = new Date(auto.scheduledAt);
         return autoDate.toDateString() === target;
       });
@@ -497,9 +506,16 @@ const LeadAutomationPage = () => {
     const isVoice = newAutomation.mode === 'voice';
     const errorTitle = isVoice ? 'Call not scheduled' : 'Not scheduled';
 
-    const [hours, minutes] = String(newAutomation.time || '').split(':');
-    const scheduledAt = new Date(selectedDate);
-    scheduledAt.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
+    // AI call times are IST wall-clock times whatever the browser timezone;
+    // WhatsApp times stay in the browser's time.
+    let scheduledAt;
+    if (isVoice) {
+      scheduledAt = istDateTime(selectedDate, newAutomation.time);
+    } else {
+      const [hours, minutes] = String(newAutomation.time || '').split(':');
+      scheduledAt = new Date(selectedDate);
+      scheduledAt.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
+    }
 
     if (!Number.isFinite(scheduledAt.getTime())) {
       failSchedule('Pick a time.', errorTitle);
@@ -1295,7 +1311,7 @@ const LeadAutomationPage = () => {
 
           {newAutomation.mode === 'voice' && (
             <p id="automation-call-hint" className="mt-2 text-xs text-slate-600 dark:text-slate-300">
-              Calls run 9:00 AM – 9:00 PM IST
+              Time is India time (IST). Calls run 9:00 AM – 9:00 PM IST
             </p>
           )}
 
@@ -1435,7 +1451,9 @@ const LeadAutomationPage = () => {
                       </div>
 
                       <div className="mt-1 text-[10px] font-black uppercase tracking-[0.25em] text-slate-500">
-                        {formatTime(auto.scheduledAt)}
+                        {d.channel === 'voice'
+                          ? `${formatISTTime(auto.scheduledAt)} IST`
+                          : formatTime(auto.scheduledAt)}
                         {duration ? ` · ${duration}` : ''}
                       </div>
 
@@ -1553,7 +1571,7 @@ const LeadAutomationPage = () => {
                 </h3>
 
                 <p className="mt-1 text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">
-                  {new Date(callResultRow.dialedAt || callResultRow.scheduledAt).toLocaleString()}
+                  {`${formatIST(callResultRow.dialedAt || callResultRow.scheduledAt)} IST`}
                 </p>
               </div>
 

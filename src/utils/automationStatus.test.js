@@ -5,6 +5,10 @@ import {
   inCallWindowIST,
   istMinutes,
   formatIST,
+  formatISTTime,
+  istDateKey,
+  dayKey,
+  istDateTime,
   stopLabel,
   newIdempotencyKey,
   STOP_LABELS,
@@ -110,7 +114,7 @@ describe('describeAutomation — AI call rows', () => {
     ['failed', 'Call failed', 'red', false, false],
     ['cancelled', 'Cancelled', 'slate', false, false],
   ])('%s → "%s"', (status, label, tone, canCancel, hasResult) => {
-    const d = describeAutomation(voice(status));
+    const d = describeAutomation(voice(status, { hasCallResult: true }));
     expect(d.channel).toBe('voice');
     expect(d.title).toBe('AI call');
     expect(d.statusLabel).toBe(label);
@@ -124,6 +128,20 @@ describe('describeAutomation — AI call rows', () => {
   it('reason is passed through', () => {
     const d = describeAutomation(voice('failed', { reason: 'All lines are busy' }));
     expect(d.reason).toBe('All lines are busy');
+  });
+
+  it('call result link only for a finished call that is in the call history', () => {
+    // Server flag wins.
+    expect(describeAutomation(voice('no-answer', { hasCallResult: false, callId: 'c1' })).hasCallResult).toBe(false);
+    expect(describeAutomation(voice('no-answer', { hasCallResult: true, callNumber: 2 })).hasCallResult).toBe(true);
+    expect(describeAutomation(voice('completed', { hasCallResult: true })).hasCallResult).toBe(true);
+    // Older backend without the flag: a call id / number is needed.
+    expect(describeAutomation(voice('no-answer')).hasCallResult).toBe(false);
+    expect(describeAutomation(voice('no-answer', { callId: 'c1' })).hasCallResult).toBe(true);
+    expect(describeAutomation(voice('completed', { callNumber: 3 })).hasCallResult).toBe(true);
+    // Not finished → never.
+    expect(describeAutomation(voice('failed', { hasCallResult: true })).hasCallResult).toBe(false);
+    expect(describeAutomation(voice('dialing', { callId: 'c1' })).hasCallResult).toBe(false);
   });
 });
 
@@ -195,6 +213,26 @@ describe('inCallWindowIST', () => {
     expect(istMinutes(ist(9, 30))).toBe(570);
     expect(formatIST(ist(10, 12, 28))).toBe('Wed 28 Oct, 10:12');
     expect(formatIST('bad')).toBe('');
+  });
+
+  it('formatISTTime / istDateKey', () => {
+    expect(formatISTTime(ist(9, 5))).toBe('09:05');
+    expect(formatISTTime('2026-10-27T18:45:00Z')).toBe('00:15');
+    expect(formatISTTime('bad')).toBe('');
+    // 18:45 UTC on the 27th is already the 28th in IST.
+    expect(istDateKey('2026-10-27T18:45:00Z')).toBe('2026-10-28');
+    expect(istDateKey(ist(23, 59, 27))).toBe('2026-10-27');
+    expect(istDateKey(undefined)).toBe('');
+  });
+
+  it('dayKey / istDateTime use the cell day and IST wall time', () => {
+    const cell = new Date(2026, 9, 28); // local midnight, whatever the timezone
+    expect(dayKey(cell)).toBe('2026-10-28');
+    expect(istDateTime(cell, '10:30').toISOString()).toBe('2026-10-28T05:00:00.000Z');
+    expect(istDateTime(cell, '00:00').toISOString()).toBe('2026-10-27T18:30:00.000Z');
+    expect(Number.isNaN(istDateTime(cell, '').getTime())).toBe(true);
+    expect(Number.isNaN(istDateTime(cell, '25:00').getTime())).toBe(true);
+    expect(Number.isNaN(istDateTime(null, '10:00').getTime())).toBe(true);
   });
 });
 

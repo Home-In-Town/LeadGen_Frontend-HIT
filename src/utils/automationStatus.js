@@ -4,7 +4,7 @@
  * chips, the history list and the header.
  *
  * Input rows come from GET /api/lead-automation/lead/:leadId/overview:
- *   LeadAutomation row + { displayStatus, reason, retryable }
+ *   LeadAutomation row + { displayStatus, reason, retryable, hasCallResult }
  *   WhatsApp displayStatus: scheduled | retrying | sending | sent | delivered |
  *                           read | not_delivered | failed | skipped | stopped
  *   Voice (channel 'voice') displayStatus: scheduled | dialing | completed |
@@ -101,6 +101,11 @@ export function describeAutomation(row, kindLabelFn = defaultKindLabel, projectN
 
   if (isVoice) {
     const s = VOICE_STATUS[status] || { label: humanize(status), tone: 'slate' };
+    // "View call result" only for a finished call whose own entry is in the
+    // lead's call history: the overview's hasCallResult flag, else (older
+    // backend) a call id / number on the row. Never another call of the lead.
+    const finished = status === 'completed' || status === 'no-answer';
+    const linked = typeof r.hasCallResult === 'boolean' ? r.hasCallResult : !!(r.callId || r.callNumber);
     return {
       channel: 'voice',
       title: 'AI call',
@@ -110,7 +115,7 @@ export function describeAutomation(row, kindLabelFn = defaultKindLabel, projectN
       canRetry: false,
       canCancelCall: status === 'scheduled',
       canDelete: false,
-      hasCallResult: status === 'completed' || status === 'no-answer',
+      hasCallResult: finished && linked,
     };
   }
 
@@ -162,6 +167,42 @@ export function formatIST(date) {
   const hh = String(d.getUTCHours()).padStart(2, '0');
   const mm = String(d.getUTCMinutes()).padStart(2, '0');
   return `${WEEKDAYS[d.getUTCDay()]} ${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}, ${hh}:${mm}`;
+}
+
+/** "10:12" (24 h) in IST ('' for an invalid date). */
+export function formatISTTime(date) {
+  const m = istMinutes(date);
+  if (!Number.isFinite(m)) return '';
+  return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+}
+
+/** "2026-10-28": the IST calendar day of a date ('' for an invalid date). */
+export function istDateKey(date) {
+  const t = date instanceof Date ? date.getTime() : new Date(date).getTime();
+  if (!Number.isFinite(t)) return '';
+  const d = new Date(t + IST_OFFSET_MIN * 60000);
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
+}
+
+/** "2026-10-28": a calendar cell's own day (its local year / month / date). */
+export function dayKey(day) {
+  if (!(day instanceof Date) || !Number.isFinite(day.getTime())) return '';
+  return `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`;
+}
+
+/**
+ * The instant of an IST wall-clock time ("HH:MM") on a calendar cell's day,
+ * whatever the browser timezone. Invalid Date for a bad day or time.
+ */
+export function istDateTime(day, hhmm) {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(String(hhmm || ''));
+  if (!m || !dayKey(day)) return new Date(NaN);
+  const hours = Number(m[1]);
+  const minutes = Number(m[2]);
+  if (hours > 23 || minutes > 59) return new Date(NaN);
+  return new Date(
+    Date.UTC(day.getFullYear(), day.getMonth(), day.getDate(), hours, minutes) - IST_OFFSET_MIN * 60000,
+  );
 }
 
 /**
@@ -221,5 +262,9 @@ export default {
   inCallWindowIST,
   istMinutes,
   formatIST,
+  formatISTTime,
+  istDateKey,
+  dayKey,
+  istDateTime,
   newIdempotencyKey,
 };
