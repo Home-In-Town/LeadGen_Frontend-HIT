@@ -68,4 +68,18 @@ export function friendlyTemplateName(rawName) {
   return describeTemplate(rawName).label;
 }
 
-export default { KIND_LABEL, TEMPLATE_KINDS, describeTemplate, friendlyTemplateName };
+/**
+ * "<Project> · <n. Kind>" for a per-project template from GET /api/whatsapp/templates
+ * (uses the backend `project` annotation, else parses the raw name); null for
+ * templates that aren't per-project.
+ */
+export function projectTemplateLabel(template) {
+  const parsed = describeTemplate(template?.name);
+  const kind = template?.project?.kind || parsed.kind;
+  if (!kind || !KIND_LABEL[kind]) return null;
+  if (!template?.project && !/^proj_/i.test(String(template?.name || ''))) return null;
+  const projectName = template?.project?.projectName || '';
+  return projectName ? `${projectName} · ${KIND_LABEL[kind]}` : KIND_LABEL[kind];
+}
+
+export default { KIND_LABEL, TEMPLATE_KINDS, describeTemplate, friendlyTemplateName, projectTemplateLabel };

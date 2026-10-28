@@ -21,6 +21,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { listWATemplates } from '../../api';
 import { API_ORIGIN } from '../../utils/env';
+import { projectTemplateLabel } from '../../utils/templateNames';
 
 const COUNTRY_CODES = [
     { code: '91', label: '🇮🇳 +91', country: 'India' },
@@ -58,10 +59,11 @@ const NewChatDialog = ({ open, onClose, onSuccess }) => {
             try {
                 const res = await listWATemplates();
                 const allTemplates = res.data?.data || res.data || [];
-                // Only show APPROVED templates
-                const approved = allTemplates.filter(t => t.status === 'APPROVED');
+                // Only show APPROVED templates; hide old versions of project
+                // templates (marked project.version === 'stale' by the backend).
+                const approved = allTemplates.filter(t => t.status === 'APPROVED' && t.project?.version !== 'stale');
                 setTemplates(approved);
-            } catch (err) {
+            } catch {
                 setTemplatesError('Unable to load templates. Please try again.');
                 setTemplates([]);
             } finally {
@@ -162,7 +164,7 @@ const NewChatDialog = ({ open, onClose, onSuccess }) => {
                 onSuccess(leadId);
             }
             onClose();
-        } catch (err) {
+        } catch {
             setError({
                 type: 'generic',
                 message: 'Network error. Please check your connection and try again.',
@@ -276,6 +278,7 @@ const NewChatDialog = ({ open, onClose, onSuccess }) => {
                                 {templates.map((template) => (
                                     <option key={template.id || template.name} value={template.name}>
                                         {template.name} — {template.category} ({template.language})
+                                        {projectTemplateLabel(template) ? ` · ${projectTemplateLabel(template)}` : ''}
                                     </option>
                                 ))}
                             </select>
