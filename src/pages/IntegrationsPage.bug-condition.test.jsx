@@ -49,6 +49,12 @@ vi.mock('../context/NotificationContext', () => ({
   }),
 }));
 
+// The page calls useNavigate(); these tests render it without a Router.
+vi.mock('react-router-dom', async (importOriginal) => ({
+  ...(await importOriginal()),
+  useNavigate: () => vi.fn(),
+}));
+
 import IntegrationsPage from './IntegrationsPage';
 
 describe('Bug Condition Exploration: Aguken Voice Tab', () => {
