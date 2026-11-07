@@ -395,12 +395,25 @@ export default function ChatDashboard() {
                         return prev.map((m) => (m._id === tempId ? savedMsg : m));
                     });
                 }
+                // 202 SEND_UNCONFIRMED: Meta didn't answer in time; the message may
+                // still arrive. Tell the owner not to re-send straight away.
+                if (res.data?.unconfirmed && typeof addToast === 'function') {
+                    addToast('WhatsApp has not confirmed yet. Check in a minute before sending again.', 'info', 'Sending…');
+                }
                 fetchConversations();
             } catch (err) {
-                // Roll back the optimistic message and surface the reason.
-                setMessages((prev) => prev.filter((m) => m._id !== tempId));
-                const msg = err?.response?.data?.error || 'Failed to send template';
-                if (typeof addToast === 'function') addToast(msg, 'error');
+                // Keep the bubble as failed with the server's readable reason.
+                const data = err?.response?.data || {};
+                const error = data.error || (err?.response
+                    ? 'Failed to send template'
+                    : 'Could not reach the server. Check your connection and try again.');
+                const errorCode = data.errorCode;
+                setMessages((prev) => prev.map((m) => (
+                    m._id === tempId ? { ...m, deliveryStatus: 'failed', deliveryError: error } : m
+                )));
+                if (typeof addToast === 'function') {
+                    addToast(`${error}${errorCode ? ` (code ${errorCode})` : ''}`, 'error', 'Template not sent');
+                }
             }
         },
         [activeLeadId, fetchConversations, addToast]
@@ -515,10 +528,18 @@ export default function ChatDashboard() {
             if (!payload || !payload.wamid) return;
             setMessages((prev) =>
                 prev.map((m) =>
-                    m.wamid === payload.wamid
+                    // A send that timed out (202 unconfirmed) has no wamid yet: the
+                    // webhook confirmation names its ChatMessage _id (messageId).
+                    m.wamid === payload.wamid || (payload.messageId && !m.wamid && m._id === payload.messageId)
                         // Carry deliveryError too, so a failed send explains itself
                         // instead of showing only a red tick.
-                        ? { ...m, deliveryStatus: payload.deliveryStatus, deliveryError: payload.deliveryError || m.deliveryError }
+                        ? {
+                            ...m,
+                            wamid: m.wamid || payload.wamid,
+                            deliveryStatus: payload.deliveryStatus,
+                            deliveryError: payload.deliveryError || m.deliveryError,
+                            ...(payload.messageId ? { sendState: null } : {}),
+                        }
                         : m
                 )
             );

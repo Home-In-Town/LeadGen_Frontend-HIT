@@ -11,7 +11,7 @@
  * many random inputs (vendorUid, apiKey, URLs, secrets, booleans).
  */
 import React from 'react';
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as fc from 'fast-check';
 import axios from 'axios';
@@ -47,7 +47,19 @@ vi.mock('../context/NotificationContext', () => ({
   }),
 }));
 
+// The page calls useNavigate(); these tests render it without a Router.
+const { mockNavigate } = vi.hoisted(() => ({ mockNavigate: vi.fn() }));
+vi.mock('react-router-dom', async (importOriginal) => ({
+  ...(await importOriginal()),
+  useNavigate: () => mockNavigate,
+}));
+
 import IntegrationsPage from './IntegrationsPage';
+
+// Property tests render the page once per generated value. Under a loaded
+// machine the default 5 s budget is too small, and a timed-out property keeps
+// rendering in the background into later tests.
+const PROPERTY_TIMEOUT_MS = 60000;
 
 describe('Preservation Property Tests: WhatsApp & Project Source Tabs', () => {
   let mockAxiosInstance;
@@ -58,8 +70,23 @@ describe('Preservation Property Tests: WhatsApp & Project Source Tabs', () => {
   });
 
   afterEach(() => {
+    cleanup();
     vi.restoreAllMocks();
   });
+
+  /* ------------------------------------------------------------------ */
+  /* Helper: run one property iteration on a clean DOM. A failed run (or */
+  /* a fast-check shrink re-run) must not leave its page mounted, or the */
+  /* next run finds every text twice.                                    */
+  /* ------------------------------------------------------------------ */
+  const isolated = (body) => async (...args) => {
+    cleanup();
+    try {
+      await body(...args);
+    } finally {
+      cleanup();
+    }
+  };
 
   /* ------------------------------------------------------------------ */
   /* Helper: wait for loading to finish                                  */
@@ -83,13 +110,17 @@ describe('Preservation Property Tests: WhatsApp & Project Source Tabs', () => {
   /* Validates: Requirements 3.1, 3.3                                   */
   /* ================================================================== */
   describe('WhatsApp Tab Preservation', () => {
-    it('for all valid WhatsApp settings, WhatsApp tab renders vendorUid and apiKey fields and save triggers PUT /integrations/whatsapp', async () => {
+    // The WhatsApp tab is status-only: numbers come from the phone-numbers
+    // endpoint and setup happens on /whatsapp-setup. Legacy vendorUid/apiKey
+    // values in the settings response are never shown or saved from here.
+    it('for any legacy WhatsApp credentials in the settings response, the WhatsApp tab shows the connection status, renders no credential fields and sends setup to /whatsapp-setup', async () => {
       await fc.assert(
         fc.asyncProperty(
           fc.string({ minLength: 0, maxLength: 50 }),
           fc.string({ minLength: 0, maxLength: 50 }),
-          async (vendorUid, apiKey) => {
-            // Setup: mock API returns the generated settings
+          isolated(async (vendorUid, apiKey) => {
+            mockNavigate.mockClear();
+            mockAxiosInstance.put.mockClear();
             mockAxiosInstance.get.mockResolvedValue({
               data: {
                 whatsapp: { vendorUid, apiKey },
@@ -98,50 +129,33 @@ describe('Preservation Property Tests: WhatsApp & Project Source Tabs', () => {
                 aguken: { agentId: '', clientId: '' },
               },
             });
-            mockAxiosInstance.put.mockResolvedValue({ data: {} });
 
-            const { unmount } = render(<IntegrationsPage />);
+            render(<IntegrationsPage />);
             await waitForLoad();
 
-            // Switch to WhatsApp tab
             switchToTab('WhatsApp');
 
-            // Assert: WhatsApp heading is visible
             expect(screen.getByText('WhatsApp Integration')).toBeInTheDocument();
+            expect(screen.getByText('No WhatsApp numbers connected yet')).toBeInTheDocument();
 
-            // Assert: vendorUid and apiKey fields are rendered (password type by default)
-            const vendorLabel = screen.getByText('Vendor UID');
-            const apiLabel = screen.getByText('API Key');
-            expect(vendorLabel).toBeInTheDocument();
-            expect(apiLabel).toBeInTheDocument();
+            // No legacy credentials form
+            expect(screen.queryByText('Vendor UID')).not.toBeInTheDocument();
+            expect(screen.queryByText('API Key')).not.toBeInTheDocument();
+            expect(screen.queryByRole('button', { name: /Save WhatsApp Settings/i })).not.toBeInTheDocument();
+            expect(document.querySelectorAll('input')).toHaveLength(0);
 
-            // Assert: Save button exists
-            const saveButton = screen.getByRole('button', { name: /Save WhatsApp Settings/i });
-            expect(saveButton).toBeInTheDocument();
+            fireEvent.click(screen.getAllByRole('button', { name: /Connect WhatsApp/i })[0]);
+            expect(mockNavigate).toHaveBeenCalledWith('/whatsapp-setup');
 
-            // Submit the form
-            fireEvent.click(saveButton);
-
-            await waitFor(() => {
-              // Assert: PUT /integrations/whatsapp was called
-              const putCalls = mockAxiosInstance.put.mock.calls;
-              const whatsappPuts = putCalls.filter(
-                (call) => call[0] && call[0].includes('/integrations/whatsapp')
-              );
-              expect(whatsappPuts.length).toBeGreaterThanOrEqual(1);
-
-              // Assert: payload contains vendorUid and apiKey
-              const lastCall = whatsappPuts[whatsappPuts.length - 1];
-              expect(lastCall[1]).toHaveProperty('vendorUid');
-              expect(lastCall[1]).toHaveProperty('apiKey');
-            });
-
-            unmount();
-          }
+            const whatsappPuts = mockAxiosInstance.put.mock.calls.filter(
+              (call) => call[0] && call[0].includes('/integrations/whatsapp')
+            );
+            expect(whatsappPuts).toHaveLength(0);
+          })
         ),
         { numRuns: 10 }
       );
-    });
+    }, PROPERTY_TIMEOUT_MS);
   });
 
   /* ================================================================== */
@@ -156,7 +170,7 @@ describe('Preservation Property Tests: WhatsApp & Project Source Tabs', () => {
           fc.string({ minLength: 1, maxLength: 50 }),
           fc.webUrl(),
           fc.boolean(),
-          async (sourceUrl, webhookSecret, salesWebsiteUrl, isActive) => {
+          isolated(async (sourceUrl, webhookSecret, salesWebsiteUrl, isActive) => {
             // Setup: mock API returns the generated settings
             mockAxiosInstance.get.mockResolvedValue({
               data: {
@@ -220,11 +234,11 @@ describe('Preservation Property Tests: WhatsApp & Project Source Tabs', () => {
             });
 
             unmount();
-          }
+          })
         ),
         { numRuns: 10 }
       );
-    });
+    }, PROPERTY_TIMEOUT_MS);
   });
 
   /* ================================================================== */
@@ -237,7 +251,7 @@ describe('Preservation Property Tests: WhatsApp & Project Source Tabs', () => {
         fc.asyncProperty(
           fc.webUrl(),
           fc.string({ minLength: 1, maxLength: 50 }),
-          async (sourceUrl, webhookSecret) => {
+          isolated(async (sourceUrl, webhookSecret) => {
             mockAxiosInstance.get.mockResolvedValue({
               data: {
                 whatsapp: { vendorUid: '', apiKey: '' },
@@ -271,11 +285,11 @@ describe('Preservation Property Tests: WhatsApp & Project Source Tabs', () => {
             });
 
             unmount();
-          }
+          })
         ),
         { numRuns: 10 }
       );
-    });
+    }, PROPERTY_TIMEOUT_MS);
   });
 
   /* ================================================================== */
@@ -287,7 +301,7 @@ describe('Preservation Property Tests: WhatsApp & Project Source Tabs', () => {
       await fc.assert(
         fc.asyncProperty(
           fc.array(fc.constantFrom('whatsapp', 'external'), { minLength: 1, maxLength: 10 }),
-          async (tabSequence) => {
+          isolated(async (tabSequence) => {
             mockAxiosInstance.get.mockResolvedValue({
               data: {
                 whatsapp: { vendorUid: 'test-uid', apiKey: 'test-key' },
@@ -319,11 +333,11 @@ describe('Preservation Property Tests: WhatsApp & Project Source Tabs', () => {
             }
 
             unmount();
-          }
+          })
         ),
         { numRuns: 20 }
       );
-    });
+    }, PROPERTY_TIMEOUT_MS);
   });
 
   /* ================================================================== */
@@ -331,14 +345,16 @@ describe('Preservation Property Tests: WhatsApp & Project Source Tabs', () => {
   /* Validates: Requirements 3.1, 3.2 (password field behavior)          */
   /* ================================================================== */
   describe('Visibility Toggle Preservation', () => {
-    it('for all visibility toggle sequences on remaining fields, password fields toggle correctly', async () => {
+    // The webhook secret is the only password field left (the WhatsApp tab
+    // has no credential fields). Its visibility survives tab switches.
+    it('for all sequences of secret toggles and tab switches, the webhook secret field toggles correctly', async () => {
       await fc.assert(
         fc.asyncProperty(
           fc.array(
-            fc.constantFrom('whatsappVendor', 'whatsappApi', 'externalSecret'),
+            fc.constantFrom('externalSecret', 'whatsappTab', 'externalTab'),
             { minLength: 1, maxLength: 15 }
           ),
-          async (toggleSequence) => {
+          isolated(async (actionSequence) => {
             mockAxiosInstance.get.mockResolvedValue({
               data: {
                 whatsapp: { vendorUid: 'test-uid', apiKey: 'test-key' },
@@ -351,58 +367,33 @@ describe('Preservation Property Tests: WhatsApp & Project Source Tabs', () => {
             const { unmount } = render(<IntegrationsPage />);
             await waitForLoad();
 
-            // Track expected visibility state for each field
-            const visibilityState = {
-              whatsappVendor: false,
-              whatsappApi: false,
-              externalSecret: false,
-            };
+            let secretVisible = false;
 
-            for (const field of toggleSequence) {
-              // Switch to the correct tab for the field
-              if (field === 'whatsappVendor' || field === 'whatsappApi') {
+            for (const action of actionSequence) {
+              if (action === 'whatsappTab') {
                 switchToTab('WhatsApp');
-              } else {
-                switchToTab('Project Source');
+                expect(screen.queryByPlaceholderText('Enter secret key')).not.toBeInTheDocument();
+                continue;
               }
 
-              // Find the toggle button for this field
-              let toggleButton;
-              if (field === 'whatsappVendor') {
-                const vendorInput = screen.getByPlaceholderText('Your Vendor UID');
-                toggleButton = vendorInput.parentElement.querySelector('button');
-              } else if (field === 'whatsappApi') {
-                const apiInput = screen.getByPlaceholderText('Your API Key');
-                toggleButton = apiInput.parentElement.querySelector('button');
-              } else {
+              switchToTab('Project Source');
+
+              if (action === 'externalSecret') {
                 const secretInput = screen.getByPlaceholderText('Enter secret key');
-                toggleButton = secretInput.parentElement.querySelector('button');
+                fireEvent.click(secretInput.parentElement.querySelector('button'));
+                secretVisible = !secretVisible;
               }
 
-              // Toggle visibility
-              fireEvent.click(toggleButton);
-              visibilityState[field] = !visibilityState[field];
-
-              // Verify the input type matches expected state
-              let input;
-              if (field === 'whatsappVendor') {
-                input = screen.getByPlaceholderText('Your Vendor UID');
-              } else if (field === 'whatsappApi') {
-                input = screen.getByPlaceholderText('Your API Key');
-              } else {
-                input = screen.getByPlaceholderText('Enter secret key');
-              }
-
-              const expectedType = visibilityState[field] ? 'text' : 'password';
-              expect(input.type).toBe(expectedType);
+              const input = screen.getByPlaceholderText('Enter secret key');
+              expect(input.type).toBe(secretVisible ? 'text' : 'password');
             }
 
             unmount();
-          }
+          })
         ),
         { numRuns: 15 }
       );
-    });
+    }, PROPERTY_TIMEOUT_MS);
   });
 
   /* ================================================================== */
