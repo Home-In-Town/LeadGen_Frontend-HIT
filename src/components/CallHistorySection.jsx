@@ -21,8 +21,6 @@ const STATUS = {
   failed:    { cls: 'bg-red-500/10     text-red-500     border-red-500/20',     icon: '✗' },
   started:   { cls: 'bg-blue-500/10    text-blue-600    border-blue-500/20',    icon: '→' },
   queued:    { cls: 'bg-slate-500/10   text-slate-600   border-slate-500/20',   icon: '…' },
-  'no-answer': { cls: 'bg-amber-500/10 text-amber-600 border-amber-500/20', icon: '☎', label: 'No answer' },
-  no_answer:   { cls: 'bg-amber-500/10 text-amber-600 border-amber-500/20', icon: '☎', label: 'No answer' },
 };
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -105,43 +103,22 @@ const TranscriptView = ({ transcript }) => {
 
 // ── main component ────────────────────────────────────────────────────────────
 
-// highlightCallId / highlightCallNumber (optional): when either prop is passed
-// (null allowed), the Automation page's "View call result" asks for one call.
-// That call is expanded after loading (by callId, else by callNumber). When
-// no entry matches, a notice says so; another call is never opened instead.
-const CallHistorySection = ({ leadId, highlightCallId, highlightCallNumber }) => {
+const CallHistorySection = ({ leadId }) => {
   const [calls, setCalls]         = useState([]);
   const [loading, setLoading]     = useState(true);
   const [error, setError]         = useState(null);
   const [expandedCall, setExpanded] = useState(null);
   const [activeTab, setActiveTab] = useState({}); // { [callKey]: 'transcript' | 'summary' }
-  const [highlightMissing, setHighlightMissing] = useState(false);
-
-  const wantsHighlight = highlightCallId !== undefined || highlightCallNumber !== undefined;
 
   useEffect(() => {
     if (!leadId) return;
     setLoading(true);
     setError(null);
-    setHighlightMissing(false);
     getLeadCallHistory(leadId)
-      .then(res => {
-        const list = res.data?.data || [];
-        setCalls(list);
-        if (wantsHighlight) {
-          let idx = highlightCallId ? list.findIndex(c => c.callId === highlightCallId) : -1;
-          if (idx < 0 && highlightCallNumber) idx = list.findIndex(c => c.callNumber === highlightCallNumber);
-          if (idx < 0) {
-            setExpanded(null);
-            setHighlightMissing(true);
-          } else {
-            setExpanded(list[idx].callId || idx);
-          }
-        }
-      })
+      .then(res => setCalls(res.data?.data || []))
       .catch(() => setError('Failed to load call history'))
       .finally(() => setLoading(false));
-  }, [leadId, highlightCallId, highlightCallNumber, wantsHighlight]);
+  }, [leadId]);
 
   const getTab = (key) => activeTab[key] || 'summary';
   const setTab = (key, tab) => setActiveTab(prev => ({ ...prev, [key]: tab }));
@@ -185,15 +162,6 @@ const CallHistorySection = ({ leadId, highlightCallId, highlightCallNumber }) =>
         </div>
       </div>
 
-      {highlightMissing && (
-        <p
-          role="status"
-          className="mb-4 rounded-[12px] bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:bg-amber-500/10 dark:text-amber-300"
-        >
-          This call&apos;s result is not in the call history yet.
-        </p>
-      )}
-
       {/* Empty state */}
       {calls.length === 0 ? (
         <div className="rounded-[14px] border border-dashed border-slate-300 dark:border-white/10 bg-slate-50/80 dark:bg-white/[0.02] p-8 text-center">
@@ -227,9 +195,7 @@ const CallHistorySection = ({ leadId, highlightCallId, highlightCallNumber }) =>
                       ? 'bg-emerald-500'
                       : call.status === 'failed'
                         ? 'bg-red-500'
-                        : call.status === 'no-answer' || call.status === 'no_answer'
-                          ? 'bg-amber-500'
-                          : 'bg-blue-500'
+                        : 'bg-blue-500'
                   }`} />
 
                   {/* Call Card */}
@@ -251,7 +217,7 @@ const CallHistorySection = ({ leadId, highlightCallId, highlightCallNumber }) =>
                           </span>
 
                           <span className={`rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.15em] border ${statusInfo.cls}`}>
-                            {statusInfo.icon} {statusInfo.label || call.status || 'completed'}
+                            {statusInfo.icon} {call.status || 'completed'}
                           </span>
 
                           <span className="text-[10px] font-mono font-bold text-slate-600 dark:text-slate-300">

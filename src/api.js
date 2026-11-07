@@ -98,14 +98,6 @@ export const deleteLeadAutomation = (id) => automationApi.delete(`/${id}`);
 export const enrollLeadNurture   = (leadId) => automationApi.post(`/nurture/${leadId}`);
 export const cancelLeadNurture   = (leadId) => automationApi.post(`/cancel-nurture/${leadId}`);
 export const sendTemplateNowToLead = (leadId, kind) => automationApi.post(`/send-now/${leadId}`, { kind });
-// Per-lead overview (rows with displayStatus/reason/retryable, ladder progress,
-// template options, AI-call availability) + retry and AI re-call actions.
-export const getLeadAutomationOverview = (leadId) => automationApi.get(`/lead/${encodeURIComponent(leadId)}/overview`);
-export const retryLeadAutomation = (id) => automationApi.post(`/${encodeURIComponent(id)}/retry`);
-export const callLeadNow = (leadId, idempotencyKey) => automationApi.post('/voice/call-now', { leadId, idempotencyKey });
-export const scheduleLeadCall = (leadId, scheduledAt, idempotencyKey) =>
-    automationApi.post('/voice/schedule', { leadId, scheduledAt, idempotencyKey });
-export const cancelLeadCall = (id) => automationApi.post(`/voice/${encodeURIComponent(id)}/cancel`);
 
 // ====== GOOGLE INTEGRATION ======
 export const getGoogleMappings = () => googleApi.get('/mapping');

@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { listWATemplates } from '../../api';
-import { projectTemplateLabel } from '../../utils/templateNames';
 
 /**
  * TemplatePicker — Modal for browsing and selecting approved WhatsApp message templates.
@@ -24,13 +23,12 @@ export default function TemplatePicker({ open, onClose, onSelectTemplate }) {
     try {
       const res = await listWATemplates();
       const all = res?.data?.data || res?.data || [];
-      // Only show APPROVED templates, and hide old versions of project templates
-      // (GET /api/whatsapp/templates marks them project.version === 'stale').
+      // Only show APPROVED templates
       const approved = Array.isArray(all)
-        ? all.filter((t) => t.status === 'APPROVED' && t.project?.version !== 'stale')
+        ? all.filter((t) => t.status === 'APPROVED')
         : [];
       setTemplates(approved);
-    } catch {
+    } catch (err) {
       setError('Unable to load templates. Please try again.');
     } finally {
       setLoading(false);
@@ -151,11 +149,6 @@ export default function TemplatePicker({ open, onClose, onSelectTemplate }) {
                         <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">
                           {template.name}
                         </p>
-                        {projectTemplateLabel(template) && (
-                          <p className="text-xs text-slate-600 dark:text-slate-300 truncate">
-                            {projectTemplateLabel(template)}
-                          </p>
-                        )}
                         <div className="flex items-center gap-2 mt-1">
                           <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300">
                             {template.category}
