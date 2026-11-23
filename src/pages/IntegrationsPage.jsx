@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useNotifications } from '../context/NotificationContext';
 import { listWAPhoneNumbers, removeWAPhoneNumber } from '../api';
 import { API_ORIGIN } from '../utils/env';
+import InstagramLoginCard from '../components/InstagramLoginCard';
 
 const API_BASE_URL = API_ORIGIN;
 
@@ -16,7 +17,9 @@ const IntegrationsPage = () => {
   const { addToast } = useNotifications();
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState('whatsapp');
+  const [activeTab, setActiveTab] = useState(() =>
+    new URLSearchParams(window.location.search).get('tab') === 'instagram' ? 'instagram' : 'whatsapp'
+  );
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
@@ -231,6 +234,13 @@ const IntegrationsPage = () => {
         title: 'Project Source',
         icon: 'webhook',
         activeClass: 'bg-indigo-600 text-white',
+      },
+
+      {
+        id: 'instagram',
+        title: 'Instagram Login',
+        icon: 'photo_camera',
+        activeClass: 'bg-pink-600 text-white',
       },
     ],
     []
@@ -619,6 +629,10 @@ const IntegrationsPage = () => {
 
               </div>
             )}
+
+            {/* INSTAGRAM LOGIN */}
+
+            {activeTab === 'instagram' && <InstagramLoginCard />}
 
           </div>
 

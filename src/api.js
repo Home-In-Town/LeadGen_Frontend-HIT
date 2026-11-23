@@ -336,6 +336,13 @@ export const initiateMetaSocialConnect = () => {
 export const getMetaSocialStatus       = ()     => metaSocialApi.get('/status');
 export const disconnectMetaSocial      = ()     => metaSocialApi.post('/disconnect');
 export const getMetaSocialPages        = ()     => metaSocialApi.get('/pages');
+// Instagram Login (separate from the Facebook connection above). Connect is a
+// top-level redirect so the backend's state cookie stays first-party.
+export const initiateInstagramLogin    = ()     => {
+    window.location.href = `${BASE_URL}/api/meta-social/instagram/connect`;
+};
+export const getInstagramLoginStatus   = ()     => metaSocialApi.get('/instagram/status');
+export const disconnectInstagramLogin  = ()     => metaSocialApi.post('/instagram/disconnect');
 export const subscribeFeedWebhook      = ()     => metaSocialApi.post('/subscribe-feed');
 
 // Create & Manage Posts (from OneEmployee)

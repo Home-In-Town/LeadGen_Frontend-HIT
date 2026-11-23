@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import InstagramCommentsModal from '../components/InstagramCommentsModal';
 import {
   getMetaSocialStatus,
   initiateMetaSocialConnect,
@@ -106,6 +107,15 @@ export default function MetaSocialPage() {
             <span className="material-symbols-outlined text-lg">link</span>
             Connect Facebook & Instagram
           </button>
+          <div className="mt-3">
+            <button
+              onClick={() => navigate('/integrations?tab=instagram')}
+              className="inline-flex items-center gap-2 rounded-xl border border-pink-300 px-6 py-3 text-sm font-bold text-pink-600 hover:bg-pink-50 transition-all"
+            >
+              <span className="material-symbols-outlined text-lg">photo_camera</span>
+              Connect with Instagram (no Facebook Page needed)
+            </button>
+          </div>
           <p className="text-[10px] text-slate-400 mt-4">
             Requires a Facebook Page. Instagram Business/Creator account is optional.
           </p>
@@ -128,7 +138,8 @@ export default function MetaSocialPage() {
     <div className="max-w-7xl mx-auto space-y-5">
       {/* Tab Navigation */}
       <div className="flex items-center gap-1 overflow-x-auto pb-1 scrollbar-hide">
-        {TAB_CONFIG.map(tab => (
+        {/* Ad Launcher needs a Facebook Page; an Instagram-Login-only account has none. */}
+        {TAB_CONFIG.filter(tab => !(tab.key === 'ad-launcher' && connection?.facebookConnected === false)).map(tab => (
           <button
             key={tab.key}
             onClick={() => navigate(tab.path)}
@@ -213,9 +224,22 @@ function OverviewTab({ connection, overview, navigate, addToast, onDisconnect })
                   {page.igUsername && (
                     <p className="text-[10px] text-slate-500 dark:text-slate-400">@{page.igUsername}</p>
                   )}
+                  {page.connectionType === 'instagram_login' && (
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                      Manage this connection in{' '}
+                      <Link to="/integrations?tab=instagram" className="font-bold text-pink-600 hover:underline">
+                        Integrations &gt; Instagram Login
+                      </Link>
+                    </p>
+                  )}
                 </div>
               </div>
               <div className="flex items-center gap-2">
+                {page.connectionType === 'instagram_login' && (
+                  <span className="inline-flex items-center gap-0.5 rounded-full bg-pink-100 px-2 py-0.5 text-[9px] font-bold text-pink-700">
+                    Instagram Login
+                  </span>
+                )}
                 {page.igAccountId && (
                   <span className="inline-flex items-center gap-0.5 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 px-2 py-0.5 text-[9px] font-bold text-white">
                     IG
@@ -261,7 +285,7 @@ function OverviewTab({ connection, overview, navigate, addToast, onDisconnect })
 
 function ComposeTab({ connection, addToast }) {
   const [message, setMessage] = useState('');
-  const [platforms, setPlatforms] = useState(['facebook']);
+  const [chosenPlatforms, setPlatforms] = useState(['facebook']);
   const [publishType, setPublishType] = useState('instant');
   const [scheduledAt, setScheduledAt] = useState('');
   const [publishing, setPublishing] = useState(false);
@@ -270,6 +294,11 @@ function ComposeTab({ connection, addToast }) {
   const pages = connection?.pages || [];
   const [selectedPageIdx, setSelectedPageIdx] = useState(0);
   const selectedPage = pages[selectedPageIdx];
+  // An Instagram Login account has no Facebook Page, so Facebook posting is
+  // rejected by the backend. Previously the default ['facebook'] was sent and
+  // the post failed; lock the selection to Instagram for these accounts.
+  const isIgLoginPage = selectedPage?.connectionType === 'instagram_login';
+  const platforms = isIgLoginPage ? ['instagram'] : chosenPlatforms;
 
   const handlePublish = async () => {
     if (!message.trim() && !mediaUrl.trim()) { addToast('Message or image URL is required', 'error'); return; }
@@ -322,6 +351,7 @@ function ComposeTab({ connection, addToast }) {
         {/* Platform selector */}
         <div className="flex gap-2">
           <button onClick={() => setPlatforms(p => p.includes('facebook') ? p.filter(x => x !== 'facebook') : [...p, 'facebook'])}
+            disabled={isIgLoginPage}
             className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-bold transition-all ${platforms.includes('facebook') ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10 text-blue-600' : 'border-slate-200 dark:border-white/10 text-slate-500'}`}>
             <span className="material-symbols-outlined text-sm">public</span> Facebook
           </button>
@@ -330,6 +360,9 @@ function ComposeTab({ connection, addToast }) {
             className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-bold transition-all disabled:opacity-40 ${platforms.includes('instagram') ? 'border-pink-500 bg-pink-50 dark:bg-pink-500/10 text-pink-600' : 'border-slate-200 dark:border-white/10 text-slate-500'}`}>
             <span className="material-symbols-outlined text-sm">photo_camera</span> Instagram
           </button>
+          {isIgLoginPage && (
+            <span className="self-center text-[10px] text-slate-500">Instagram needs a public JPEG image</span>
+          )}
         </div>
 
         {/* Message */}
@@ -467,6 +500,7 @@ function PostsTab({ connection, addToast }) {
   const [busyId, setBusyId] = useState(null);
   const [visible, setVisible] = useState(PAGE_SIZE);
   const [errors, setErrors] = useState([]);
+  const [commentsPost, setCommentsPost] = useState(null);
   const [selectedPageId, setSelectedPageId] = useState('');
   const pages = connection?.pages || [];
 
@@ -648,12 +682,17 @@ function PostsTab({ connection, addToast }) {
           <>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {shown.map((post, i) => (
-                <a
+                // The card used to be one <a>. A Comments button inside an <a> is
+                // invalid HTML, so the link now wraps only the media and text.
+                <div
                   key={post.id || i}
+                  className="rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200/70 dark:border-white/10 overflow-hidden hover:border-slate-300 dark:hover:border-white/20 transition-colors"
+                >
+                <a
                   href={post.permalink_url || post.permalink || undefined}
                   target="_blank"
                   rel="noreferrer"
-                  className="rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200/70 dark:border-white/10 overflow-hidden hover:border-slate-300 dark:hover:border-white/20 transition-colors"
+                  className="block"
                 >
                   {post.full_picture || post.media_url || post.thumbnail_url ? (
                     <img src={post.full_picture || post.thumbnail_url || post.media_url} alt="" className="w-full h-40 object-cover" />
@@ -670,6 +709,17 @@ function PostsTab({ connection, addToast }) {
                     </div>
                   </div>
                 </a>
+                {post.platform === 'instagram' && post.id && (
+                  <div className="px-3 pb-3">
+                    <button
+                      onClick={() => setCommentsPost(post)}
+                      className="w-full rounded-lg border border-pink-200 px-3 py-1.5 text-[11px] font-bold text-pink-600 hover:bg-pink-50 transition-colors"
+                    >
+                      Comments
+                    </button>
+                  </div>
+                )}
+                </div>
               ))}
             </div>
 
@@ -686,6 +736,15 @@ function PostsTab({ connection, addToast }) {
           </>
         )}
       </div>
+
+      {commentsPost && (
+        <InstagramCommentsModal
+          post={commentsPost}
+          pageId={selectedPageId}
+          addToast={addToast}
+          onClose={() => setCommentsPost(null)}
+        />
+      )}
     </div>
   );
 }
@@ -1035,7 +1094,11 @@ function MessagesTab({ connection, addToast }) {
 
   const handleSendReply = async () => {
     if (!replyText.trim() || !selectedConv) return;
-    const recipient = selectedConv.participants?.find(p => p.id !== selectedPageId);
+    // Instagram lists the business's own IG id as a participant, and it differs
+    // from pageId, so the old check could pick the business itself as the
+    // recipient. Exclude the page's igAccountId too.
+    const ownIgId = pages.find(p => p.pageId === selectedPageId)?.igAccountId;
+    const recipient = selectedConv.participants?.find(p => p.id !== selectedPageId && p.id !== ownIgId);
     if (!recipient) { addToast('Cannot identify recipient', 'error'); return; }
 
     setSending(true);
@@ -1050,6 +1113,8 @@ function MessagesTab({ connection, addToast }) {
   };
 
   if (loading) return <div className="flex justify-center p-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>;
+
+  const ownIgAccountId = pages.find(p => p.pageId === selectedPageId)?.igAccountId;
 
   return (
     <div className="space-y-3">
@@ -1130,7 +1195,8 @@ function MessagesTab({ connection, addToast }) {
                 <p className="text-center text-xs text-slate-400 py-8">No messages in this conversation</p>
               ) : (
                 [...messages].reverse().map(msg => {
-                  const isMe = msg.from?.name === 'You' || msg.from?.id === selectedPageId;
+                  const isMe = msg.from?.name === 'You' || msg.from?.id === selectedPageId
+                    || (!!ownIgAccountId && msg.from?.id === ownIgAccountId);
                   return (
                     <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
                       <div className={`max-w-[70%] px-3 py-2 rounded-2xl text-xs ${isMe ? 'bg-primary text-white rounded-br-md' : 'bg-slate-100 dark:bg-white/10 text-slate-800 dark:text-white rounded-bl-md'}`}>
