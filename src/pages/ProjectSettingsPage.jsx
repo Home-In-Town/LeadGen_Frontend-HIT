@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useNotifications } from '../context/NotificationContext';
 import {
@@ -17,6 +17,8 @@ import {
   deleteProjectTemplate,
 } from '../api';
 import { KIND_LABEL, friendlyTemplateName as sharedFriendlyName } from '../utils/templateNames';
+import TemplateImagePicker from '../components/project/TemplateImagePicker';
+import { buildHeaderImages, buildResubmitBody } from '../components/project/templateImageUtils';
 
 // The 15 need-based templates (one-month ladder). `label` is what the client sees,
 // `need` is the customer question it answers, `when` explains when the system
@@ -133,7 +135,13 @@ const ProjectSettingsPage = () => {
   const [generating, setGenerating] = useState(false);
   const [syncingTemplates, setSyncingTemplates] = useState(false);
   const [retryingKind, setRetryingKind] = useState(null);
-  // Authoritative WhatsApp state from the templates endpoint itself (stricter and
+  // Optional per-template header images: { kind: { url, preview, name } }. `touched`
+  // marks kinds the user changed locally, so a status refresh never overwrites a pick
+  // that has not been submitted yet.
+  const [headerImages, setHeaderImages] = useState({});
+  const [imagesBusy, setImagesBusy] = useState(false);
+  const [resubmittingKind, setResubmittingKind] = useState(null);
+  const touchedImages = useRef(new Set());  // Authoritative WhatsApp state from the templates endpoint itself (stricter and
   // more accurate than channel-status): connected = WABA + usable token,
   // ready = number is live on Cloud API (not PENDING / under verification).
   const [waConnectedForTemplates, setWaConnectedForTemplates] = useState(null);
@@ -152,7 +160,17 @@ const ProjectSettingsPage = () => {
       // any rows are stale (left over from a previous connection) and must not be
       // presented as live — the UI shows a "connect first" state instead.
       setProjTemplates(d.waConnected ? (d.templates || []) : []);
-    } catch {
+      // Show the image the server already holds for each template (customHeaderImageUrl).
+      setHeaderImages((prev) => {
+        const next = { ...prev };
+        for (const k of EXPECTED_KINDS) {
+          if (touchedImages.current.has(k)) continue;
+          const row = d.waConnected ? (d.templates || []).find((t) => t.kind === k) : null;
+          if (row?.customHeaderImageUrl) next[k] = { url: row.customHeaderImageUrl, preview: row.customHeaderImageUrl, name: '' };
+          else delete next[k];
+        }
+        return next;
+      });    } catch {
       setProjTemplates([]);
       setWaConnectedForTemplates(null);
       setWaReady(null);
@@ -167,8 +185,9 @@ const ProjectSettingsPage = () => {
       // If templates already exist, pass force=true to delete old Meta templates
       // and re-submit with fresh content (covers image updates, text changes, rejected retries).
       const isReapply = projTemplates.length > 0;
-      const res = await generateProjectTemplates(hitProjectId, { force: isReapply });
-      const results = res.data?.results || [];
+      // Only images the user changed are sent; with none, the body is exactly as before.
+      const picked = buildHeaderImages(headerImages, storedImages);
+      const res = await generateProjectTemplates(hitProjectId, { force: isReapply, ...(picked ? { headerImages: picked } : {}) });      const results = res.data?.results || [];
       // `results` mixes successes with { status: 'error' } entries — count them
       // separately so a batch that entirely failed is never reported as success.
       const failed = results.filter(r => r.status === 'error');
@@ -194,11 +213,45 @@ const ProjectSettingsPage = () => {
           failed.length ? 'warning' : 'success'
         );
       }
+      touchedImages.current.clear();
       await fetchTemplates();
     } catch (err) {
-      addToast(err.response?.data?.error || 'Failed to generate templates', 'error');
+      const bad = err.response?.data;
+      addToast(bad?.code === 'HEADER_IMAGE_INVALID' && bad.kind
+        ? `${TEMPLATE_KIND_META[bad.kind]?.label || bad.kind}: ${bad.error}`
+        : (bad?.error || 'Failed to generate templates'), 'error');
     } finally {
       setGenerating(false);
+    }
+  };
+
+  // Image the server holds per kind, and which created kinds the user changed since.
+  const storedImages = Object.fromEntries(projTemplates.filter((t) => t.customHeaderImageUrl).map((t) => [t.kind, t.customHeaderImageUrl]));
+  const createdKinds = Object.fromEntries(projTemplates.map((t) => [t.kind, true]));
+  const changedImageKinds = Object.fromEntries(EXPECTED_KINDS
+    .filter((k) => (headerImages[k]?.url || '') !== (storedImages[k] || '')).map((k) => [k, true]));
+
+  const handleImagesChange = (next) => {
+    for (const k of EXPECTED_KINDS) if (headerImages[k]?.url !== next[k]?.url) touchedImages.current.add(k);
+    setHeaderImages(next);
+  };
+
+  // Replace (or remove) the image of one template that already exists: a new
+  // version is submitted and the live one keeps sending until it is approved.
+  const handleResubmitImage = async (kind) => {
+    const label = TEMPLATE_KIND_META[kind]?.label || kind;
+    try {
+      setResubmittingKind(kind);
+      const res = await generateProjectTemplates(hitProjectId, buildResubmitBody(kind, headerImages[kind]));
+      const r = (res.data?.results || [])[0];
+      if (r?.status === 'error') addToast(`"${label}": ${r.error || 'Resubmit nahi ho paaya'}`, 'error');
+      else addToast(`"${label}" nayi image ke saath resubmit ho gaya`, 'success');
+      touchedImages.current.delete(kind);
+      await fetchTemplates();
+    } catch (err) {
+      addToast(err.response?.data?.error || `Could not resubmit "${label}"`, 'error');
+    } finally {
+      setResubmittingKind(null);
     }
   };
 
@@ -608,12 +661,25 @@ const ProjectSettingsPage = () => {
                   {syncingTemplates && <span className="animate-spin h-3 w-3 border-2 border-slate-400/40 border-t-slate-500 rounded-full" />}
                   {syncingTemplates ? 'Syncing…' : 'Sync Status'}
                 </button>
-                <button onClick={handleGenerateTemplates} disabled={generating} className={btnPrimary}>
+                <button onClick={handleGenerateTemplates} disabled={generating || imagesBusy} className={btnPrimary}>
                   {generating && <span className="animate-spin h-3.5 w-3.5 border-2 border-white/30 border-t-white rounded-full" />}
                   {generating ? 'Submitting…' : (projTemplates.length ? 'Regenerate & Submit' : 'Generate Templates')}
                 </button>
               </div>
             </div>
+
+            <TemplateImagePicker
+              kinds={EXPECTED_KINDS.map((k) => ({ kind: k, label: TEMPLATE_KIND_META[k].label, need: TEMPLATE_KIND_META[k].need }))}
+              images={headerImages}
+              onChange={handleImagesChange}
+              created={createdKinds}
+              changed={changedImageKinds}
+              onResubmit={handleResubmitImage}
+              resubmittingKind={resubmittingKind}
+              onBusyChange={setImagesBusy}
+              disabled={generating}
+              btnClass={btnOutline}
+            />
 
             {/* ── Submission status summary ─────────────────────────────── */}
             {projTemplates.length > 0 && (() => {
