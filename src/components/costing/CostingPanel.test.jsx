@@ -112,6 +112,22 @@ describe('CostingPanel', () => {
     expect(getCostSummary).toHaveBeenLastCalledWith({ from: '2026-09-01', to: '2026-09-30' });
   });
 
+  it('selecting the current month clamps `to` to today', async () => {
+    renderPanel();
+    await screen.findByTestId('total-inr');
+    const now = new Date(Date.now() + 5.5 * 3600 * 1000).toISOString().slice(0, 10);
+    const cur = now.slice(0, 7);
+    getCostMonths.mockImplementation(() => ok({ months: [{ month: cur, totalInr: 1, infraStatus: 'provisional' }, { month: '2026-09', totalInr: 99, infraStatus: 'final' }] }));
+    fireEvent.change(screen.getByLabelText('Month'), { target: { value: '2026-09' } });
+    await waitFor(() => expect(getCostMonth).toHaveBeenCalledWith('2026-09'));
+    fireEvent.change(screen.getByLabelText('Month'), { target: { value: cur } });
+    await waitFor(() => {
+      const last = getCostSummary.mock.calls[getCostSummary.mock.calls.length - 1][0];
+      expect(last.from).toBe(`${cur}-01`);
+      expect(last.to <= now).toBe(true);
+    });
+  });
+
   it('shows price-missing and FX notices', async () => {
     getCostSummary.mockImplementation(() => ok(summary({ priceMissing: { events: 3, components: ['llm'], fx: true } })));
     renderPanel();

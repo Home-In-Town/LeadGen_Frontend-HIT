@@ -26,7 +26,11 @@ const addDays = (day, n) => {
 const monthRange = (m) => {
   const [y, mm] = m.split('-').map(Number);
   const last = new Date(Date.UTC(y, mm, 0)).getUTCDate();
-  return { from: `${m}-01`, to: `${m}-${String(last).padStart(2, '0')}` };
+  const end = `${m}-${String(last).padStart(2, '0')}`;
+  // The backend rejects `to` more than 1 day ahead (400). Previously the current month sent its month end,
+  // so picking it showed an error and Retry never worked. Clamp to the IST today.
+  const today = istToday();
+  return { from: `${m}-01`, to: end > today ? today : end };
 };
 const errText = (e) => e?.response?.data?.error || e?.message || 'Could not load costing data';
 
