@@ -34,6 +34,7 @@ const leadsApi = createApiInstance('/leads');
 const voiceApi = createApiInstance('/voice');
 const automationApi = createApiInstance('/lead-automation');
 const googleApi = createApiInstance('/google');
+const costingApi = createApiInstance('/costing');
 
 // Default export (leadsApi)
 export default leadsApi;
@@ -431,3 +432,12 @@ export const getFBConversationMessages  = (conversationId, params) => messagingA
 export const sendFBMessageReply         = (data) => messagingApi.post('/facebook/send', data);
 export const getIGConversationMessages  = (conversationId, params) => messagingApi.get(`/instagram/${conversationId}`, { params });
 export const sendIGMessageReply         = (data) => messagingApi.post('/instagram/send', data);
+
+// ====== COSTING / USAGE (owner-only, read-only) ======
+// The backend scopes everything to the logged-in owner; no owner id is ever sent from here.
+export const getCostSummary = (params) => costingApi.get('/summary', { params });
+export const getCostMonth = (month) => costingApi.get('/month', { params: month ? { month } : {} });
+export const getCostMonths = (count) => costingApi.get('/months', { params: count ? { count } : {} });
+export const getLeadCost = (leadId) => costingApi.get(`/leads/${encodeURIComponent(leadId)}`);
+export const getLeadCostEvents = (leadId, params) => costingApi.get(`/leads/${encodeURIComponent(leadId)}/events`, { params });
+export const getCostPrices = () => costingApi.get('/prices');

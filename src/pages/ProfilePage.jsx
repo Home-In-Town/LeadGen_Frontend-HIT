@@ -8,6 +8,7 @@ import {
   getUsageStats, syncIntegrationStatus,
 } from '../api';
 import { FEATURES } from '../config/phase';
+import CostingPanel from '../components/costing/CostingPanel';
 
 const cardClass = 'rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200/70 dark:border-white/10 shadow-sm';
 const inputClass = 'w-full rounded-xl border border-slate-200 dark:border-white/15 bg-white dark:bg-slate-800/60 px-4 py-3 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all';
@@ -362,6 +363,8 @@ const ProfilePage = () => {
       </div>
       )}
 
+      {/* Costing / Usage: last card, below HomeInTown, per the 'bottom panel' request */}
+      <CostingPanel />
       {/* Account Info */}
       <div className="text-center pb-4">
         <p className="text-[10px] text-slate-400 dark:text-slate-500">Account ID: {user?.id} &middot; Role: {user?.role}</p>

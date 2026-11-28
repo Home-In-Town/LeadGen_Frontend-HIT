@@ -20,6 +20,7 @@ import WhatsAppSection from '../components/lead/WhatsAppSection';
 import VoiceCallSection from '../components/lead/VoiceCallSection';
 import LinkActivitySection from '../components/lead/LinkActivitySection';
 import WebConversationSection from '../components/lead/WebConversationSection';
+import LeadCostBadge from '../components/costing/LeadCostBadge';
 import CallHistorySection from '../components/CallHistorySection';
 import { getChatMessages } from '../api';
 import { BRAND_COLOR } from '../config/phase';
@@ -73,6 +74,8 @@ const LeadGenerationPage = () => {
   const [isConnected, setIsConnected] = useState(false);
   const [chatMessages, setChatMessages] = useState([]);
   const [activeTab, setActiveTab] = useState('overview');
+  // Bumped by the existing call_update handler so the cost badge refetches when a call finishes.
+  const [costRefreshKey, setCostRefreshKey] = useState(0);
   const [deleteModal, setDeleteModal] = useState(false);
   const [automationHistory, setAutomationHistory] = useState([]);
   const [editModal, setEditModal] = useState(false);
@@ -157,7 +160,7 @@ const LeadGenerationPage = () => {
     };
 
     const handleWhatsapp = async (data) => { handleUpdate(data, 'whatsapp'); await fetchWhatsAppMessages(); };
-    const handleCall = (data) => handleUpdate(data, 'call');
+    const handleCall = (data) => { handleUpdate(data, 'call'); setCostRefreshKey((k) => k + 1); };
     const handleLink = (data) => { if (!data.automationId) handleUpdate(data, 'analytics'); };
 
     socket.on('whatsapp_update', handleWhatsapp);
@@ -273,6 +276,7 @@ const LeadGenerationPage = () => {
             <div className="flex items-center gap-2">
               <h1 className="text-xl font-black text-slate-900 dark:text-white">{name}</h1>
               <span className={`px-2 py-0.5 text-[10px] font-bold rounded border ${statusColor}`}>{status}</span>
+              <LeadCostBadge leadId={id} refreshKey={costRefreshKey} />
             </div>
             <div className="flex items-center gap-3 mt-1 text-sm text-slate-500">
               <span className="flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">call</span>{leadData.phone_number}</span>
