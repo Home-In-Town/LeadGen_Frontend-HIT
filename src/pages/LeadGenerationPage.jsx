@@ -19,6 +19,7 @@ import * as api from '../api';
 import WhatsAppSection from '../components/lead/WhatsAppSection';
 import VoiceCallSection from '../components/lead/VoiceCallSection';
 import LinkActivitySection from '../components/lead/LinkActivitySection';
+import WebConversationSection from '../components/lead/WebConversationSection';
 import CallHistorySection from '../components/CallHistorySection';
 import { getChatMessages } from '../api';
 import { BRAND_COLOR } from '../config/phase';
@@ -433,6 +434,9 @@ const LeadGenerationPage = () => {
       {activeTab === 'activity' && (
         <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5">
           <LinkActivitySection leadData={leadData} isHighlighted={lastUpdateType === 'analytics'} />
+          <div className="mt-6 pt-5 border-t border-slate-200 dark:border-slate-700">
+            <WebConversationSection leadId={id} socket={socket} />
+          </div>
         </div>
       )}
 

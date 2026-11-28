@@ -62,6 +62,7 @@ export const updateWhatsapp = (id, reply) => leadsApi.post(`/${id}/whatsapp-resu
 export const updateAiCall = (id, data) => leadsApi.post(`/${id}/ai-call-result`, data);
 export const updateLinkActivity = (id, data) => leadsApi.post(`/${id}/link-activity`, data);
 export const getSummary = (id) => leadsApi.get(`/${id}/summary`);
+export const getLeadWebConversations = (id) => leadsApi.get(`/${id}/web-conversations`);
 export const deleteLead = (id) => leadsApi.delete(`/${id}`);
 export const updateLead = (id, data) => leadsApi.put(`/${id}`, data);
 export const bulkDeleteLeads = (ids) => leadsApi.post('/bulk-delete', { ids });
